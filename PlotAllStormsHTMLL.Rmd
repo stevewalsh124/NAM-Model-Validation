@@ -20,7 +20,7 @@ library(stringr) #str_locate_all "_218_" in the NAM file names
 Plotting 39 Storms' Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
-all.storm.folders <- list.dirs("G:\\NAMandST4", recursive = F)
+all.storm.folders <- list.dirs("NAMandST4", recursive = F) #G:\\NAMandST4
 NAMlist <- list()
 ST4list <- list()
 mask <- raster("G:\\lsmask.nc")
@@ -67,15 +67,16 @@ for(i in 1:length(all.storm.folders)){
   }
   first24NAM <- (NAMlist[[i]][[1]]+NAMlist[[i]][[2]])*mask.regrid
   first24ST4 <- (ST4list[[i]][[1]]+ST4list[[i]][[2]]+ST4list[[i]][[3]]+ST4list[[i]][[4]])*mask.regrid
+  error.max <- max(abs(min(values(first24NAM-first24ST4),
+                           na.rm = T)),max(values(first24NAM-first24ST4),na.rm = T))
+
   plot(first24NAM, xlim=c(-110,-55), ylim=c(23,50),
        main=paste(all.storm.folders[i],"NAM"));plot(st_geometry(spData::us_states), add=TRUE)
   plot(first24ST4, xlim=c(-110,-55), ylim=c(23,50),
        main=all.storm.folders[i]);plot(st_geometry(spData::us_states), add=TRUE)
-  plot(first24NAM-first24ST4, breaks=seq(-300,300,30),
+  plot(first24NAM-first24ST4, breaks=seq(-1*ceiling(error.max/10)*10,ceiling(error.max/10)*10,ceiling(error.max/10)),
        xlim=c(-110,-55), ylim=c(23,50),col=colorspace::diverge_hsv(20),
        main="Error, Forecast NAM - Observed ST4")
   plot(st_geometry(spData::us_states), add=TRUE)
-  min(values(first24NAM-first24ST4),na.rm = T);max(values(first24NAM-first24ST4),na.rm = T)
 }
-
 ```
