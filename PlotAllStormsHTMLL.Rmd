@@ -67,9 +67,12 @@ for(i in 1:length(all.storm.folders)){
   }
   first24NAM <- (NAMlist[[i]][[1]]+NAMlist[[i]][[2]])*mask.regrid
   first24ST4 <- (ST4list[[i]][[1]]+ST4list[[i]][[2]]+ST4list[[i]][[3]]+ST4list[[i]][[4]])*mask.regrid
-  plot(first24NAM, xlim=c(-110,-55), ylim=c(23,50), main=paste(all.storm.folders[i],"NAM"));plot(st_geometry(spData::us_states), add=TRUE)
-  plot(first24ST4, xlim=c(-110,-55), ylim=c(23,50), main=all.storm.folders[i]);plot(st_geometry(spData::us_states), add=TRUE)
-  plot(first24NAM-first24ST4, breaks=seq(-300,300,30),  xlim=c(-110,-55), ylim=c(23,50),col=colorspace::diverge_hsv(20),
+  plot(first24NAM, xlim=c(-110,-55), ylim=c(23,50),
+       main=paste(all.storm.folders[i],"NAM"));plot(st_geometry(spData::us_states), add=TRUE)
+  plot(first24ST4, xlim=c(-110,-55), ylim=c(23,50),
+       main=all.storm.folders[i]);plot(st_geometry(spData::us_states), add=TRUE)
+  plot(first24NAM-first24ST4, breaks=seq(-300,300,30),
+       xlim=c(-110,-55), ylim=c(23,50),col=colorspace::diverge_hsv(20),
        main="Error, Forecast NAM - Observed ST4")
   plot(st_geometry(spData::us_states), add=TRUE)
   min(values(first24NAM-first24ST4),na.rm = T);max(values(first24NAM-first24ST4),na.rm = T)
