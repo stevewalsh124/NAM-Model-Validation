@@ -6,3 +6,4 @@ Data will be organized within the root directory, NAMandST4. Within this directo
 
 The NAM and ST4 are on different resolutions (approximately 12km and 4km, respectively), so bilinear interpolation is used upon the ST4 data to match the spatial resolution of the two datasets.
  Goals include transforming forecast based on previous systematic biases in similar spatial locations to provide more a more accurate product, as well as comparing accuracy of statistical and dynamical weather models.
+
