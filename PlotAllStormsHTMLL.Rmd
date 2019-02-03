@@ -13,21 +13,26 @@ library(ncdf4)
 library(sf)
 library(dplyr)
 library(stringr) #str_locate_all "_218_" in the NAM file names
+library(rgdal)
+library(colorspace)
+library(ggplot2)
+library("gridExtra")
+library(cowplot)
 
-# install.packages("rgdal", type = "source", configure.args="--with-gdal-config=/Library/Frameworks/GDAL.framework/unix/bin/gdal-config --with-proj-include=/Library/Frameworks/PROJ.framework/unix/include --with-proj-lib=/Library/Frameworks/PROJ.framework/unix/lib --with-proj-share=/Library/Frameworks/PROJ.framework/unix/share/proj --with-proj-data=/Library/Frameworks/PROJ.framework/unix/share/proj --with-data-copy=yes")
 ```
 
-Plotting 39 Storms' Precipitation for First 24 Hours After Landfall
+Plotting 44 Storms' Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
+pdf("white44.pdf")
 all.storm.folders <- list.dirs("NAMandST4", recursive = F) #G:\\NAMandST4
 NAMlist <- list()
 ST4list <- list()
-mask <- raster("G:\\lsmask.nc")
+mask <- raster("lsmask.nc")
 mask[mask==-1] <- 0
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- resample(mask, projectRaster(raster("G:\\nam_218_20050829_1200_f012.grib"),crs = "+proj=longlat +datum=WGS84"), method='ngb')
+mask.regrid <- resample(mask, projectRaster(raster("nam_218_20050829_1200_f012.grib"),crs = "+proj=longlat +datum=WGS84"), method='ngb')
 
 
 for(i in 1:length(all.storm.folders)){
@@ -42,20 +47,24 @@ for(i in 1:length(all.storm.folders)){
   #print(list.files(NAM_folder))
   NAMlist[[i]] <- list()
   ST4list[[i]] <- list()
-  if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else 
-  if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} else {print("something went wrong"); next}
+  if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} 
+  else if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} 
+  else {print("Total NAM files for this storm not 15 or 18; skipping"); next}
   for (j in 1:length(list.files(NAM_folder,full.names = T)[first24])) {
     # j <-1
     NAMfile <- list.files(NAM_folder,full.names = T)[j]
     # paste(NAM_folder,"/",NAMfile, sep = "") #don't need when full.names=T in list.dirs
     date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][1,2] + 1
     storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
-    if(storm_date < 20060701){NAM_band <- 10} else if(storm_date > 20060701 && storm_date < 20170101){NAM_band <- 11} else {NAM_band <- 373}
+    if(storm_date < 20060701){NAM_band <- 10} 
+    else if(storm_date > 20060701 && storm_date < 20170101){NAM_band <- 11} 
+    else {NAM_band <- 373}
     print(NAM_band)
     NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
     print(min(values(NAMlist[[i]][[j]]), na.rm=T))
     values(NAMlist[[i]][[j]])[which(values(NAMlist[[i]][[j]]<0))] <- 0 #change negative projected precipitation to 0
   }
+  
   for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
     # k <-1
     ST4file <- list.files(ST4_folder,full.names = T)[k]
@@ -69,14 +78,123 @@ for(i in 1:length(all.storm.folders)){
   first24ST4 <- (ST4list[[i]][[1]]+ST4list[[i]][[2]]+ST4list[[i]][[3]]+ST4list[[i]][[4]])*mask.regrid
   error.max <- max(abs(min(values(first24NAM-first24ST4),
                            na.rm = T)),max(values(first24NAM-first24ST4),na.rm = T))
+  # plot(first24NAM, xlim=c(-110,-55), ylim=c(23,50),
+  #      main=paste(all.storm.folders[i],"NAM"));plot(st_geometry(spData::us_states), add=TRUE)
+  # plot(first24ST4, xlim=c(-110,-55), ylim=c(23,50),
+  #      main=all.storm.folders[i]);plot(st_geometry(spData::us_states), add=TRUE)
+  # plot(first24NAM-first24ST4, breaks=seq(-1*ceiling(error.max/10)*10,ceiling(error.max/10)*10,ceiling(error.max/10)),
+  #      xlim=c(-110,-55), ylim=c(23,50),col=colorspace::diverge_hsv(20),
+  #      main="Error, Forecast NAM - Observed ST4")
+  # plot(st_geometry(spData::us_states), add=TRUE)
 
-  plot(first24NAM, xlim=c(-110,-55), ylim=c(23,50),
-       main=paste(all.storm.folders[i],"NAM"));plot(st_geometry(spData::us_states), add=TRUE)
-  plot(first24ST4, xlim=c(-110,-55), ylim=c(23,50),
-       main=all.storm.folders[i]);plot(st_geometry(spData::us_states), add=TRUE)
-  plot(first24NAM-first24ST4, breaks=seq(-1*ceiling(error.max/10)*10,ceiling(error.max/10)*10,ceiling(error.max/10)),
-       xlim=c(-110,-55), ylim=c(23,50),col=colorspace::diverge_hsv(20),
-       main="Error, Forecast NAM - Observed ST4")
-  plot(st_geometry(spData::us_states), add=TRUE)
+  name_start <- str_locate_all(pattern ='/', ST4_folder)
+  storm_name <- substr(ST4_folder,name_start[[1]][1]+5,name_start[[1]][2]-1)
+
+  #Convert the three rasters to data frames for ggplot
+  NAM_spdf <- as(first24NAM, "SpatialPixelsDataFrame")
+  NAM_df <- as.data.frame(NAM_spdf)
+  colnames(NAM_df) <- c("value", "x", "y")
+  
+  ST4_spdf <- as(first24ST4, "SpatialPixelsDataFrame")
+  ST4_df <- as.data.frame(ST4_spdf)
+  colnames(ST4_df) <- c("value", "x", "y")
+  
+  error <- first24NAM-first24ST4
+  error_spdf <- as(error, "SpatialPixelsDataFrame")
+  error_df <- as.data.frame(error_spdf)
+  colnames(error_df) <- c("value", "x", "y")
+  max(abs(error_df$value))
+  precip.max <- max(c(ST4_df$value,NAM_df$value))
+  precip.min <- min(c(ST4_df$value,NAM_df$value))
+
+  brk=seq(-1*ceiling(error.max/5)*5,ceiling(error.max/5)*5,ceiling(error.max/5))
+  my.limits = c(-1*ceiling(error.max/5)*5,ceiling(error.max/5)*5)
+  precipcolors <- c("#FFFFFF", "#EFFBEF", "#E0F8E0", "#BCF5A9", "#81F781",
+                  "#2EFE2E", "#9AFE2E", "#C8FE2E", "#FFFF00",
+                  "#FACC2E", "#FFBF00", "#FF8000", "#FF4000","#FF0000")
+  regions<- c("alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware",
+            "district of columbia", "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa",
+            "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota",
+            "mississippi", "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey",
+            "new mexico", "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
+            "pennsylvania", "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah",
+            "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming")
+
+
+  g1= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) +
+    labs(title =paste(storm_name, storm_date,"NAM"), x = "Longitude", y="Latitude") + 
+    coord_fixed(xlim = c(-102, -68),ylim = c(25, 48), ratio = 1)
+
+  g2= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) + 
+    labs(title =paste(paste(storm_name, storm_date,"ST4")),x = "Longitude", y="Latitude") + 
+    coord_fixed(xlim = c(-102, -68),ylim = c(25, 48), ratio = 1)
+
+  g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white",limits=my.limits) +
+    labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
+         x = "Longitude", y="Latitude")+coord_fixed(xlim = c(-102, -68),ylim = c(25, 48), ratio = 1)
+  # par(mfrow=c(3,1))
+  # plot(g1);plot(g2);plot(g3)
+  # grid.arrange(g1, g2, g3, nrow = 1)
+  
+  # Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
 }
+  multiplot(g1, g2, g3, cols=1)
+  # cowplot::plot_grid(g1, g2, g3, labels = "AUTO")
+}
+dev.off()
 ```
