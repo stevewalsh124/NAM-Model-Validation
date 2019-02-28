@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(sp)
 library(raster)
 library(ncdf4)
-library(sf)
+library(sf) #st_geometry
 library(dplyr)
 library(stringr) #str_locate_all "_218_" in the NAM file names
 library(rgdal)

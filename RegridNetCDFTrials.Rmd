@@ -22,7 +22,7 @@ library(grDevices)
 library("USAboundaries")
 library("sf")
 library(spData)
-?st_geometry()
+# ?st_geometry()
 ```
 
 ```{r raster_resample}
@@ -139,14 +139,14 @@ max(deg15nc$dim$lon$vals[deg15nc$dim$lon$vals < -97.5])
 ```
 
 ```{r buffer}
-hurdat <- read.csv("/Users/stevewalsh/Downloads/R/Research/3hourlywinds/2017_08HARVEY_12UTC_0823.csv", header = F)
+hurdat <- read.csv("/Users/stephenwalsh/Downloads/R/Research/HURDAT/2017_08HARVEY_12UTC_0823.csv", header = F)
 colnames(hurdat) <- c("BTid", "SNum", "Year", "Month", "Day", "Hour", "Lat", "Lon", "Winds", "Pressure")
 
 radius    <- 500
 centerLat <- 28.90
 centerLon <- -97.30
-deg15nc <- nc_open("/Users/stevewalsh/Downloads/test_timetest-1_15degs.nc")
-timetest_15deg <- raster("/Users/stevewalsh/Downloads/test_timetest-1_15degs.nc") #flipped axes in R
+deg15nc <- nc_open("/Users/stephenwalsh/Downloads/test_timetest-1_15degs.nc")
+timetest_15deg <- raster("/Users/stephenwalsh/Downloads/test_timetest-1_15degs.nc") #flipped axes in R
 precip.matrix <- matrix(values(timetest_15deg), nrow = length(deg15nc$dim$lat$vals))
 latgrid <- matrix(rep(rev(deg15nc$dim$lat$vals),length(deg15nc$dim$lon$vals)),nrow = length(deg15nc$dim$lat$vals), byrow = F)
 longrid <- matrix(rep(deg15nc$dim$lon$vals,length(deg15nc$dim$lat$vals)),nrow = length(deg15nc$dim$lat$vals), byrow = T)
