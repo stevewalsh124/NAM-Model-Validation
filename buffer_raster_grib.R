@@ -28,7 +28,7 @@ colnames(hurdat) <- colnames(hurdat2) <- c("BTid", "SNum", "Year", "Month", "Day
 # harvey_eye <- hurdat[25,7:8]
 irene_eye <- hurdat2[55,7:8]
 irene_eye2 <- hurdat2[59,7:8]
-radius    <- 500
+radius    <- 600
 centerLat <- as.numeric(irene_eye[1])
 centerLon <- as.numeric(irene_eye[2])
 centerLat2 <- as.numeric(irene_eye2[1])
