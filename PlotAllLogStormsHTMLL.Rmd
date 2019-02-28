@@ -16,15 +16,14 @@ library(stringr) #str_locate_all "_218_" in the NAM file names
 library(rgdal)
 library(colorspace)
 library(ggplot2)
-library("gridExtra")
+library(gridExtra)
 library(cowplot)
-
 ```
 
-Plotting 44 Storms' Precipitation for First 24 Hours After Landfall
+Plotting 44 Storms' Log Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
-pdf("white44.pdf")
+pdf("whitelog44trials.pdf")
 all.storm.folders <- list.dirs("NAMandST4", recursive = F) #G:\\NAMandST4
 NAMlist <- list()
 ST4list <- list()
@@ -43,17 +42,20 @@ for(i in 1:length(all.storm.folders)){
   ST4_folder <- currentST4_NAM_folders[1]
   NAM_folder <- currentST4_NAM_folders[2] #uncomment the [2] as well
   
-  print(length(list.files(NAM_folder)))
-  #print(list.files(NAM_folder))
+  print(length(list.files(NAM_folder))) #should be 15 or 18, depending if 72hr timestep exists
   NAMlist[[i]] <- list()
   ST4list[[i]] <- list()
+  
+  #Identifying where in the NAM folder the first 24 hours after landfall files are (latest timestep)
   if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} 
   else if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} 
   else {print("Total NAM files for this storm not 15 or 18; skipping"); next}
+  
   for (j in 1:length(list.files(NAM_folder,full.names = T)[first24])) {
     # j <-1
     NAMfile <- list.files(NAM_folder,full.names = T)[j]
-    # paste(NAM_folder,"/",NAMfile, sep = "") #don't need when full.names=T in list.dirs
+    
+    #Establish correct NAM band for total precip, mostly depends on date of storm (3 w issues)
     date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][1,2] + 1
     storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
     if(storm_date < 20060701){NAM_band <- 10} 
@@ -62,7 +64,7 @@ for(i in 1:length(all.storm.folders)){
     print(NAM_band)
     NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
     print(min(values(NAMlist[[i]][[j]]), na.rm=T))
-    values(NAMlist[[i]][[j]])[which(values(NAMlist[[i]][[j]]<0))] <- 0 #change negative projected precipitation to 0
+    # values(NAMlist[[i]][[j]])[which(values(NAMlist[[i]][[j]]<=1))] <- 1 #change nonpositive projected precipitation to 0.0000000001 to implement log precip without -Inf
   }
   
   for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
@@ -72,12 +74,14 @@ for(i in 1:length(all.storm.folders)){
     ST4list[[i]][[k]] <- resample(ST4list[[i]][[k]], mask.regrid, method = "bilinear")
     
     print(min(values(ST4list[[i]][[k]]), na.rm=T))
-    values(ST4list[[i]][[k]])[which(values(ST4list[[i]][[k]]<0))] <- 0 #change negative projected precipitation to 0
+    # values(ST4list[[i]][[k]])[which(values(ST4list[[i]][[k]]<=1))] <- 1 #change nonpositive projected precipitation to 0.0000000001 to implement log precip wihtout -Inf
   }
-  first24NAM <- (NAMlist[[i]][[1]]+NAMlist[[i]][[2]])*mask.regrid
-  first24ST4 <- (ST4list[[i]][[1]]+ST4list[[i]][[2]]+ST4list[[i]][[3]]+ST4list[[i]][[4]])*mask.regrid
-  error.max <- max(abs(min(values(first24NAM-first24ST4),
-                           na.rm = T)),max(values(first24NAM-first24ST4),na.rm = T))
+  first24NAM <- log((NAMlist[[i]][[1]]+NAMlist[[i]][[2]])*mask.regrid)
+  values(first24NAM)[which(values(first24NAM<=0))] <- 0 #change so less than 1mm <- 0
+  first24ST4 <- log((ST4list[[i]][[1]]+ST4list[[i]][[2]]+ST4list[[i]][[3]]+ST4list[[i]][[4]])*mask.regrid)
+  values(first24ST4)[which(values(first24ST4<=0))] <- 0 #change so less than 1mm <- 0
+  error.max <- max(abs(min(values(first24NAM-first24ST4),na.rm = T)),
+                   max(values(first24NAM-first24ST4),na.rm = T))
   # plot(first24NAM, xlim=c(-110,-55), ylim=c(23,50),
   #      main=paste(all.storm.folders[i],"NAM"));plot(st_geometry(spData::us_states), add=TRUE)
   # plot(first24ST4, xlim=c(-110,-55), ylim=c(23,50),
@@ -107,8 +111,8 @@ for(i in 1:length(all.storm.folders)){
   precip.max <- max(c(ST4_df$value,NAM_df$value))
   precip.min <- min(c(ST4_df$value,NAM_df$value))
 
-  brk=seq(-1*ceiling(error.max/5)*5,ceiling(error.max/5)*5,ceiling(error.max/5))
-  my.limits = c(-1*ceiling(error.max/5)*5,ceiling(error.max/5)*5)
+  brk=seq(-1*ceiling(error.max),ceiling(error.max),ceiling(error.max/5))
+  my.limits = c(-1*ceiling(error.max),ceiling(error.max))
   precipcolors <- c("#FFFFFF", "#EFFBEF", "#E0F8E0", "#BCF5A9", "#81F781",
                   "#2EFE2E", "#9AFE2E", "#C8FE2E", "#FFFF00",
                   "#FACC2E", "#FFBF00", "#FF8000", "#FF4000","#FF0000")
@@ -141,7 +145,7 @@ for(i in 1:length(all.storm.folders)){
     geom_tile() + theme_classic() + 
     geom_polygon(data=subset(map_data("state"), region %in% regions), 
                  aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-    scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white",limits=my.limits) +
+    scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
     labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
          x = "Longitude", y="Latitude")+coord_fixed(xlim = c(-102, -68),ylim = c(25, 48), ratio = 1)
   # par(mfrow=c(3,1))
