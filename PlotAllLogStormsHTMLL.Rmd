@@ -16,22 +16,20 @@ library(stringr) #str_locate_all "_218_" in the NAM file names
 library(rgdal)
 library(colorspace)
 library(ggplot2)
-library(gridExtra)
-library(cowplot)
 ```
 
 Plotting 44 Storms' Log Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
-pdf("whitelog44trials.pdf")
-all.storm.folders <- list.dirs("NAMandST4", recursive = F) #G:\\NAMandST4
+pdf("log_trouble_trials.pdf")
+all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4trouble", recursive = F) #G:\\NAMandST4
 NAMlist <- list()
 ST4list <- list()
 mask <- raster("lsmask.nc")
 mask[mask==-1] <- 0
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- resample(mask, projectRaster(raster("nam_218_20050829_1200_f012.grib"),crs = "+proj=longlat +datum=WGS84"), method='ngb')
+mask.regrid <- resample(mask, projectRaster(raster("/Volumes/LACIEHD/nam_218_20050829_1200_f012.grib"),crs = "+proj=longlat +datum=WGS84"), method='ngb')
 
 
 for(i in 1:length(all.storm.folders)){
@@ -42,25 +40,47 @@ for(i in 1:length(all.storm.folders)){
   ST4_folder <- currentST4_NAM_folders[1]
   NAM_folder <- currentST4_NAM_folders[2] #uncomment the [2] as well
   
+  name_start <- tail(str_locate_all(pattern ='/', ST4_folder)[[1]],1)
+  storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
+
   print(length(list.files(NAM_folder))) #should be 15 or 18, depending if 72hr timestep exists
   NAMlist[[i]] <- list()
   ST4list[[i]] <- list()
   
   #Identifying where in the NAM folder the first 24 hours after landfall files are (latest timestep)
-  if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} 
-  else if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} 
-  else {print("Total NAM files for this storm not 15 or 18; skipping"); next}
+  if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else {
+    if(length(list.files(NAM_folder,full.names = T))==15|storm_name=="rita"){first24 <- c(5,6)} #rita is missing files
+    else {print("Total NAM files for this storm not 15 or 18; skipping"); next}}
+
+  for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
+    # k <-1
+    ST4file <- list.files(ST4_folder,full.names = T)[k]
+    ST4list[[i]][[k]] <- (raster(ST4file) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
+    ST4list[[i]][[k]] <- resample(ST4list[[i]][[k]], mask.regrid, method = "bilinear")
+    
+    print(min(values(ST4list[[i]][[k]]), na.rm=T))
+    # values(ST4list[[i]][[k]])[which(values(ST4list[[i]][[k]]<=1))] <- 1 
+    #change nonpositive projected precipitation to 0.0000000001 to implement log precip wihtout -Inf
+  } 
   
   for (j in 1:length(list.files(NAM_folder,full.names = T)[first24])) {
     # j <-1
-    NAMfile <- list.files(NAM_folder,full.names = T)[j]
+    NAMfile <- list.files(NAM_folder,full.names = T)[first24[j]]
     
     #Establish correct NAM band for total precip, mostly depends on date of storm (3 w issues)
     date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][1,2] + 1
     storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
-    if(storm_date < 20060701){NAM_band <- 10} 
-    else if(storm_date > 20060701 && storm_date < 20170101){NAM_band <- 11} 
-    else {NAM_band <- 373}
+    if(storm_date < 20060701){NAM_band <- 10} else 
+      if(storm_date > 20060701 && storm_date < 20170101){NAM_band <- 11} else {NAM_band <- 373}
+    if(storm_name=="charley"&&j==1&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="charley"&&j==2&&storm_date<20050000){NAM_band <- 14} 
+    if(storm_name=="ivan"   &&j==1&&storm_date<20050000){NAM_band <- 12} 
+    if(storm_name=="ivan"   &&j==2&&storm_date<20050000){NAM_band <- 14} 
+    if(storm_name=="matthew"&&j==1&&storm_date<20050000){NAM_band <- 14} 
+    if(storm_name=="matthew"&&j==2&&storm_date<20050000){NAM_band <- 12} 
+    if(storm_name=="frances"&&j==1&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="frances"&&j==2&&storm_date<20050000){NAM_band <- 14} 
+
     print(NAM_band)
     NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
     print(min(values(NAMlist[[i]][[j]]), na.rm=T))
@@ -91,8 +111,6 @@ for(i in 1:length(all.storm.folders)){
   #      main="Error, Forecast NAM - Observed ST4")
   # plot(st_geometry(spData::us_states), add=TRUE)
 
-  name_start <- str_locate_all(pattern ='/', ST4_folder)
-  storm_name <- substr(ST4_folder,name_start[[1]][1]+5,name_start[[1]][2]-1)
 
   #Convert the three rasters to data frames for ggplot
   NAM_spdf <- as(first24NAM, "SpatialPixelsDataFrame")
