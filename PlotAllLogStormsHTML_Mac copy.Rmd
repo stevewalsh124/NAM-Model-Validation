@@ -23,9 +23,9 @@ library(ggplot2)
 Plotting 44 Storms' Log Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
-pdf("logbuffer.2.28.19.pdf")
-all.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("NAMandST4", recursive = F)[-1]#[-c(1,13:35)] #/Volumes/LACIEHD/
+# pdf("logbuffer.2.28.19.pdf")
+all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F) #
+most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[-1]#[-c(1,13:35)] #
 # these will be lists of lists (#lists=#storms), where each element in a list is rasters for a storm
 NAMlist <- list()
 ST4list <- list()
@@ -35,8 +35,8 @@ mask <- raster("lsmask.nc")
 mask[mask==-1] <- 0
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- resample(mask, projectRaster(raster("nam_218_20050829_1200_f012.grib"),
-                                            crs = "+proj=longlat +datum=WGS84"), method='ngb') 
+mask.regrid <- resample(mask, projectRaster(raster("/Volumes/LACIEHD/nam_218_20050829_1200_f012.grib"),
+                                            crs = "+proj=longlat +datum=WGS84"), method='ngb')  #
 
 # Multiple plot function
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
@@ -109,15 +109,19 @@ for(i in 1:length(most.storm.folders)){
   currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #uncomment the [-1] when st4 and nam folders are together
   ST4_folder <- currentST4_NAM_folders[1]
   NAM_folder <- currentST4_NAM_folders[2] #uncomment the [2] as well
+  
+  name_start <- tail(str_locate_all(pattern ='/', ST4_folder)[[1]],1)
+  storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
+  
   hurdat_csv <- list.files(most.storm.folders[i], pattern = ".csv")
   
   print(length(list.files(NAM_folder))) #should be 15 or 18, depending if 72hr timestep exists
   NAMlist[[i]] <- list()
   ST4list[[i]] <- list()
-  
+
   #Identifying where in the NAM folder the first 24 hours after landfall files are (latest timestep)
   if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else {
-    if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} 
+    if(length(list.files(NAM_folder,full.names = T))==15|storm_name=="rita"){first24 <- c(5,6)} #rita is missing files
     else {print("Total NAM files for this storm not 15 or 18; skipping"); next}}
 
   for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
@@ -140,6 +144,15 @@ for(i in 1:length(most.storm.folders)){
     storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
     if(storm_date < 20060701){NAM_band <- 10} else 
       if(storm_date > 20060701 && storm_date < 20170101){NAM_band <- 11} else {NAM_band <- 373}
+    if(storm_name=="charley"&&j==1&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="charley"&&j==2&&storm_date<20050000){NAM_band <- 14} 
+    if(storm_name=="ivan"   &&j==1&&storm_date<20050000){NAM_band <- 12} 
+    if(storm_name=="ivan"   &&j==2&&storm_date<20050000){NAM_band <- 14} 
+    if(storm_name=="matthew"&&j==1&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="matthew"&&j==2&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="frances"&&j==1&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="frances"&&j==2&&storm_date<20050000){NAM_band <- 13} 
+
     print(NAM_band)
     NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
     print(min(values(NAMlist[[i]][[j]]), na.rm=T))
@@ -199,10 +212,6 @@ for(i in 1:length(most.storm.folders)){
   storm_month2<- substr(storm_time2,5,6)
   storm_day2  <- substr(storm_time2,7,8)
   storm_hour2 <- substr(storm_time2,9,10)
-  
-  name_start <- tail(str_locate_all(pattern ='/', ST4_folder)[[1]],1)
-  storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
-  storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
   
   print(paste("Storm is", storm_name, "Year is",storm_year,"Month is",storm_month,"Day is",storm_day,"Hour is",storm_hour))
   eye1_latlon <- hurdat[hurdat$Day==as.integer(storm_day) &hurdat$Hour==as.integer(storm_hour), 7:8]
@@ -299,5 +308,5 @@ for(i in 1:length(most.storm.folders)){
   multiplot(g1, g2, g3, cols=1)
 
 }
-dev.off()
+# dev.off()
 ```
