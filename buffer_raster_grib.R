@@ -21,8 +21,7 @@ NAM_df1 <- rasterToPoints(ST4_irene_12hr_1)
 NAM_df2 <- rasterToPoints(ST4_irene_12hr_2)
 NAM_df <- rasterToPoints(ST4_irene_12hr_1+ST4_irene_12hr_2)
 
-hurdat <- read.csv("/Users/stephenwalsh/Downloads/R/Research/HURDAT/2017_08HARVEY_12UTC_0823.csv", header = F)
-hurdat2 <- read.csv("/Users/stephenwalsh/Downloads/R/Research/HURDAT/2011_09IRENE_0UTC_0821.csv", header = F)
+hurdat <- read.csv("/Users/stephenwalsh/Downloads/R/Research/HURDAT/2011_09IRENE_0UTC_0821.csv", header = F)
 colnames(hurdat) <- colnames(hurdat2) <- c("BTid", "SNum", "Year", "Month", "Day", "Hour", "Lat", "Lon", "Winds", "Pressure")
 
 # harvey_eye <- hurdat[25,7:8]
@@ -48,22 +47,44 @@ plot(ST4_irene_24hr, xlim=c(centerLon-6, centerLon+6), ylim=c(centerLat-6,center
 plot(raster_buffer , xlim=c(centerLon-6, centerLon+6), ylim=c(centerLat-6,centerLat+6));plot(st_geometry(spData::us_states), add=TRUE)
 
 
+
+
+
+
+
+
+
+
+
+
 ################try to subset the file name to obtain the date/time and use this to access hurdat row
-ST4file
+
 #The first 4 ST4 are 24 hrs. Two buffers for each 12hr group, using the 6th and 18th hour as centers (1st and 3rd files in ST4 folder)
 eye_1 <- list.files(ST4_folder,full.names = T)[1]
-#eye_2 <- list.files(ST4_folder,full.names = T)[3] #just add 12 to eye_1 hour later, aka look 2 rows down
+eye_2 <- list.files(ST4_folder,full.names = T)[3] #just add 12 to eye_1 hour later, aka look 2 rows down
+most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[2]#[-c(13:35)]
+hurdat_file <- list.files(most.storm.folders, pattern = ".csv")
+hurdat <- read.csv(paste0(most.storm.folders[1],"/",hurdat_file))
+colnames(hurdat) <- c("BTid", "SNum", "Year", "Month", "Day", "Hour", "Lat", "Lon", "Winds", "Pressure")
 
-time_start <- tail(str_locate_all(pattern ='/', eye_1)[[1]],1)[,2]
-storm_time <-  substr(eye_1,time_start[1]+5,nchar(eye_1))
-storm_year <- substr(storm_time,1,4)
+
+time_start  <- tail(str_locate_all(pattern ='/', eye_1)[[1]],1)[,2]
+storm_time  <-  substr(eye_1,time_start[1]+5,nchar(eye_1))
+storm_year  <- substr(storm_time,1,4)
 storm_month <- substr(storm_time,5,6)
-storm_day <- substr(storm_time,7,8)
-storm_hour <- substr(storm_time,9,10)
+storm_day   <- substr(storm_time,7,8)
+storm_hour  <- substr(storm_time,9,10)
+
+time_start2 <- tail(str_locate_all(pattern ='/', eye_2)[[1]],1)[,2]
+storm_time2 <- substr(eye_2,time_start2[1]+5,nchar(eye_2))
+storm_year2 <- substr(storm_time2,1,4)
+storm_month2<- substr(storm_time2,5,6)
+storm_day2  <- substr(storm_time2,7,8)
+storm_hour2 <- substr(storm_time2,9,10)
 
 print(paste("Storm is", storm_name, "Year is",storm_year,"Month is",storm_month,"Day is",storm_day,"Hour is",storm_hour))
 eye1_latlon <- hurdat[hurdat$Day==as.integer(storm_day)&hurdat$Hour==as.integer(storm_hour),7:8]
-eye2_latlon <- hurdat[hurdat$Day==as.integer(storm_day)&hurdat$Hour==as.integer(storm_hour)+6,7:8]
+eye2_latlon <- hurdat[hurdat$Day==as.integer(storm_day2)&hurdat$Hour==as.integer(storm_hour2),7:8]
 
 storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
 class(hurdat$Day)
@@ -97,14 +118,21 @@ ST4bufferprecip <- function(NAM_df,LatLonVec,LatLonVec2,radius){
   raster_buffer <- rasterFromXYZ(ST4_df_buffer)
   return(raster_buffer)
 }
+
+radius <- 600
+plot.edge <- 7.25
+
 dim(trythis)
 dim(ST4_irene_12hr_1)
-trythis <- ST4bufferprecip(NAM_df1, irene_eye,irene_eye2,500)
-trythis2 <- ST4bufferprecip(NAM_df2, irene_eye2,irene_eye,500)
+trythis  <- ST4bufferprecip(NAM_df, eye1_latlon, eye2_latlon, radius)
+trythis2 <- ST4bufferprecip(NAM_df, eye2_latlon, eye1_latlon, radius)
 
-plot(trythis,xlim=c(min(centerLon,centerLon2)-5.5, max(centerLon,centerLon2)+5.5), 
-     ylim=c(min(centerLat,centerLat2)-5.5,max(centerLat,centerLat2)+5.5)); plot(st_geometry(spData::us_states), add=TRUE)
-plot(trythis2,xlim=c(min(centerLon,centerLon2)-5.5, max(centerLon,centerLon2)+5.5), 
-     ylim=c(min(centerLat,centerLat2)-5.5,max(centerLat,centerLat2)+5.5)); plot(st_geometry(spData::us_states), add=TRUE)
-plot(trythis+trythis2,xlim=c(min(centerLon,centerLon2)-5.5, max(centerLon,centerLon2)+5.5), 
-     ylim=c(min(centerLat,centerLat2)-5.5,max(centerLat,centerLat2)+5.5)); plot(st_geometry(spData::us_states), add=TRUE)
+plot(trythis,
+     xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, max(eye1_latlon[2],eye2_latlon[2])+plot.edge), 
+     ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge,max(eye1_latlon[1],eye2_latlon[1])+plot.edge)); plot(st_geometry(spData::us_states), add=TRUE)
+
+plot(trythis2,xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, max(eye1_latlon[2],eye2_latlon[2])+plot.edge), 
+     ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge,max(eye1_latlon[1],eye2_latlon[1])+plot.edge)); plot(st_geometry(spData::us_states), add=TRUE)
+
+plot(trythis+trythis2,xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, max(eye1_latlon[2],eye2_latlon[2])+plot.edge), 
+     ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge,max(eye1_latlon[1],eye2_latlon[1])+plot.edge)); plot(st_geometry(spData::us_states), add=TRUE)

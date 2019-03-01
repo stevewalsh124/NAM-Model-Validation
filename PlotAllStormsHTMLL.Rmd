@@ -52,7 +52,7 @@ for(i in 1:length(all.storm.folders)){
   else {print("Total NAM files for this storm not 15 or 18; skipping"); next}
   for (j in 1:length(list.files(NAM_folder,full.names = T)[first24])) {
     # j <-1
-    NAMfile <- list.files(NAM_folder,full.names = T)[j]
+    NAMfile <- list.files(NAM_folder,full.names = T)[first24[j]]
     # paste(NAM_folder,"/",NAMfile, sep = "") #don't need when full.names=T in list.dirs
     date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][1,2] + 1
     storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
