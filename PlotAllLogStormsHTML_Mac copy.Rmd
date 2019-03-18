@@ -16,16 +16,16 @@ library(stringr) #str_locate_all "_218_" in the NAM file names
 library(rgdal)
 library(colorspace)
 library(ggplot2)
-# library(gridExtra)
-# library(cowplot)
+
+library(geoR)
 ```
 
 Plotting 44 Storms' Log Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
-# pdf("logbuffer.2.28.19.pdf")
+pdf("logbuffer.prevariogram4.pdf")
 all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F) #
-most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[-1]#[-c(1,13:35)] #
+most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[39]#[-c(1,12:36)] #
 # these will be lists of lists (#lists=#storms), where each element in a list is rasters for a storm
 NAMlist <- list()
 ST4list <- list()
@@ -105,14 +105,14 @@ ST4bufferprecip <- function(NAM_df,LatLonVec,LatLonVec2,radius){
 
 for(i in 1:length(most.storm.folders)){
   # i <- 1
-  print(i)
   currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #uncomment the [-1] when st4 and nam folders are together
   ST4_folder <- currentST4_NAM_folders[1]
   NAM_folder <- currentST4_NAM_folders[2] #uncomment the [2] as well
   
   name_start <- tail(str_locate_all(pattern ='/', ST4_folder)[[1]],1)
   storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
-  
+  print(paste0("Storm #",i,": ",storm_name))
+
   hurdat_csv <- list.files(most.storm.folders[i], pattern = ".csv")
   
   print(length(list.files(NAM_folder))) #should be 15 or 18, depending if 72hr timestep exists
@@ -305,8 +305,37 @@ for(i in 1:length(most.storm.folders)){
                 ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
                        max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
-  multiplot(g1, g2, g3, cols=1)
+  
+  simul <- cbind(error_df[,2],error_df[,3],error_df[,1])
+  simul.geo <- as.geodata(simul)
+  
+  simul.modvar <- variog(simul.geo,estimator.type="modulus")
 
+  initial.values <- expand.grid(seq(0.1, 6, by=.02), seq(0.1, 4, by=.02))
+  # initial.values <- expand.grid(seq(0, 6, by=.01), seq(0, 4, by=.01))
+  # initial.values <- c(2.96,1.34)
+  sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern", 
+                                  fix.nugget=TRUE, nugget=0, weights="cressie", fix.kappa = F)
+  # sim.mod.cressie.nug <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern", 
+                                  # fix.nugget=F             , weights="cressie", fix.kappa = F)
+  
+  sim.mod.cressie$nugget
+  sim.mod.cressie$cov.pars
+  sim.mod.cressie$kappa
+  sim.mod.cressie$practicalRange
+  
+  # sim.mod.cressie.nug$nugget
+  # sim.mod.cressie.nug$cov.pars
+  # sim.mod.cressie.nug$kappa
+  # sim.mod.cressie.nug$practicalRange
+  #orange=red right now
+  vario.plot <- plot(simul.modvar,main=paste0("SVG for ", storm_year," ",storm_name), ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
+
+  multiplot(g1, g2, g3, cols=1)
+  vario.plot
 }
-# dev.off()
+dev.off()
+```
+
+```{r variogram}
 ```
