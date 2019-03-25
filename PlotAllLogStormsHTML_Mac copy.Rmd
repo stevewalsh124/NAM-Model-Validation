@@ -16,27 +16,45 @@ library(stringr) #str_locate_all "_218_" in the NAM file names
 library(rgdal)
 library(colorspace)
 library(ggplot2)
-
+library(SpatialEpi) #latlong2grid
 library(geoR)
 ```
 
 Plotting 44 Storms' Log Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
-pdf("logbuffer.prevariogram4.pdf")
-all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F) #
-most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[39]#[-c(1,12:36)] #
+pdf("logbuffprecip.SVGbombskmphiquest.pdf")
+all.storm.folders  <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
+most.storm.folders <- list.dirs("NAMandST4", recursive = F)[1:3]#[c(5,16,22,25,35,47)] #Matern aborters
+#[-c(2,3,6,8,5,16,22,25,35,47)] # to avoid aborting R and storms w/o 12hr precip
+#[-c(1,12:36)] #to avoid JPEG2000 driver issue on Mac
+#/Volumes/LACIEHD/
 # these will be lists of lists (#lists=#storms), where each element in a list is rasters for a storm
 NAMlist <- list()
 ST4list <- list()
+SVGparamfix <- list()
+SVGparamest <- list()
+phivec <- c()
+sig2vec <- c()
+tau2vec <- c()
+kappavec <- c()
+prRangevec <- c()
+
+#storms that abort R: c(5,16,22,25,35,47) 
+#storms w/o 12 hr precip: c(2,3,6,8)
+storms.out.of.hurdat <- c() #storm #s 5,31,35,42,48
+# > all.storm.folders[storms.out.of.hurdat]
+# [1] "NAMandST4/2004hermine" "NAMandST4/2004hermine" "NAMandST4/2011don"     "NAMandST4/2012debby"  
+# [5] "NAMandST4/2016colin"   "NAMandST4/2017nate" 
 
 # load, modify and project land/sea mask 
 mask <- raster("lsmask.nc")
 mask[mask==-1] <- 0
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- resample(mask, projectRaster(raster("/Volumes/LACIEHD/nam_218_20050829_1200_f012.grib"),
-                                            crs = "+proj=longlat +datum=WGS84"), method='ngb')  #
+mask.regrid <- resample(mask, 
+                        projectRaster(raster("nam_218_20050829_1200_f012.grib"),
+                                      crs = "+proj=longlat +datum=WGS84"), method='ngb')#/Volumes/LACIEHD/
 
 # Multiple plot function
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
@@ -148,10 +166,10 @@ for(i in 1:length(most.storm.folders)){
     if(storm_name=="charley"&&j==2&&storm_date<20050000){NAM_band <- 14} 
     if(storm_name=="ivan"   &&j==1&&storm_date<20050000){NAM_band <- 12} 
     if(storm_name=="ivan"   &&j==2&&storm_date<20050000){NAM_band <- 14} 
-    if(storm_name=="matthew"&&j==1&&storm_date<20050000){NAM_band <- 13} 
-    if(storm_name=="matthew"&&j==2&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="matthew"&&j==1&&storm_date<20050000){NAM_band <- 14} 
+    if(storm_name=="matthew"&&j==2&&storm_date<20050000){NAM_band <- 12} 
     if(storm_name=="frances"&&j==1&&storm_date<20050000){NAM_band <- 13} 
-    if(storm_name=="frances"&&j==2&&storm_date<20050000){NAM_band <- 13} 
+    if(storm_name=="frances"&&j==2&&storm_date<20050000){NAM_band <- 14} 
 
     print(NAM_band)
     NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
@@ -216,8 +234,13 @@ for(i in 1:length(most.storm.folders)){
   print(paste("Storm is", storm_name, "Year is",storm_year,"Month is",storm_month,"Day is",storm_day,"Hour is",storm_hour))
   eye1_latlon <- hurdat[hurdat$Day==as.integer(storm_day) &hurdat$Hour==as.integer(storm_hour), 7:8]
   eye2_latlon <- hurdat[hurdat$Day==as.integer(storm_day2)&hurdat$Hour==as.integer(storm_hour2),7:8]
-  if(nrow(eye2_latlon)==0) eye2_latlon <- tail(hurdat,1)[,7:8]
-  
+  if(nrow(eye1_latlon)==0){print("eye 1 hurdat trouble; using last")
+    eye1_latlon <- tail(hurdat,1)[,7:8]
+    storms.out.of.hurdat <- c(storms.out.of.hurdat, i)}
+  if(nrow(eye2_latlon)==0){print("eye 2 hurdat trouble; using last")
+    eye2_latlon <- tail(hurdat,1)[,7:8]
+    storms.out.of.hurdat <- c(storms.out.of.hurdat, i)}  
+
   date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][1,2] + 1
   storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
 
@@ -307,29 +330,32 @@ for(i in 1:length(most.storm.folders)){
 
   
   simul <- cbind(error_df[,2],error_df[,3],error_df[,1])
+  # simul[,1:2] <- latlong2grid(simul[,1:2])
+  simul <- cbind(latlong2grid(simul[,1:2]), simul[,3])
   simul.geo <- as.geodata(simul)
-  
+
   simul.modvar <- variog(simul.geo,estimator.type="modulus")
 
-  initial.values <- expand.grid(seq(0.1, 6, by=.02), seq(0.1, 4, by=.02))
-  # initial.values <- expand.grid(seq(0, 6, by=.01), seq(0, 4, by=.01))
+  initial.values <- expand.grid(c(seq(.01,.09,.01),seq(0.1, 6, by=.02),seq(6,20,1)),
+                                100*c(seq(.01,.09,.01),seq(0.1, 4, by=.02),seq(4,20,1)))
   # initial.values <- c(2.96,1.34)
-  sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern", 
-                                  fix.nugget=TRUE, nugget=0, weights="cressie", fix.kappa = F)
-  # sim.mod.cressie.nug <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern", 
-                                  # fix.nugget=F             , weights="cressie", fix.kappa = F)
+  # sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern",
+                                  # fix.nugget=TRUE, nugget=0, weights="cressie", fix.kappa = F)
+  sim.mod.cressie.nug <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="gaussian",
+                                  fix.nugget=F             , weights="cressie", fix.kappa = F)
+
+  # SVGparamfix[[i]] <- sim.mod.cressie
+  SVGparamest[[i]] <- sim.mod.cressie.nug
+  print(sim.mod.cressie.nug)
+  tau2vec[i] <- sim.mod.cressie.nug$nugget
+  sig2vec[i] <- sim.mod.cressie.nug$cov.pars[1]
+  phivec[i]  <- sim.mod.cressie.nug$cov.pars[2]
+  kappavec[i]<- sim.mod.cressie.nug$kappa 
+  prRangevec[i]<-sim.mod.cressie.nug$practicalRange
   
-  sim.mod.cressie$nugget
-  sim.mod.cressie$cov.pars
-  sim.mod.cressie$kappa
-  sim.mod.cressie$practicalRange
-  
-  # sim.mod.cressie.nug$nugget
-  # sim.mod.cressie.nug$cov.pars
-  # sim.mod.cressie.nug$kappa
-  # sim.mod.cressie.nug$practicalRange
-  #orange=red right now
-  vario.plot <- plot(simul.modvar,main=paste0("SVG for ", storm_year," ",storm_name), ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
+  vario.plot <- plot(simul.modvar,main=paste0("SVG for ", storm_year," ",storm_name),
+                     ylim=c(0,1));lines(sim.mod.cressie.nug,col="red")
+  # lines(sim.mod.cressie,col="orange");
 
   multiplot(g1, g2, g3, cols=1)
   vario.plot
@@ -337,5 +363,11 @@ for(i in 1:length(most.storm.folders)){
 dev.off()
 ```
 
-```{r variogram}
+```{r}
+par(mfrow=c(1,2))
+summary(tau2vec);boxplot(tau2vec);hist(tau2vec)
+summary(sig2vec);boxplot(sig2vec);hist(sig2vec)
+summary(phivec);boxplot(phivec);hist(phivec)
+summary(kappavec);boxplot(kappavec);hist(kappavec)
+pairs(cbind(tau2vec,phivec,sig2vec,kappavec))
 ```
