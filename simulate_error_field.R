@@ -8,7 +8,7 @@ getwd()
 
 params_deg_csv <- read.csv("csv/svg.param.ests.error_deg.csv")
 params_csv <- read.csv("csv/svg.param.ests.error4.1.19.csv")
-nam_df_csv <- read.csv("csv/namdf_nate2017_250km.csv")
+nam_df_csv <- read.csv("csv/namdf_nate2017_500km.csv")
 nam_df_full <- read.csv("csv/namdf_nate2017.csv")
 storms1 <- read.csv("csv/storms1.csv")[,2]
 storms2 <- read.csv("csv/storms2.csv")[,2]
@@ -40,14 +40,17 @@ plot(s_full)
 ##############################################
 # Subsetting so that the area is a rectangle #
 ##############################################
+xmin.loc <- -91
+xmax.loc <- -81
+ymin.loc <- 31
+ymax.loc <- 40
+s <- filter(s, x > xmin.loc & x < xmax.loc & y < ymax.loc & y > ymin.loc)
+xaxis <- sort(unique(xaxis[xaxis > xmin.loc & xaxis < xmax.loc]))
+yaxis <- sort(unique(yaxis[yaxis >  ymin.loc & yaxis <  ymax.loc]))
 
-s <- filter(s, x > -88 & x < -85 & y < 37 & y > 34)
-xaxis <- sort(unique(xaxis[xaxis > -88 & xaxis < -85]))
-yaxis <- sort(unique(yaxis[yaxis >  34 & yaxis <  37]))
-
-s_full <- filter(s_full, x > -91.5 & x < -81.5 & y < 40 & y > 30)
-xaxis_full <- sort(unique(xaxis_full[xaxis_full > -91.5 & xaxis_full < -81.5]))
-yaxis_full <- sort(unique(yaxis_full[yaxis_full >  30 & yaxis_full <  40]))
+s_full <- filter(s_full, x > xmin.loc & x < xmax.loc & y < ymax.loc & y > ymin.loc)
+xaxis_full <- sort(unique(xaxis_full[xaxis_full > xmin.loc & xaxis_full < xmax.loc]))
+yaxis_full <- sort(unique(yaxis_full[yaxis_full >  ymin.loc & yaxis_full <  ymax.loc]))
 plot(s_full)
 s <- s_full
 yaxis <- yaxis_full
@@ -88,18 +91,51 @@ sigma2 <- mean(sig2vec[stormsGULF]) #1
 phi <- mean(phivec[stormsGULF]) #5
 plot(seq(0,1,0.001),c(tau2,rep(0,length(seq(0,1,0.001))-1))+covfunc.Gaussian(seq(0,1,0.001),phi,sigma2))
 
+#NAM_plotter loaded from PlotAllLogStormsHTML_Mac_copy.Rmd#############
+plot(NAM_plotter, xlim= c(xmin.loc,xmax.loc), ylim=c(ymin.loc,ymax.loc),
+     main="Original Forecast")
+
 covmatrix <- diag(tau2,nrow(t)) + covfunc.Gaussian(t,phi,sigma2)
 # image(covmatrix)
-x <- matrix.sqrt(covmatrix) %*% rnorm(nrow(s))
-z <- matrix(NA,nrow=length(xaxis),ncol=length(yaxis))
-for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) z[i,j] <- x[i+(j-1)*length(xaxis)]
-image(z)
-persp(x=xaxis, y=yaxis, z=z, phi = 40)
+iters <- 100
+forecast_plus_error_rasters <- list()
+for (k in 1:iters) {
+  print(k)
+  x <- matrix.sqrt(covmatrix) %*% rnorm(nrow(s))
+  z <- matrix(NA,nrow=length(xaxis),ncol=length(yaxis))
+  for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) z[i,j] <- x[i+(j-1)*length(xaxis)]
+  # par(mfrow=c(1,2))
+  # image(z, col=terrain.colors(100))
+  # image(-z, col=terrain.colors(100), main="image(-z, col=terrain.colors(100))")
+  
+  # ; dim(z)
+  # persp(x=xaxis, y=yaxis, z=z, phi = 40)
+  # plot(rasterFromXYZ(cbind(s,as.vector(z))), main="rasterFromXYZ(cbind(s,as.vector(z)))")
+  forecast_plus_error_rasters[[k]] <- NAM_plotter + rasterFromXYZ(cbind(s,as.vector(z)))
+  plot(NAM_plotter + rasterFromXYZ(cbind(s,as.vector(z))),
+       main="Forecast + random error field")
+  if(k==1){ total_them_up <-forecast_plus_error_rasters[[k]]}
+  if(k>=2){ total_them_up <-total_them_up + forecast_plus_error_rasters[[k]]}
+}
+
+par(mfrow=c(2,3))
+plot(NAM_plotter, main="NAM", xlim=c(xmin.loc,xmax.loc), ylim=c(ymin.loc,ymax.loc))
+plot(forecast_plus_error_rasters[[1]], main="NAM + a random error field")
+plot(forecast_plus_error_rasters[[1]]-NAM_plotter, main="A random error field")
+plot(total_them_up/k,main="Avg of 100 Random EFs + NAM")
+plot(NAM_plotter-total_them_up/k,main="Thus, avg of 100 Random EFs")
+plot(k*NAM_plotter-total_them_up,main="100 Random EFs")
+
+# total_them_up <- raster()
+# total_them_up <-forecast_plus_error_rasters[[1]]
 
 # surface2 <- interp(x=s[,1], y=s[,2], z=z, duplicate = "mean")
 # persp(surface2)
+
+
+#somethings wrong with z2 (row/column mismatch?)
 z2 <- matrix(NA,nrow=length(unique(nam_df_csv$x)),ncol=length(unique(nam_df_csv$y)))
 for (i in 1:length(unique(nam_df_csv$x))) for (j in 1:length(unique(nam_df_csv$y))){
   z2[i,j] <- x[i+(j-1)*length(unique(nam_df_csv$x))]
 }
-image(sort(unique(nam_df_csv$x)),sort(unique(nam_df_csv$y)),z2)
+# image(sort(unique(nam_df_csv$x)),sort(unique(nam_df_csv$y)),z2)
