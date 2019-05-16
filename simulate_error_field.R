@@ -2,6 +2,11 @@
 library(SpatialEpi) #latlong2grid
 library(dplyr)
 getwd()
+set.seed(1234)
+#loads in previously ran 100 random error fields with NAM precip
+# load("NAM_and_100randomEFs_ST4.wks")
+
+load("LogPrecipVariograms_Nate500km")
 
 #check memory
 # as.numeric(system("awk '/MemFree/ {print $2}' /proc/meminfo", intern=TRUE))
@@ -34,8 +39,6 @@ nam_df_sort <- nam_df_csv[order(nam_df_csv$x, nam_df_csv$y),]
 # for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] <- c(xaxis[i],yaxis[j])
 s <- nam_df_csv[,3:4]
 s_full <- nam_df_full[,3:4]
-plot(s)
-plot(s_full)
 
 ##############################################
 # Subsetting so that the area is a rectangle #
@@ -44,6 +47,19 @@ xmin.loc <- -91
 xmax.loc <- -81
 ymin.loc <- 31
 ymax.loc <- 40
+
+plot(s)
+abline(v=xmin.loc, col="red")
+abline(v=xmax.loc, col="red")
+abline(h=ymin.loc, col="red")
+abline(h=ymax.loc, col="red")
+
+plot(s_full)
+abline(v=xmin.loc, col="red")
+abline(v=xmax.loc, col="red")
+abline(h=ymin.loc, col="red")
+abline(h=ymax.loc, col="red")
+
 s <- filter(s, x > xmin.loc & x < xmax.loc & y < ymax.loc & y > ymin.loc)
 xaxis <- sort(unique(xaxis[xaxis > xmin.loc & xaxis < xmax.loc]))
 yaxis <- sort(unique(yaxis[yaxis >  ymin.loc & yaxis <  ymax.loc]))
@@ -61,7 +77,6 @@ xaxis <- xaxis_full
 
 t <- as.matrix(dist(s))
 # image(t)
-
 
 ################################
 # Gaussian covariance function #
@@ -98,6 +113,8 @@ plot(NAM_plotter, xlim= c(xmin.loc,xmax.loc), ylim=c(ymin.loc,ymax.loc),
 covmatrix <- diag(tau2,nrow(t)) + covfunc.Gaussian(t,phi,sigma2)
 # image(covmatrix)
 iters <- 100
+dim(s)[1]==length(as.vector(z))
+values_precip_iters <- matrix(NA, nrow = dim(s)[1], ncol = iters)
 forecast_plus_error_rasters <- list()
 for (k in 1:iters) {
   print(k)
@@ -108,15 +125,19 @@ for (k in 1:iters) {
   # image(z, col=terrain.colors(100))
   # image(-z, col=terrain.colors(100), main="image(-z, col=terrain.colors(100))")
   
-  # ; dim(z)
   # persp(x=xaxis, y=yaxis, z=z, phi = 40)
   # plot(rasterFromXYZ(cbind(s,as.vector(z))), main="rasterFromXYZ(cbind(s,as.vector(z)))")
   forecast_plus_error_rasters[[k]] <- NAM_plotter + rasterFromXYZ(cbind(s,as.vector(z)))
-  plot(NAM_plotter + rasterFromXYZ(cbind(s,as.vector(z))),
-       main="Forecast + random error field")
+  # plot(forecast_plus_error_rasters[[1]], main="Forecast + random error field")
   if(k==1){ total_them_up <-forecast_plus_error_rasters[[k]]}
   if(k>=2){ total_them_up <-total_them_up + forecast_plus_error_rasters[[k]]}
+  values_precip_iters[,k] <- values(forecast_plus_error_rasters[[k]])
 }
+
+
+###################################
+#              PLOTS              #
+###################################
 
 par(mfrow=c(2,3))
 plot(NAM_plotter, main="NAM", xlim=c(xmin.loc,xmax.loc), ylim=c(ymin.loc,ymax.loc))
@@ -126,12 +147,48 @@ plot(total_them_up/k,main="Avg of 100 Random EFs + NAM")
 plot(NAM_plotter-total_them_up/k,main="Thus, avg of 100 Random EFs")
 plot(k*NAM_plotter-total_them_up,main="100 Random EFs")
 
+#removing the rows with NAs since this will be consistent throughout columns
+values100EFs_noNA <- values_precip_iters[!is.na(values_precip_iters[,1]),]
+values100EFs_LB <- apply(values100EFs_noNA, 1, quantile,p=0.025)
+values100EFs_UB <- apply(values100EFs_noNA, 1, quantile,p=0.975)
+
+aux <- forecast_plus_error_rasters[[k]] #aux  for LB on CI
+aux2 <- aux                             #aux2 for UB on CI
+aux3 <- aux                             #aux3 for ST4_plotter constraint
+aux[!is.na(aux),] <- values100EFs_LB
+aux2[!is.na(aux2),] <- values100EFs_UB
+
+par(mfrow=c(3,2))
+plot(aux,  main="plot of the pointwise  2.5% CI for precip")
+plot(aux2, main="plot of the pointwise 97.5% CI for precip")
+plot(aux-NAM_plotter,  main="plot of the pointwise  2.5% CI for precip")
+plot(aux2-NAM_plotter, main="plot of the pointwise 97.5% CI for precip")
+hist(aux-NAM_plotter, main="pointwise EF LBs - NAM")
+hist(aux2-NAM_plotter, main="pointwise EF UBs - NAM")
+
+par(mfrow=c(2,3))
+values(aux3) <- 1
+plot(aux3*ST4_plotter, main="ST4 observed precip")
+
+ST4minusNAM.REF_UB <- aux3*ST4_plotter-aux2
+plot(ST4minusNAM.REF_UB, main="ST4 - (NAM+REF_UB)")
+ST4minusNAM.REF_LB <- aux3*ST4_plotter-aux
+plot(ST4minusNAM.REF_LB, main="ST4 - (NAM+REF_LB)")
+plot(aux3*ST4_plotter-NAM_plotter, main="ST4 - NAM")
+ifelse(values(ST4minusNAM.REF_UB[ST4minusNAM.REF_UB>0]),1,0)
+
+values(ST4minusNAM.REF_UB)<-ifelse(values(ST4minusNAM.REF_UB)>0,1,0)
+plot(ST4minusNAM.REF_UB, main="ST4 - (NAM+REF_UB) > 0")
+values(ST4minusNAM.REF_LB)<-ifelse(values(ST4minusNAM.REF_LB)<0,1,0)
+plot(ST4minusNAM.REF_LB, main="ST4 - (NAM+REF_LB) < 0")
+
+# plot(ST4minusNAM.REF_LB-2*ST4minusNAM.REF_UB)
+
 # total_them_up <- raster()
 # total_them_up <-forecast_plus_error_rasters[[1]]
 
 # surface2 <- interp(x=s[,1], y=s[,2], z=z, duplicate = "mean")
 # persp(surface2)
-
 
 #somethings wrong with z2 (row/column mismatch?)
 z2 <- matrix(NA,nrow=length(unique(nam_df_csv$x)),ncol=length(unique(nam_df_csv$y)))
@@ -139,3 +196,10 @@ for (i in 1:length(unique(nam_df_csv$x))) for (j in 1:length(unique(nam_df_csv$y
   z2[i,j] <- x[i+(j-1)*length(unique(nam_df_csv$x))]
 }
 # image(sort(unique(nam_df_csv$x)),sort(unique(nam_df_csv$y)),z2)
+
+################################################
+# use values(forecast_plus_error_rasters[[k]]) #
+################################################
+
+
+# save.image("NAM_and_100randomEFs_ST4.wks")

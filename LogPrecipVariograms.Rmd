@@ -339,4 +339,5 @@ for(i in 1:length(most.storm.folders)){
   vario.plot
 }
 # dev.off()
+# save.image("LogPrecipVariograms_Nate500km")
 ```
