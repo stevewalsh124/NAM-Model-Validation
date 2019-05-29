@@ -25,10 +25,11 @@ Plotting 44 Storms' Log Precipitation for First 24 Hours After Landfall
 ```{r plot.all.41}
 # pdf("logbuffer.prevariogram4.pdf")
 all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F) #
-most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[45]#[-c(1,12:36)] #
+most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[42]#[-c(1,12:36)] #
 # these will be lists of lists (#lists=#storms), where each element in a list is rasters for a storm
 NAMlist <- list()
 ST4list <- list()
+HRRRlist<- list()
 
 # load, modify and project land/sea mask 
 mask <- raster("lsmask.nc")
@@ -105,9 +106,10 @@ ST4bufferprecip <- function(NAM_df,LatLonVec,LatLonVec2,radius){
 
 for(i in 1:length(most.storm.folders)){
   # i <- 1
-  currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #uncomment the [-1] when st4 and nam folders are together
+  currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #[-1] avoids parent folder
   ST4_folder <- currentST4_NAM_folders[1]
   NAM_folder <- currentST4_NAM_folders[2] #uncomment the [2] as well
+  HRRR_folder<- currentST4_NAM_folders[3]
   
   name_start <- tail(str_locate_all(pattern ='/', ST4_folder)[[1]],1)
   storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
@@ -118,6 +120,7 @@ for(i in 1:length(most.storm.folders)){
   print(length(list.files(NAM_folder))) #should be 15 or 18, depending if 72hr timestep exists
   NAMlist[[i]] <- list()
   ST4list[[i]] <- list()
+  HRRRlist[[i]]<- list()
 
   #Identifying where in the NAM folder the first 24 hours after landfall files are (latest timestep)
   if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else {
@@ -132,6 +135,17 @@ for(i in 1:length(most.storm.folders)){
     
     print(min(values(ST4list[[i]][[k]]), na.rm=T))
     # values(ST4list[[i]][[k]])[which(values(ST4list[[i]][[k]]<=1))] <- 1 
+    #change nonpositive projected precipitation to 0.0000000001 to implement log precip wihtout -Inf
+  }   
+  
+  for (k in 1:length(list.files(HRRR_folder,full.names = T))) {
+    # k <-1
+    HRRRfile <- list.files(HRRR_folder,full.names = T)[k]
+    HRRRlist[[i]][[k]] <- (raster(HRRRfile, band=64) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
+    HRRRlist[[i]][[k]] <- resample(HRRRlist[[i]][[k]], mask.regrid, method = "bilinear")
+    
+    print(min(values(HRRRlist[[i]][[k]]), na.rm=T))
+    # values(HRRRlist[[i]][[k]])[which(values(HRRRlist[[i]][[k]]<=1))] <- 1 
     #change nonpositive projected precipitation to 0.0000000001 to implement log precip wihtout -Inf
   } 
   
@@ -160,20 +174,13 @@ for(i in 1:length(most.storm.folders)){
     #change nonpositive projected precipitation to 0.0000000001 to implement log precip without -Inf
   }
   
-  first24NAM <- log((NAMlist[[i]][[1]]+NAMlist[[i]][[2]])*mask.regrid)
-  values(first24NAM)[which(values(first24NAM<=0))] <- 0 #change so less than 1mm <- 0
-  first24ST4 <- log((ST4list[[i]][[1]]+ST4list[[i]][[2]]+ST4list[[i]][[3]]+ST4list[[i]][[4]])*mask.regrid)
-  values(first24ST4)[which(values(first24ST4<=0))] <- 0 #change so less than 1mm <- 0
-  error.max <- max(abs(min(values(first24NAM-first24ST4),na.rm = T)),
-                   max(values(first24NAM-first24ST4),na.rm = T))
 
-
-  #######################################################################################################################################
+  ##############################################################################################################
   ST4_first12  <- ST4list[[i]][[1]]+ST4list[[i]][[2]]
   ST4_second12 <- ST4list[[i]][[3]]+ST4list[[i]][[4]]
   
   ST4_first12_logmask <- ((ST4_first12))*mask.regrid #removed log
-  values(ST4_first12_logmask)[which(values(ST4_first12_logmask<=0))] <- 0 #any log precip <=0 gets changed to 0 so scale is nonnegative
+  values(ST4_first12_logmask)[which(values(ST4_first12_logmask<=0))] <- 0 #log precip scale is nonnegative
   ST4_second12_logmask <- ((ST4_second12))*mask.regrid #removed log
   values(ST4_second12_logmask)[which(values(ST4_second12_logmask<=0))] <- 0 
   
@@ -184,12 +191,17 @@ for(i in 1:length(most.storm.folders)){
   NAM_second12 <- NAMlist[[i]][[2]]
   
   NAM_first12_logmask <- ((NAM_first12))*mask.regrid #removed log
-  # values(NAM_first12_logmask)[which(values(NAM_first12_logmask<=0))] <- 0 #any log precip <=0 gets changed to 0 so scale is nonnegative
+  # values(NAM_first12_logmask)[which(values(NAM_first12_logmask<=0))] <- 0 #log precip scale is nonnegative
   NAM_second12_logmask <- ((NAM_second12))*mask.regrid #removed log
   # values(NAM_second12_logmask)[which(values(NAM_second12_logmask<=0))] <- 0 
   
   NAM_df_first12  <- rasterToPoints(NAM_first12_logmask)
   NAM_df_second12 <- rasterToPoints(NAM_second12_logmask)
+  
+  HRRR_first12 <- HRRRlist[[i]][[1]]
+  HRRR_first12_logmask <- ((HRRR_first12))*mask.regrid #removed log
+  HRRR_df_first12  <- rasterToPoints(HRRR_first12_logmask)
+
   
   #The first 4 ST4 are 24 hrs. Two buffers for each 12hr group, using the 6th and 18th hour as centers (1st and 3rd files in ST4 folder)
   eye_1 <- list.files(ST4_folder,full.names = T)[1]
@@ -230,15 +242,23 @@ for(i in 1:length(most.storm.folders)){
   NAMtrythis  <- ST4bufferprecip(NAM_df_first12, eye1_latlon, eye2_latlon, radius)
   NAMtrythis2 <- ST4bufferprecip(NAM_df_second12, eye2_latlon, eye1_latlon, radius)
   
+  HRRRtrythis  <- ST4bufferprecip(HRRR_df_first12, eye1_latlon, eye2_latlon, radius)
+  
   NAM_plotter <- log(NAMtrythis+NAMtrythis2)
   values(NAM_plotter)[which(values(NAM_plotter<=0))] <- 0 
   ST4_plotter <- log(ST4trythis+ST4trythis2)
-  values(ST4_plotter)[which(values(ST4_plotter<=0))] <- 0 
-  NAM_plotter <- log(NAMtrythis+NAMtrythis2)
-  values(NAM_plotter)[which(values(NAM_plotter<=0))] <- 0 
+  values(ST4_plotter)[which(values(ST4_plotter<=0))] <- 0   
+  
+  NAM_plotter12 <- log(NAMtrythis)
+  values(NAM_plotter12)[which(values(NAM_plotter12<=0))] <- 0 
+  ST4_plotter12 <- log(ST4trythis)
+  values(ST4_plotter12)[which(values(ST4_plotter12<=0))] <- 0 
+  HRRR_plotter12 <- log(HRRRtrythis)
+  values(HRRR_plotter12)[which(values(HRRR_plotter12<=0))] <- 0 
 
 
   
+  # 24 HOUR PRECIP ANALYSIS
   #Convert the three rasters to data frames for ggplot
   NAM_spdf <- as(NAM_plotter, "SpatialPixelsDataFrame")
   NAM_df <- as.data.frame(NAM_spdf)
@@ -257,6 +277,37 @@ for(i in 1:length(most.storm.folders)){
   max(abs(error_df$value))
   precip.max <- max(c(ST4_df$value,NAM_df$value))
   precip.min <- min(c(ST4_df$value,NAM_df$value))
+  
+  # 12 HOUR PRECIP ANALYSIS WITH NAM
+  NAM_spdf12 <- as(NAM_plotter12, "SpatialPixelsDataFrame")
+  NAM_df12 <- as.data.frame(NAM_spdf12)
+  colnames(NAM_df12) <- c("value", "x", "y")
+  # Using this to load into simulate_error_field.R
+  write.csv(NAM_df12, paste0("NAMcsv/namdf_",storm_name,storm_year,"_",radius,"km.csv"))
+  
+  ST4_spdf12 <- as(ST4_plotter12, "SpatialPixelsDataFrame")
+  ST4_df12 <- as.data.frame(ST4_spdf12)
+  colnames(ST4_df12) <- c("value", "x", "y")
+  
+  HRRR_spdf12 <- as(HRRR_plotter12, "SpatialPixelsDataFrame")
+  HRRR_df12 <- as.data.frame(HRRR_spdf12)
+  colnames(HRRR_df12) <- c("value", "x", "y")
+  # Using this to load into simulate_error_field.R
+  write.csv(HRRR_df12, paste0("HRRRcsv/HRRRdf_",storm_name,storm_year,"_",radius,"km.csv"))
+    
+  error12 <- NAM_plotter12 - ST4_plotter12
+  error_spdf12 <- as((error12), "SpatialPixelsDataFrame")
+  error_df12 <- as.data.frame(error_spdf12)
+  colnames(error_df12) <- c("value", "x", "y")
+  max(abs(error_df12$value))
+  precip.max12 <- max(c(ST4_df12$value,NAM_df12$value,HRRR_df12$value))
+  precip.min12 <- min(c(ST4_df12$value,NAM_df12$value,HRRR_df12$value))
+
+  errorHRRR12 <- HRRR_plotter12 - ST4_plotter12
+  error_spdfHRRR12 <- as((errorHRRR12), "SpatialPixelsDataFrame")
+  error_dfHRRR12 <- as.data.frame(error_spdfHRRR12)
+  colnames(error_dfHRRR12) <- c("value", "x", "y")
+  max(abs(error_dfHRRR12$value))
 
   brk=seq(-1*ceiling(error.max),ceiling(error.max),ceiling(error.max/5))
   my.limits = c(-1*ceiling(error.max),ceiling(error.max))
@@ -273,7 +324,7 @@ for(i in 1:length(most.storm.folders)){
             "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming")
 
 
-  g1= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) + 
+  g1= ggplot(aes(x=x,y=y,fill=value),data=NAM_df12) + 
     geom_tile() + theme_classic() + 
     geom_polygon(data=subset(map_data("state"), region %in% regions), 
                  aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
@@ -285,7 +336,7 @@ for(i in 1:length(most.storm.folders)){
                        max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
 
-  g2= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) + 
+  g2= ggplot(aes(x=x,y=y,fill=value),data=ST4_df12) + 
     geom_tile() + theme_classic() + 
     geom_polygon(data=subset(map_data("state"), region %in% regions), 
                  aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
@@ -296,7 +347,7 @@ for(i in 1:length(most.storm.folders)){
                 ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
                        max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
-  g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) + 
+  g3= ggplot(aes(x=x,y=y,fill=value),data=error_df12) + 
     geom_tile() + theme_classic() + 
     geom_polygon(data=subset(map_data("state"), region %in% regions), 
                  aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
@@ -307,17 +358,40 @@ for(i in 1:length(most.storm.folders)){
                        max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
                 ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
                        max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+  
+  g4= ggplot(aes(x=x,y=y,fill=value),data=HRRR_df12) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) + 
+    labs(title =paste(paste(storm_name, storm_date,"HRRR")),x = "Longitude", y="Latitude") + 
+    coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                       max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+                ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                       max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+
+  g5= ggplot(aes(x=x,y=y,fill=value),data=error_dfHRRR12) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+    labs(title =paste(paste(storm_name, storm_date,"Error: HRRR - ST4")),
+         x = "Longitude", y="Latitude")+
+    coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                       max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+                ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                       max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
   
   simul <- cbind(error_df[,2],error_df[,3],error_df[,1])
   simul.geo <- as.geodata(simul)
   
-  simul.modvar <- variog(simul.geo,estimator.type="modulus")
+  simul.modvar <- variog(simul.geo, estimator.type="modulus")
 
   initial.values <- expand.grid(seq(0.1, 6, by=.02), seq(0.1, 4, by=.02))
   # initial.values <- expand.grid(seq(0, 6, by=.01), seq(0, 4, by=.01))
   # initial.values <- c(2.96,1.34)
-  sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern", 
+  sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="gaussian", 
                                   fix.nugget=F, weights="cressie", fix.kappa = F)
   # , nugget=0
   # sim.mod.cressie.nug <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern", 
@@ -337,6 +411,7 @@ for(i in 1:length(most.storm.folders)){
                      ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
 
   multiplot(g1, g2, g3, cols=1)
+  multiplot(g1, g3, g4, g5, cols=2)
   vario.plot
 }
 # dev.off()
