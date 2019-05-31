@@ -15,12 +15,13 @@ set.seed(1234)
 #     CHANGE STORM NUMBER      #
 ################################
 
-storm_number <- 45 #45 is harvey
+storm_number <- 46 #45 is harvey
+# OTHER THINGS TO CHANGE: iters, nam_df_csv
 
 params_deg_csv <- read.csv("csv/svg.param.ests.error_deg.csv")
 params_csv <- read.csv("csv/svg.param.ests.error4.1.19.csv")
-nam_df_csv <- read.csv("namdf_harvey2017_500km.csv")
-nam_df_full <- read.csv("namdf_harvey2017_700km.csv")
+nam_df_csv <- read.csv("namdf_irma2017_700km.csv")
+# nam_df_full <- read.csv("namdf_irma2017_700km.csv")
 storms1 <- read.csv("csv/storms1.csv")[,2]
 storms2 <- read.csv("csv/storms2.csv")[,2]
 storms3 <- read.csv("csv/storms3.csv")[,2]
@@ -38,45 +39,50 @@ sig2vec <- params_deg_csv[,5]
 summary(nam_df_csv)
 xaxis <- nam_df_csv[,3]
 yaxis <- nam_df_csv[,4]
-xaxis_full <- nam_df_full[,3]
-yaxis_full <- nam_df_full[,4]
+# xaxis_full <- nam_df_full[,3]
+# yaxis_full <- nam_df_full[,4]
 nam_df_sort <- nam_df_csv[order(nam_df_csv$x, nam_df_csv$y),]
 # s <- matrix(NA,nrow=length(xaxis)*length(yaxis),ncol=2)
 # for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] <- c(xaxis[i],yaxis[j])
 s <- nam_df_csv[,3:4]
-s_full <- nam_df_full[,3:4]
-
+# s_full <- nam_df_full[,3:4]
+head(s)
+colnames(s) <- c("lon","lat")
+xmin.loc <- min(s$lon)
+xmax.loc <- max(s$lon)
+ymin.loc <- min(s$lat)
+ymax.loc <- max(s$lat)
 ##############################################
 # Subsetting so that the area is a rectangle #
 ##############################################
-xmin.loc <- -105
-xmax.loc <- -90
-ymin.loc <- 22
-ymax.loc <- 36
+# xmin.loc <- -105
+# xmax.loc <- -90
+# ymin.loc <- 22
+# ymax.loc <- 36
 
 plot(s)
-abline(v=xmin.loc, col="red")
-abline(v=xmax.loc, col="red")
-abline(h=ymin.loc, col="red")
-abline(h=ymax.loc, col="red")
+# abline(v=xmin.loc, col="red")
+# abline(v=xmax.loc, col="red")
+# abline(h=ymin.loc, col="red")
+# abline(h=ymax.loc, col="red")
 
-plot(s_full)
-abline(v=xmin.loc, col="red")
-abline(v=xmax.loc, col="red")
-abline(h=ymin.loc, col="red")
-abline(h=ymax.loc, col="red")
+# plot(s_full)
+# abline(v=xmin.loc, col="red")
+# abline(v=xmax.loc, col="red")
+# abline(h=ymin.loc, col="red")
+# abline(h=ymax.loc, col="red")
 
-s <- filter(s, x > xmin.loc & x < xmax.loc & y < ymax.loc & y > ymin.loc)
-xaxis <- sort(unique(xaxis[xaxis > xmin.loc & xaxis < xmax.loc]))
-yaxis <- sort(unique(yaxis[yaxis > ymin.loc & yaxis < ymax.loc]))
-
-s_full <- filter(s_full, x > xmin.loc & x < xmax.loc & y < ymax.loc & y > ymin.loc)
-xaxis_full <- sort(unique(xaxis_full[xaxis_full > xmin.loc & xaxis_full < xmax.loc]))
-yaxis_full <- sort(unique(yaxis_full[yaxis_full > ymin.loc & yaxis_full < ymax.loc]))
-plot(s_full)
-s <- s_full
-yaxis <- yaxis_full
-xaxis <- xaxis_full
+# s <- filter(s, x > xmin.loc & x < xmax.loc & y < ymax.loc & y > ymin.loc)
+# xaxis <- sort(unique(xaxis[xaxis > xmin.loc & xaxis < xmax.loc]))
+# yaxis <- sort(unique(yaxis[yaxis > ymin.loc & yaxis < ymax.loc]))
+# 
+# s_full <- filter(s_full, x > xmin.loc & x < xmax.loc & y < ymax.loc & y > ymin.loc)
+# xaxis_full <- sort(unique(xaxis_full[xaxis_full > xmin.loc & xaxis_full < xmax.loc]))
+# yaxis_full <- sort(unique(yaxis_full[yaxis_full > ymin.loc & yaxis_full < ymax.loc]))
+# plot(s_full)
+# s <- s_full
+# yaxis <- yaxis_full
+# xaxis <- xaxis_full
 # xaxis <- sort(unique(xaxis))
 # yaxis <- sort(unique(yaxis))
 # plot(s)
