@@ -3,6 +3,9 @@ library(SpatialEpi) #latlong2grid
 library(dplyr)
 getwd()
 set.seed(1234)
+
+load("LogPrecipVariograms.wks")
+
 #loads in previously ran 100 random error fields with NAM precip
 # load("NAM_and_100randomEFs_ST4.wks")
 # load("LogPrecipVariograms_Nate500km")
@@ -15,22 +18,22 @@ set.seed(1234)
 #     CHANGE STORM NUMBER      #
 ################################
 
-storm_number <- 46 #45 is harvey
+storm_number <- 45 #45 is harvey
 # OTHER THINGS TO CHANGE: iters, nam_df_csv
 
 params_deg_csv <- read.csv("csv/svg.param.ests.error_deg.csv")
 params_csv <- read.csv("csv/svg.param.ests.error4.1.19.csv")
-nam_df_csv <- read.csv("namdf_irma2017_700km.csv")
+nam_df_csv <- read.csv("csv/namdf_harvey2017_700km.csv")
 # nam_df_full <- read.csv("namdf_irma2017_700km.csv")
 storms1 <- read.csv("csv/storms1.csv")[,2]
 storms2 <- read.csv("csv/storms2.csv")[,2]
 storms3 <- read.csv("csv/storms3.csv")[,2]
 storms4 <- read.csv("csv/storms4.csv")[,2]
 storms5 <- read.csv("csv/storms5.csv")[,2]
-stormsTS <- read.csv("csv/stormsTS.csv")[,2]
-stormsATL <- read.csv("csv/stormsATL.csv")[,2]
-stormsGULF <- read.csv("csv/stormsGULF.csv")[,2]
-stormsFL <- read.csv("csv/stormsFL.csv")[,2]
+stormsTS<- read.csv("csv/stormsTS.csv")[,2]
+stormsATL<-read.csv("csv/stormsATL.csv")[,2]
+stormsGULF<-read.csv("csv/stormsGULF.csv")[,2]
+stormsFL<- read.csv("csv/stormsFL.csv")[,2]
 head(params_csv)
 phivec  <- params_deg_csv[,2]
 prRangevec <- params_deg_csv[,3]
@@ -124,8 +127,8 @@ plot(NAM_plotter, xlim= c(xmin.loc,xmax.loc), ylim=c(ymin.loc,ymax.loc),
 
 covmatrix <- diag(tau2,nrow(t)) + covfunc.Gaussian(t,phi,sigma2)
 # image(covmatrix)
-iters <- 100
-dim(s)[1]==length(as.vector(z))
+iters <- 2
+
 values_precip_iters <- matrix(NA, nrow = dim(s)[1], ncol = iters)
 forecast_plus_error_rasters <- list()
 for (k in 1:iters) {

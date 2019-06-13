@@ -17,16 +17,18 @@ library(rgdal)
 library(colorspace)
 library(ggplot2)
 library(SpatialEpi) #latlong2grid
-library(geoR)
+library(geoR) #as.geodata, variog, variofit
 ```
 
 Plotting 44 Storms' Log Precipitation for First 24 Hours After Landfall
 
 ```{r plot.all.41}
-pdf("logbuffprecip.SVGbombskmphiquest.pdf")
+# pdf("SVG.G.48.km.old.pdf")
 all.storm.folders  <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("NAMandST4", recursive = F)[1:3]#[c(5,16,22,25,35,47)] #Matern aborters
-#[-c(2,3,6,8,5,16,22,25,35,47)] # to avoid aborting R and storms w/o 12hr precip
+most.storm.folders <- list.dirs("NAMandST4", recursive = F)#[-c(2,3,6,8)]#THE NON12HR STORMS
+#[-c(2,3,6,8,5,16,22,25,35,47)]# to avoid aborting R and storms w/o 12hr precip
+
+#[c(5,16,22,25,35,47)] #Matern aborters
 #[-c(1,12:36)] #to avoid JPEG2000 driver issue on Mac
 #/Volumes/LACIEHD/
 # these will be lists of lists (#lists=#storms), where each element in a list is rasters for a storm
@@ -123,7 +125,7 @@ ST4bufferprecip <- function(NAM_df,LatLonVec,LatLonVec2,radius){
 
 for(i in 1:length(most.storm.folders)){
   # i <- 1
-  currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #uncomment the [-1] when st4 and nam folders are together
+  currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #uncomment [-1] when st4&nam dirs together
   ST4_folder <- currentST4_NAM_folders[1]
   NAM_folder <- currentST4_NAM_folders[2] #uncomment the [2] as well
   
@@ -139,8 +141,9 @@ for(i in 1:length(most.storm.folders)){
 
   #Identifying where in the NAM folder the first 24 hours after landfall files are (latest timestep)
   if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else {
-    if(length(list.files(NAM_folder,full.names = T))==15|storm_name=="rita"){first24 <- c(5,6)} #rita is missing files
-    else {print("Total NAM files for this storm not 15 or 18; skipping"); next}}
+    if(length(list.files(NAM_folder,full.names = T))==15|storm_name=="rita"){first24 <- c(5,6)} else {
+      if(length(list.files(NAM_folder,full.names = T))==26){first24 <- c(5,9)}
+      else {print("Total NAM files for this storm not 15 or 18; skipping"); next}}}
 
   for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
     # k <-1
@@ -162,14 +165,14 @@ for(i in 1:length(most.storm.folders)){
     storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
     if(storm_date < 20060701){NAM_band <- 10} else 
       if(storm_date > 20060701 && storm_date < 20170101){NAM_band <- 11} else {NAM_band <- 373}
-    if(storm_name=="charley"&&j==1&&storm_date<20050000){NAM_band <- 13} 
-    if(storm_name=="charley"&&j==2&&storm_date<20050000){NAM_band <- 14} 
-    if(storm_name=="ivan"   &&j==1&&storm_date<20050000){NAM_band <- 12} 
-    if(storm_name=="ivan"   &&j==2&&storm_date<20050000){NAM_band <- 14} 
-    if(storm_name=="matthew"&&j==1&&storm_date<20050000){NAM_band <- 14} 
-    if(storm_name=="matthew"&&j==2&&storm_date<20050000){NAM_band <- 12} 
-    if(storm_name=="frances"&&j==1&&storm_date<20050000){NAM_band <- 13} 
-    if(storm_name=="frances"&&j==2&&storm_date<20050000){NAM_band <- 14} 
+    # if(storm_name=="charley"&&j==1&&storm_date<20050000){NAM_band <- 13} 
+    # if(storm_name=="charley"&&j==2&&storm_date<20050000){NAM_band <- 14} 
+    # if(storm_name=="ivan"   &&j==1&&storm_date<20050000){NAM_band <- 12} 
+    # if(storm_name=="ivan"   &&j==2&&storm_date<20050000){NAM_band <- 14} 
+    # if(storm_name=="matthew"&&j==1&&storm_date<20050000){NAM_band <- 14} 
+    # if(storm_name=="matthew"&&j==2&&storm_date<20050000){NAM_band <- 12} 
+    # if(storm_name=="frances"&&j==1&&storm_date<20050000){NAM_band <- 13} 
+    # if(storm_name=="frances"&&j==2&&storm_date<20050000){NAM_band <- 14} 
 
     print(NAM_band)
     NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
@@ -329,15 +332,20 @@ for(i in 1:length(most.storm.folders)){
                        max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
   
-  simul <- cbind(error_df[,2],error_df[,3],error_df[,1])
-  # simul[,1:2] <- latlong2grid(simul[,1:2])
-  simul <- cbind(latlong2grid(simul[,1:2]), simul[,3])
+  simul <- cbind(error_df[,2],error_df[,3],error_df[,1]) #uses degrees: Long, Lat, Value
+  # write.csv(x = simul, 
+  #           file = paste0("C:/Users/thefl/Downloads/NAM-Model-Validation/storm_df_deg/",
+  #                         storm_date,storm_name,".csv"))
+  # simul <- cbind(latlong2grid(simul[,1:2]), simul[,3]) #use km instead of degrees
+  # write.csv(x = simul, 
+  #           file = paste0("C:/Users/thefl/Downloads/NAM-Model-Validation/storm_df_km/",
+  #                         storm_date,storm_name,".csv"))
   simul.geo <- as.geodata(simul)
 
   simul.modvar <- variog(simul.geo,estimator.type="modulus")
 
-  initial.values <- expand.grid(c(seq(.01,.09,.01),seq(0.1, 6, by=.02),seq(6,20,1)),
-                                100*c(seq(.01,.09,.01),seq(0.1, 4, by=.02),seq(4,20,1)))
+  initial.values <- expand.grid(c(seq(.01,.09,.01),seq(0.1, 6, by=.02),seq(6,20,1)), #sig2 (partial sill)
+                                100*c(seq(.01,.09,.01),seq(0.1, 4, by=.02),seq(4,20,1))) #phi (range)
   # initial.values <- c(2.96,1.34)
   # sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern",
                                   # fix.nugget=TRUE, nugget=0, weights="cressie", fix.kappa = F)
@@ -357,17 +365,316 @@ for(i in 1:length(most.storm.folders)){
                      ylim=c(0,1));lines(sim.mod.cressie.nug,col="red")
   # lines(sim.mod.cressie,col="orange");
 
+  # par(cex.axis=2, cex.lab=2, cex.main=3.5)  #for poster sized semivariogram
+  # plot(simul.modvar,main=paste0("SVG for ", storm_year," ",storm_name), #settings for poster png
+  #    ylim=c(0,1),cex=4,pch=19);lines(sim.mod.cressie.nug,col="red",lwd=4) #poster size
+
+
   multiplot(g1, g2, g3, cols=1)
   vario.plot
 }
-dev.off()
+
+svg.param.ests.error <- cbind(phivec,prRangevec,tau2vec,sig2vec)
+write.csv(svg.param.ests.error, "svg.param.ests.error_deg.csv")
+
+# dev.off()
 ```
 
 ```{r}
-par(mfrow=c(1,2))
+# pdf("SVG.G.48.km.old.hist.pdf")
+par(mfrow=c(2,2))
 summary(tau2vec);boxplot(tau2vec);hist(tau2vec)
 summary(sig2vec);boxplot(sig2vec);hist(sig2vec)
 summary(phivec);boxplot(phivec);hist(phivec)
-summary(kappavec);boxplot(kappavec);hist(kappavec)
-pairs(cbind(tau2vec,phivec,sig2vec,kappavec))
+summary(prRangevec);boxplot(prRangevec);hist(prRangevec)
+par(mfrow=c(1,1))
+# summary(kappavec);boxplot(kappavec);hist(kappavec)
+pairs(cbind(tau2vec,phivec,sig2vec, prRangevec)) #,kappavec
+# dev.off()
+```
+
+```{r}
+# pdf("SVG.G.48.km.error.bygroups.pdf")
+all_content = readLines("US_20042017_landfalls_mod.csv")
+skip_second = all_content[-6]
+landfalls = read.csv(textConnection(skip_second), header = TRUE, stringsAsFactors = FALSE)
+landfalls$inten <- factor(ifelse(landfalls$SSHWS%in%c("TS","1","2"),"TS,1,2","3,4,5"))
+landfalls$inten_alt <- factor(ifelse(landfalls$SSHWS%in%c("TS"),"TS",
+                              ifelse(landfalls$SSHWS%in%c("1","2"),"1,2","3,4,5")))
+landfalls$loc   <- factor(ifelse(landfalls$BT.Lat>32,"ATL",
+                          ifelse(landfalls$BTLon>-88,"FL","GULF")))
+landfalls$SSHWS=factor(landfalls$SSHWS, levels = levels(factor(landfalls$SSHWS))[c(5,1:4)])
+landfalls$inten=factor(landfalls$inten , levels=levels(landfalls$inten)[c(2,1)])
+landfalls$inten_alt=factor(landfalls$inten_alt , levels=levels(landfalls$inten_alt)[c(3,1,2)])
+
+
+levels(landfalls$SSHWS)
+stormsTS<- which(landfalls$SSHWS=="TS")
+storms1 <- which(landfalls$SSHWS==1)
+storms2 <- which(landfalls$SSHWS==2)
+storms3 <- which(landfalls$SSHWS==3)
+storms4 <- which(landfalls$SSHWS==4)
+storms5 <- which(landfalls$SSHWS==5)
+storms_TS_1_2 <- c(stormsTS,storms1,storms2)
+storms_3_4_5  <- c(storms3,storms4,storms5)
+
+stormsATL <- which(landfalls$BT.Lat>32)
+stormsFL  <- which(landfalls$BT.Lat<32&landfalls$BTLon> -88)
+stormsGULF<- which(landfalls$BT.Lat<32&landfalls$BTLon< -88)
+dim(landfalls[stormsATL,]);dim(landfalls[stormsFL,]);dim(landfalls[stormsGULF,])
+
+# plot(landfalls[,5:4], main="Plot by Location")
+# points(landfalls[stormsATL,5:4],col="red")
+# points(landfalls[stormsFL,5:4],col="blue")
+# points(landfalls[stormsGULF,5:4],col="green")
+# legend("topleft", inset=.02, title="Storm Location",
+#    c("ATL","FL","GULF"), fill=c("red","blue","green"), horiz=TRUE, cex=1)
+
+g_byloc <- ggplot() + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  geom_point(data = landfalls[stormsATL,], aes(x=BTLon, y = BT.Lat, color="ATL"))+#,size=80))+ ##for poster
+  geom_point(data = landfalls[stormsFL,], aes(x=BTLon, y = BT.Lat, color="FL"))+#,size=80))+ ##for poster
+  geom_point(data = landfalls[stormsGULF,], aes(x=BTLon, y = BT.Lat, color="GULF"))+#,size=80))+ ##for poster
+  labs(title ="Landfalls by Location", x = "Longitude", y="Latitude") + 
+  # theme(plot.title = element_text(size=36),axis.text =  element_text(size = 26), #use these for poster
+  #      axis.title =  element_text(size = 26))+ #use these for poster plots
+  coord_fixed(xlim=c(-100, -68), ylim = c(24,45), ratio = 1)+
+  scale_colour_manual(name="Location", values = c("green","blue","red"))
+
+g_byloc
+
+g_byint <- ggplot() + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  geom_point(data = landfalls[c(stormsTS),], aes(x=BTLon, y = BT.Lat, color=" TS"))+
+  geom_point(data = landfalls[c(storms1,storms2),], aes(x=BTLon, y = BT.Lat, color="1/2"))+
+  geom_point(data = landfalls[c(storms3,storms4,storms5),], aes(x=BTLon, y = BT.Lat, color="3/4/5"))+
+  labs(title ="Landfalls by Intensity", x = "Longitude", y="Latitude") + 
+  coord_fixed(xlim=c(-100, -68), ylim = c(24,45), ratio = 1)+
+  scale_colour_manual(name="Intensity", values = c("green","blue","red"))
+
+g_byint
+
+# plot(landfalls[,5:4], main="Plot by Intensity")
+# points(landfalls[storms_TS_1_2,5:4],col="green")
+# points(landfalls[storms2,5:4], col="blue" )
+# points(landfalls[storms_3_4_5 ,5:4],col="red")
+# legend("topleft", inset=.02, title="Storm Intensity",
+#    c("TS,1","2","3,4,5"), fill=c("green","blue","red"), horiz=TRUE, cex=1)
+
+
+par(mfrow=c(2,2))
+boxplot(phivec~inten, data=landfalls, ylab= expression(phi), 
+        main=expression(paste(phi, " by intensity")))
+boxplot(prRangevec~inten, data=landfalls, ylab="Prac Rg by intensity",
+        main=expression("Practical Range by intensity"))
+boxplot(tau2vec~inten, data=landfalls, ylab= expression(tau^2), 
+        main=expression(paste(tau^2, " by intensity")))
+boxplot(sig2vec~inten, data=landfalls, ylab= expression(sigma^2), 
+        main=expression(paste(sigma^2, " by intensity")))
+
+par(mfrow=c(2,2))
+boxplot(phivec~inten_alt, data=landfalls, ylab= expression(phi), 
+        main=expression(paste(phi, " by intensity")))
+boxplot(prRangevec~inten_alt, data=landfalls, ylab="Prac Rg by intensity",
+        main=expression("Practical Range by intensity"))
+boxplot(tau2vec~inten_alt, data=landfalls, ylab= expression(tau^2), 
+        main=expression(paste(tau^2, " by intensity")))
+boxplot(sig2vec~inten_alt, data=landfalls, ylab= expression(sigma^2), 
+        main=expression(paste(sigma^2, " by intensity")))
+
+
+par(mfrow=c(2,2))
+boxplot(phivec~SSHWS, data=landfalls, ylab= expression(phi), 
+        main=expression(paste(phi, " by intensity")))
+boxplot(prRangevec~SSHWS, data=landfalls, ylab="Prac Rg by intensity",
+        main=expression("Practical Range by intensity"))
+boxplot(tau2vec~SSHWS, data=landfalls, ylab= expression(tau^2), 
+        main=expression(paste(tau^2, " by intensity")))
+boxplot(sig2vec~SSHWS, data=landfalls, ylab= expression(sigma^2), 
+        main=expression(paste(sigma^2, " by intensity")))
+
+
+
+par(mfrow=c(2,2))
+boxplot(phivec~loc, data=landfalls, ylab= expression(phi), 
+        main=expression(paste(phi, " by location")))
+boxplot(prRangevec~loc, data=landfalls, ylab="Prac Rg by location",
+        main=expression("Practical Range by location"))
+boxplot(tau2vec~loc, data=landfalls, ylab= expression(tau^2), 
+        main=expression(paste(tau^2, " by location")))
+boxplot(sig2vec~loc, data=landfalls, ylab= expression(sigma^2), 
+        main=expression(paste(sigma^2, " by location")))
+
+pairs(cbind(phivec,prRangevec,tau2vec,sig2vec)) #,kappavec
+
+par(mfrow=c(2,2))
+plot(phivec, type="l", main=expression(paste(phi, " over time")))
+plot(prRangevec, type="l", main="Practical range over time")
+plot(tau2vec, type="l", main=expression(paste(tau^2, " over time")))
+plot(sig2vec, type="l", main=expression(paste(sigma^2, " over time")))
+
+# dev.off()
+```
+
+
+```{r}
+# pdf("SVGskrt.pdf")
+dim(landfalls[stormsTS,]);dim(landfalls[storms1,]);
+dim(landfalls[storms2,]);dim(landfalls[storms3,]);
+dim(landfalls[storms4,]);dim(landfalls[storms5,])
+
+stormsATL <- which(landfalls$BT.Lat>32)
+stormsFL  <- which(landfalls$BT.Lat<32&landfalls$BTLon> -88)
+stormsGULF<- which(landfalls$BT.Lat<32&landfalls$BTLon< -88)
+dim(landfalls[stormsATL,]);dim(landfalls[stormsFL,]);dim(landfalls[stormsGULF,])
+
+plot(landfalls[,5:4], main="Plot by Location")
+points(landfalls[stormsATL,5:4],col="red")
+points(landfalls[stormsFL,5:4],col="blue")
+points(landfalls[stormsGULF,5:4],col="green")
+
+storms_TS_1_2 <- c(stormsTS,storms1,storms2)
+storms_3_4_5  <- c(storms3,storms4,storms5)
+
+
+plot(landfalls[,5:4], main="Plot by Intensity")
+points(landfalls[storms_TS_1_2,5:4],col="green")
+points(landfalls[storms_3_4_5 ,5:4],col="red")
+
+
+
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[stormsATL]);boxplot(tau2vec[stormsATL]);hist(tau2vec[stormsATL])
+summary(sig2vec[stormsATL]);boxplot(sig2vec[stormsATL]);hist(sig2vec[stormsATL])
+summary(phivec[stormsATL]);boxplot(phivec[stormsATL]);hist(phivec[stormsATL])
+summary(prRangevec[stormsATL]);boxplot(prRangevec[stormsATL]);hist(prRangevec[stormsATL])
+# par(mfrow=c(1,2))
+# summary(kappavec[stormsATL]);boxplot(kappavec[stormsATL]);hist(kappavec[stormsATL])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[stormsATL],phivec[stormsATL],sig2vec[stormsATL], prRangevec[stormsATL])) #,kappavec[stormsATL]
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[stormsFL]);boxplot(tau2vec[stormsFL], main="FL");hist(tau2vec[stormsFL], main="FL")
+summary(sig2vec[stormsFL]);boxplot(sig2vec[stormsFL], main="FL");hist(sig2vec[stormsFL], main="FL")
+summary(phivec[stormsFL]) ;boxplot(phivec[stormsFL] , main="FL");hist(phivec[stormsFL] , main="FL")
+summary(prRangevec[stormsFL]);boxplot(prRangevec[stormsFL],main="FL");hist(prRangevec[stormsFL],main="FL")
+# par(mfrow=c(1,2))
+# summary(kappavec[stormsFL]);boxplot(kappavec[stormsFL]);hist(kappavec[stormsFL])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[stormsFL],phivec[stormsFL],sig2vec[stormsFL], prRangevec[stormsFL])) #,kappavec[stormsFL]
+
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[stormsGULF]);boxplot(tau2vec[stormsGULF], main="GULF");hist(tau2vec[stormsGULF], main="GULF")
+summary(sig2vec[stormsGULF]);boxplot(sig2vec[stormsGULF], main="GULF");hist(sig2vec[stormsGULF], main="GULF")
+summary(phivec[stormsGULF]) ;boxplot(phivec[stormsGULF] , main="GULF");hist(phivec[stormsGULF] , main="GULF")
+summary(prRangevec[stormsGULF]);boxplot(prRangevec[stormsGULF],main="GULF");hist(prRangevec[stormsGULF],main="GULF")
+# par(mfrow=c(1,2))
+# summary(kappavec[stormsGULF]);boxplot(kappavec[stormsGULF]);hist(kappavec[stormsGULF])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[stormsGULF],phivec[stormsGULF],sig2vec[stormsGULF], prRangevec[stormsGULF])) #,kappavec[stormsGULF]
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[storms_TS_1_2]);boxplot(tau2vec[storms_TS_1_2], main="_TS_1_2");hist(tau2vec[storms_TS_1_2], main="_TS_1_2")
+summary(sig2vec[storms_TS_1_2]);boxplot(sig2vec[storms_TS_1_2], main="_TS_1_2");hist(sig2vec[storms_TS_1_2], main="_TS_1_2")
+summary(phivec[storms_TS_1_2]) ;boxplot(phivec[storms_TS_1_2] , main="_TS_1_2");hist(phivec[storms_TS_1_2] , main="_TS_1_2")
+summary(prRangevec[storms_TS_1_2]);boxplot(prRangevec[storms_TS_1_2],main="_TS_1_2");hist(prRangevec[storms_TS_1_2],main="_TS_1_2")
+# par(mfrow=c(1,2))
+# summary(kappavec[storms_TS_1_2]);boxplot(kappavec[storms_TS_1_2]);hist(kappavec[storms_TS_1_2])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[storms_TS_1_2],phivec[storms_TS_1_2],sig2vec[storms_TS_1_2], prRangevec[storms_TS_1_2])) #,kappavec[storms_TS_1_2]
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[storms_3_4_5]);boxplot(tau2vec[storms_3_4_5], main="_3_4_5");hist(tau2vec[storms_3_4_5], main="_3_4_5")
+summary(sig2vec[storms_3_4_5]);boxplot(sig2vec[storms_3_4_5], main="_3_4_5");hist(sig2vec[storms_3_4_5], main="_3_4_5")
+summary(phivec[storms_3_4_5]) ;boxplot(phivec[storms_3_4_5] , main="_3_4_5");hist(phivec[storms_3_4_5] , main="_3_4_5")
+summary(prRangevec[storms_3_4_5]);boxplot(prRangevec[storms_3_4_5],main="_3_4_5");hist(prRangevec[storms_3_4_5],main="_3_4_5")
+# par(mfrow=c(1,2))
+# summary(kappavec[storms_3_4_5]);boxplot(kappavec[storms_3_4_5]);hist(kappavec[storms_3_4_5])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[storms_3_4_5],phivec[storms_3_4_5],sig2vec[storms_3_4_5], prRangevec[storms_3_4_5])) #,kappavec[storms_3_4_5]
+
+
+
+# dev.off()
+```
+
+
+
+
+
+
+```{r}
+# pdf("SVG.G.48.km.old.byplottype.pdf")
+
+par(mfrow=c(1,3))
+boxplot(tau2vec,by=landfalls$SSHWS)
+boxplot(tau2vec[stormsFL])
+boxplot(tau2vec[stormsGULF])
+
+summary(tau2vec[stormsATL]);hist(tau2vec[stormsATL])
+summary(sig2vec[stormsATL]);boxplot(sig2vec[stormsATL]);hist(sig2vec[stormsATL])
+summary(phivec[stormsATL]);boxplot(phivec[stormsATL]);hist(phivec[stormsATL])
+summary(prRangevec[stormsATL]);boxplot(prRangevec[stormsATL]);hist(prRangevec[stormsATL])
+# par(mfrow=c(1,2))
+# summary(kappavec[stormsATL]);boxplot(kappavec[stormsATL]);hist(kappavec[stormsATL])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[stormsATL],phivec[stormsATL],sig2vec[stormsATL], prRangevec[stormsATL])) #,kappavec[stormsATL]
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[stormsFL]);boxplot(tau2vec[stormsFL], main="FL");hist(tau2vec[stormsFL], main="FL")
+summary(sig2vec[stormsFL]);boxplot(sig2vec[stormsFL], main="FL");hist(sig2vec[stormsFL], main="FL")
+summary(phivec[stormsFL]) ;boxplot(phivec[stormsFL] , main="FL");hist(phivec[stormsFL] , main="FL")
+summary(prRangevec[stormsFL]);boxplot(prRangevec[stormsFL],main="FL");hist(prRangevec[stormsFL],main="FL")
+# par(mfrow=c(1,2))
+# summary(kappavec[stormsFL]);boxplot(kappavec[stormsFL]);hist(kappavec[stormsFL])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[stormsFL],phivec[stormsFL],sig2vec[stormsFL], prRangevec[stormsFL])) #,kappavec[stormsFL]
+
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[stormsGULF]);boxplot(tau2vec[stormsGULF], main="GULF");hist(tau2vec[stormsGULF], main="GULF")
+summary(sig2vec[stormsGULF]);boxplot(sig2vec[stormsGULF], main="GULF");hist(sig2vec[stormsGULF], main="GULF")
+summary(phivec[stormsGULF]) ;boxplot(phivec[stormsGULF] , main="GULF");hist(phivec[stormsGULF] , main="GULF")
+summary(prRangevec[stormsGULF]);boxplot(prRangevec[stormsGULF],main="GULF");hist(prRangevec[stormsGULF],main="GULF")
+# par(mfrow=c(1,2))
+# summary(kappavec[stormsGULF]);boxplot(kappavec[stormsGULF]);hist(kappavec[stormsGULF])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[stormsGULF],phivec[stormsGULF],sig2vec[stormsGULF], prRangevec[stormsGULF])) #,kappavec[stormsGULF]
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[storms_TS_1_2]);boxplot(tau2vec[storms_TS_1_2], main="_TS_1_2");hist(tau2vec[storms_TS_1_2], main="_TS_1_2")
+summary(sig2vec[storms_TS_1_2]);boxplot(sig2vec[storms_TS_1_2], main="_TS_1_2");hist(sig2vec[storms_TS_1_2], main="_TS_1_2")
+summary(phivec[storms_TS_1_2]) ;boxplot(phivec[storms_TS_1_2] , main="_TS_1_2");hist(phivec[storms_TS_1_2] , main="_TS_1_2")
+summary(prRangevec[storms_TS_1_2]);boxplot(prRangevec[storms_TS_1_2],main="_TS_1_2");hist(prRangevec[storms_TS_1_2],main="_TS_1_2")
+# par(mfrow=c(1,2))
+# summary(kappavec[storms_TS_1_2]);boxplot(kappavec[storms_TS_1_2]);hist(kappavec[storms_TS_1_2])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[storms_TS_1_2],phivec[storms_TS_1_2],sig2vec[storms_TS_1_2], prRangevec[storms_TS_1_2])) #,kappavec[storms_TS_1_2]
+
+
+par(mfrow=c(2,2))
+summary(tau2vec[storms_3_4_5]);boxplot(tau2vec[storms_3_4_5], main="_3_4_5");hist(tau2vec[storms_3_4_5], main="_3_4_5")
+summary(sig2vec[storms_3_4_5]);boxplot(sig2vec[storms_3_4_5], main="_3_4_5");hist(sig2vec[storms_3_4_5], main="_3_4_5")
+summary(phivec[storms_3_4_5]) ;boxplot(phivec[storms_3_4_5] , main="_3_4_5");hist(phivec[storms_3_4_5] , main="_3_4_5")
+summary(prRangevec[storms_3_4_5]);boxplot(prRangevec[storms_3_4_5],main="_3_4_5");hist(prRangevec[storms_3_4_5],main="_3_4_5")
+# par(mfrow=c(1,2))
+# summary(kappavec[storms_3_4_5]);boxplot(kappavec[storms_3_4_5]);hist(kappavec[storms_3_4_5])
+par(mfrow=c(1,1))
+pairs(cbind(tau2vec[storms_3_4_5],phivec[storms_3_4_5],sig2vec[storms_3_4_5], prRangevec[storms_3_4_5])) #,kappavec[storms_3_4_5]
+
+# dev.off()
 ```
