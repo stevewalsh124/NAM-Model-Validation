@@ -4,7 +4,7 @@ library(dplyr)
 getwd()
 set.seed(1234)
 
-load("LogPrecipVariograms.wks")
+# load("LogPrecipVariograms_all47.wks")
 
 #loads in previously ran 100 random error fields with NAM precip
 # load("NAM_and_100randomEFs_ST4.wks")
@@ -18,12 +18,12 @@ load("LogPrecipVariograms.wks")
 #     CHANGE STORM NUMBER      #
 ################################
 
-storm_number <- 45 #45 is harvey
+storm_number <- 46 #45 is harvey
 # OTHER THINGS TO CHANGE: iters, nam_df_csv
 
 params_deg_csv <- read.csv("csv/svg.param.ests.error_deg.csv")
 params_csv <- read.csv("csv/svg.param.ests.error4.1.19.csv")
-nam_df_csv <- read.csv("csv/namdf_harvey2017_700km.csv")
+nam_df_csv <- read.csv("csv/namdf_irma2017_700km.csv") ##################CHANGE THIS FOR THE STORM######
 # nam_df_full <- read.csv("namdf_irma2017_700km.csv")
 storms1 <- read.csv("csv/storms1.csv")[,2]
 storms2 <- read.csv("csv/storms2.csv")[,2]
@@ -35,10 +35,10 @@ stormsATL<-read.csv("csv/stormsATL.csv")[,2]
 stormsGULF<-read.csv("csv/stormsGULF.csv")[,2]
 stormsFL<- read.csv("csv/stormsFL.csv")[,2]
 head(params_csv)
-phivec  <- params_deg_csv[,2]
-prRangevec <- params_deg_csv[,3]
-tau2vec <- params_deg_csv[,4]
-sig2vec <- params_deg_csv[,5]
+# phivec  <- params_deg_csv[,2]
+# prRangevec <- params_deg_csv[,3]
+# tau2vec <- params_deg_csv[,4]
+# sig2vec <- params_deg_csv[,5]
 summary(nam_df_csv)
 xaxis <- nam_df_csv[,3]
 yaxis <- nam_df_csv[,4]
@@ -116,21 +116,26 @@ matrix.sqrt <- function(H)
 
 # With nugget effect
 
-tau2 <- tau2vec[storm_number] #mean(tau2vec[stormsGULF]) #previous 0.5
-sigma2 <- sig2vec[storm_number] #mean(sig2vec[stormsGULF]) #1
-phi <-  phivec[storm_number] #mean(phivec[stormsGULF]) #5
+tau2 <- tau2vec#[storm_number] #mean(tau2vec[stormsGULF]) #previous 0.5
+sigma2 <- sig2vec#[storm_number] #mean(sig2vec[stormsGULF]) #1
+phi <-  phivec#[storm_number] #mean(phivec[stormsGULF]) #5
 plot(seq(0,1,0.001),c(tau2,rep(0,length(seq(0,1,0.001))-1))+covfunc.Gaussian(seq(0,1,0.001),phi,sigma2))
 
-#NAM_plotter loaded from PlotAllLogStormsHTML_Mac_copy.Rmd#############
+#NAM_plotter loaded from LogPrecipVariograms.Rmd or PlotAllLogStormsHTML_Mac_copy.Rmd#############
 plot(NAM_plotter, xlim= c(xmin.loc,xmax.loc), ylim=c(ymin.loc,ymax.loc),
      main="Original Forecast")
 
 covmatrix <- diag(tau2,nrow(t)) + covfunc.Gaussian(t,phi,sigma2)
 # image(covmatrix)
-iters <- 2
+iters <- 70
 
 values_precip_iters <- matrix(NA, nrow = dim(s)[1], ncol = iters)
 forecast_plus_error_rasters <- list()
+phi_boot <- c()
+tau2_boot <- c()
+sig2_boot <- c()
+prRange_boot <- c()
+
 for (k in 1:iters) {
   # k <- 1
   print(k)
@@ -149,6 +154,30 @@ for (k in 1:iters) {
   if(k>=2){ total_them_up <-total_them_up + forecast_plus_error_rasters[[k]]}
   # values_precip_iters[,k] <- values(forecast_plus_error_rasters[[k]])
   values_precip_iters[,k] <-values(forecast_plus_error_rasters[[k]])[!is.na(values(forecast_plus_error_rasters[[k]]))]
+  
+
+  #parametric bootstrap
+  error_f <- forecast_plus_error_rasters[[k]]-NAM_plotter
+  error_f_spdf <- as((error_f), "SpatialPixelsDataFrame")
+  error_f_df <- as.data.frame(error_f_spdf)
+  colnames(error_f_df) <- c("value", "x", "y")
+  error_f.max <- max(abs(error_f_df$value))
+  simul_f <- cbind(error_f_df[,2],error_f_df[,3],error_f_df[,1])
+  simul_f.geo <- as.geodata(simul_f)
+  
+  simul_f.modvar <- variog(simul_f.geo, estimator.type="modulus")
+  
+  initial.values <- expand.grid(seq(0.01, 6, by=.02), seq(0.01, 4, by=.02))
+  # initial.values <- expand.grid(seq(0, 6, by=.01), seq(0, 4, by=.01))
+  # initial.values <- c(2.96,1.34)
+  sim.mod.cressie_f <- variofit(simul_f.modvar, ini.cov.pars=initial.values, cov.model="gaussian", 
+                                    fix.nugget=F, weights="cressie", fix.kappa = F) # , nugget=0
+
+      
+  tau2_boot[k]  <- sim.mod.cressie_f$nugget
+  sig2_boot[k]  <- sim.mod.cressie_f$cov.pars[1]
+  phi_boot[k]   <- sim.mod.cressie_f$cov.pars[2]
+  prRange_boot[k]<-sim.mod.cressie_f$practicalRange
 }
 
 
@@ -222,3 +251,14 @@ plot(ST4minusNAM.REF_LB+ST4minusNAM.REF_UB)
 
 
 # save.image("NAM_and_100randomEFs_ST4.wks")
+
+#boot.variofit()
+boot.mod.cressie <- boot.variofit(geodata = simul.geo, obj.variog = simul.modvar, model.pars = sim.mod.cressie)
+
+par(mfrow=c(2,2))
+hist(tau2_boot)
+hist(sig2_boot)
+hist(phi_boot)
+# hist(sort(phi_boot)[-1])
+
+save.image("sim_error_boot_Irma.wks")

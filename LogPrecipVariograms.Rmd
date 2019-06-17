@@ -24,8 +24,8 @@ Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
 # pdf("logbuffer.prevariogram4.pdf")
-all.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("NAMandST4", recursive = F)[45] #/Volumes/LACIEHD/
+all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F) #/Volumes/LACIEHD/
+most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[46:47] #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
 #[-c(2,3,6,8)]#THE NON12HR STORMS
 #[c(5,16,22,25,35,47)] #R session aborted when fitting Matern
@@ -50,7 +50,7 @@ mask <- raster("lsmask.nc")
 mask[mask==-1] <- 0
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- resample(mask, projectRaster(raster("nam_218_20050829_1200_f012.grib"),
+mask.regrid <- resample(mask, projectRaster(raster("/Volumes/LACIEHD/nam_218_20050829_1200_f012.grib"),
                                             crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
 
 # Multiple plot function
@@ -334,8 +334,14 @@ for(i in 1:length(most.storm.folders)){
     # initial.values <- c(2.96,1.34)
     sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="gaussian", 
                                     fix.nugget=F, weights="cressie", fix.kappa = F) # , nugget=0
-  
+
     SVGparamest[[i]] <- sim.mod.cressie
+    
+    boot.mod.cressie <- boot.variofit(geodata = simul.geo, 
+                                      obj.variog = simul.modvar,
+                                      model.pars = sim.mod.cressie)
+    
+    SVGparamboot[[i]]<- boot.mod.cressie
 
     print(sim.mod.cressie)
     tau2vec[i]  <- sim.mod.cressie$nugget
@@ -355,9 +361,9 @@ for(i in 1:length(most.storm.folders)){
 svg.param.ests.error <- cbind(phivec,prRangevec,tau2vec,sig2vec)
 # write.csv(svg.param.ests.error, "svg.param.ests.error_deg.csv")
 
-save.image("LogPrecipVariograms.wks")
+save.image("LogPrecipVariograms_boot_46and47.wks")
 # dev.off()
-# save.image("LogPrecipVariograms_Nate500km")
+# save.image(paste0("LogPrecipVariograms_",storm_name,radius,"km"))
 ```
 
 ```{r}
