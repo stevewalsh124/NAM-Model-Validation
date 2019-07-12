@@ -135,12 +135,12 @@ phi_boot <- c()
 tau2_boot <- c()
 sig2_boot <- c()
 prRange_boot <- c()
+covmatrix.sqrt <- matrix.sqrt(covmatrix)
 
 for (k in 1:iters) {
   # k <- 1
   print(k)
-  x <- matrix.sqrt(covmatrix) %*% rnorm(nrow(s))
-  #z <- matrix(NA,nrow=length(xaxis),ncol=length(yaxis))
+  x <- covmatrix.sqrt %*% rnorm(nrow(s))  #z <- matrix(NA,nrow=length(xaxis),ncol=length(yaxis))
   #for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) z[i,j] <- x[i+(j-1)*length(xaxis)]
   # par(mfrow=c(1,2))
   # image(z, col=terrain.colors(100))
