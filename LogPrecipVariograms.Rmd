@@ -23,7 +23,7 @@ library(geoR) #as.geodata, variog, variofit
 Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
-# pdf("logbuffer.boots/logbuffer.boots.01to02.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*#*#*#*#*
+pdf("logbuffer.boots/logbuffer.boots.01to02wDIRVAR.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*#*#*#*#*
 all.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
 most.storm.folders <- list.dirs("NAMandST4", recursive = F)[1:2] #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
@@ -42,6 +42,7 @@ ST4list <- list()
 #collecting the parameter estimates
 SVGparamest <- list()
 SVGparamboot <- list()
+dir_variogs <- list()
 
 phivec    <- c()
 sig2vec   <- c()
@@ -349,104 +350,125 @@ for(i in 1:length(most.storm.folders)){
   prRangevec[i]<-sim.mod.cressie$practicalRange
   
   multiplot(g1, g2, g3, cols=1)
-  
+  par(mfrow=c(1,1))
   vario.plot <- plot(simul.modvar,main=paste0("SVG for ", storm_year," ",storm_name),
                      ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
   vario.plot
   
   #############################
   #                           #
-  # THIS IS THE BOOT SECTION  #
+  # DIRECTIONAL VARIOGRAMS    #
   #                           #
-  #### ## ## ## ## ## ## ## ###
-
-  # BOOTSTRAP APPROACHES: PARAMETRIC AND NONPARAMETRIC-ISH
-
-  # PARAMETRIC BOOTSTRAP FROM boot.variofit in geoR package
-  boot.mod.cressie <- boot.variofit(geodata = simul.geo,
-                                    obj.variog = simul.modvar,
-                                    model.pars = sim.mod.cressie,
-                                    nsim = 200)
-
-  SVGparamboot[[i]]<- boot.mod.cressie
-
-  par(mfrow=c(3,2))
-  t.tau2 <- SVGparamboot[[i]]$tausq
-  t.sig2 <- SVGparamboot[[i]]$sigmasq
-  t.phi <- SVGparamboot[[i]]$phi
-
-  hist(t.tau2, main=paste("tau2",i));abline(v=tau2vec[i],col="blue")
-  hist(t.tau2[!t.tau2 %in% boxplot.stats(t.tau2)$out], main=paste("tau2",i,"no out"))
-  abline(v=tau2vec[i],col="blue")
-
-  hist(t.sig2, main=paste("sig2",i));abline(v=sig2vec[i],col="blue")
-  hist(t.sig2[!t.sig2 %in% boxplot.stats(t.sig2)$out], main=paste("sig2",i,"no out"))
-  abline(v=sig2vec[i],col="blue")
-
-  hist(t.phi, main=paste("phi",i));abline(v=phivec[i],col="blue")
-  hist(t.phi[!t.phi %in% boxplot.stats(t.phi)$out], main=paste("phi",i,"no out"))
-  abline(v=phivec[i],col="blue")
-
-  #### ## ## ## ## ## ## ## ## ## ## ## ## ## ##
-  # Non-parametric bootstrap-ish approach      #
-  # -ish: sampling w/o replacement, dependence #
-  #### ## ## ## ## ## ## ## ## ## ## ## ## ## ##
-  set.seed(8123)
-  B <- 200
-  nvec <- c(1.01,1.1,2,8,32,64)
-  N <- length(nvec)
-  tau2vec.npbs <- matrix(NA, nrow = N, ncol = B)
-  sig2vec.npbs <- matrix(NA, nrow = N, ncol = B)
-  phivec.npbs  <- matrix(NA, nrow = N, ncol = B)
-  prRangevec.npbs <- matrix(NA, nrow = N, ncol = B)
-  for (n in 1:N) {
-    for (b in 1:B) {
-      npoints <- dim(error_df)[1]
-      boot.sub <- sample(1:npoints, size=npoints/nvec[n])
-
-      # ggplot(aes(x=x,y=y,fill=value),data=error_df[boot.sub,]) +
-      #   geom_tile() + theme_classic() +
-      #   geom_polygon(data=subset(map_data("state"), region %in% regions),
-      #                      aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-      #   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
-      #   labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
-      #              x = "Longitude", y="Latitude")+
-      #   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge,
-      #                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
-      #               ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge,
-      #               max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
-
-
-      simul.boot <- cbind(error_df[boot.sub,2],error_df[boot.sub,3],error_df[boot.sub,1])
-      simul.geo.boot <- as.geodata(simul.boot)
-
-      simul.modvar.boot <- variog(simul.geo.boot, estimator.type="modulus")
-
-      sim.mod.cressie.boot <- variofit(simul.modvar.boot, ini.cov.pars=initial.values,
-                                       cov.model="gaussian", fix.nugget=F,
-                                       weights="cressie", fix.kappa = F)
-
-      tau2vec.npbs[n,b]  <- sim.mod.cressie.boot$nugget
-      sig2vec.npbs[n,b]  <- sim.mod.cressie.boot$cov.pars[1]
-      phivec.npbs[n,b]   <- sim.mod.cressie.boot$cov.pars[2]
-      prRangevec.npbs[n,b]<-sim.mod.cressie.boot$practicalRange
-
-    }
-    par(mfrow=c(2,2))
-    hist(tau2vec.npbs[n,], main=paste("npbs tau2",storm_name, nvec[n])); abline(v=tau2vec[i], col="blue")
-    hist(sig2vec.npbs[n,], main=paste("npbs sig2",storm_name, nvec[n])); abline(v=sig2vec[i], col="blue")
-    hist(phivec.npbs[n,], main=paste("npbs phi",storm_name, nvec[n])); abline(v=phivec[i], col="blue")
-    hist(prRangevec.npbs[n,], main=paste("npbs prRange",storm_name, nvec[n])); abline(v=prRangevec[i], col="blue")
+  #############################
+    
+  angle_vec <- c(0,pi/4,pi/2,3*pi/4)
+  dir_variogs[[i]] <- list()
+  max_dist <- c()
+  max_semivar <- c()
+  for (l in 1:length(angle_vec)) {
+    dir_variogs[[i]][[l]] <- variog(simul.geo, estimator.type="modulus", direction = angle_vec[l])
+    max_dist <- max(max_dist, max(dir_variogs[[i]][[l]]$u))
+    max_semivar <- max(max_semivar, max(dir_variogs[[i]][[l]]$v))
   }
-
-
+  par(mfrow=c(2,2))
+  for (l in 1:length(angle_vec)){plot(dir_variogs[[i]][[l]],
+                                      main=paste0(storm_year, storm_name," ",
+                                                  round(angle_vec[l],3),"rad"),
+                                      xlim=c(0,max_dist), ylim=c(0,max_semivar))}
+  
+  # #############################
+  # #                           #
+  # # THIS IS THE BOOT SECTION  #
+  # #                           #
+  # #### ## ## ## ## ## ## ## ###
+  # 
+  # # BOOTSTRAP APPROACHES: PARAMETRIC AND NONPARAMETRIC-ISH
+  # 
+  # # PARAMETRIC BOOTSTRAP FROM boot.variofit in geoR package
+  # boot.mod.cressie <- boot.variofit(geodata = simul.geo,
+  #                                   obj.variog = simul.modvar,
+  #                                   model.pars = sim.mod.cressie,
+  #                                   nsim = 200)
+  # 
+  # SVGparamboot[[i]]<- boot.mod.cressie
+  # 
+  # par(mfrow=c(3,2))
+  # t.tau2 <- SVGparamboot[[i]]$tausq
+  # t.sig2 <- SVGparamboot[[i]]$sigmasq
+  # t.phi <- SVGparamboot[[i]]$phi
+  # 
+  # hist(t.tau2, main=paste("tau2",i));abline(v=tau2vec[i],col="blue")
+  # hist(t.tau2[!t.tau2 %in% boxplot.stats(t.tau2)$out], main=paste("tau2",i,"no out"))
+  # abline(v=tau2vec[i],col="blue")
+  # 
+  # hist(t.sig2, main=paste("sig2",i));abline(v=sig2vec[i],col="blue")
+  # hist(t.sig2[!t.sig2 %in% boxplot.stats(t.sig2)$out], main=paste("sig2",i,"no out"))
+  # abline(v=sig2vec[i],col="blue")
+  # 
+  # hist(t.phi, main=paste("phi",i));abline(v=phivec[i],col="blue")
+  # hist(t.phi[!t.phi %in% boxplot.stats(t.phi)$out], main=paste("phi",i,"no out"))
+  # abline(v=phivec[i],col="blue")
+  # 
+  # #### ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+  # # Non-parametric bootstrap-ish approach      #
+  # # -ish: sampling w/o replacement, dependence #
+  # #### ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+  # set.seed(8123)
+  # B <- 200
+  # nvec <- c(1.01,1.1,2,8,32,64)
+  # N <- length(nvec)
+  # tau2vec.npbs <- matrix(NA, nrow = N, ncol = B)
+  # sig2vec.npbs <- matrix(NA, nrow = N, ncol = B)
+  # phivec.npbs  <- matrix(NA, nrow = N, ncol = B)
+  # prRangevec.npbs <- matrix(NA, nrow = N, ncol = B)
+  # for (n in 1:N) {
+  #   for (b in 1:B) {
+  #     npoints <- dim(error_df)[1]
+  #     boot.sub <- sample(1:npoints, size=npoints/nvec[n])
+  # 
+  #     # ggplot(aes(x=x,y=y,fill=value),data=error_df[boot.sub,]) +
+  #     #   geom_tile() + theme_classic() +
+  #     #   geom_polygon(data=subset(map_data("state"), region %in% regions),
+  #     #                      aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  #     #   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+  #     #   labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
+  #     #              x = "Longitude", y="Latitude")+
+  #     #   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge,
+  #     #                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+  #     #               ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge,
+  #     #               max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+  # 
+  # 
+  #     simul.boot <- cbind(error_df[boot.sub,2],error_df[boot.sub,3],error_df[boot.sub,1])
+  #     simul.geo.boot <- as.geodata(simul.boot)
+  # 
+  #     simul.modvar.boot <- variog(simul.geo.boot, estimator.type="modulus")
+  # 
+  #     sim.mod.cressie.boot <- variofit(simul.modvar.boot, ini.cov.pars=initial.values,
+  #                                      cov.model="gaussian", fix.nugget=F,
+  #                                      weights="cressie", fix.kappa = F)
+  # 
+  #     tau2vec.npbs[n,b]  <- sim.mod.cressie.boot$nugget
+  #     sig2vec.npbs[n,b]  <- sim.mod.cressie.boot$cov.pars[1]
+  #     phivec.npbs[n,b]   <- sim.mod.cressie.boot$cov.pars[2]
+  #     prRangevec.npbs[n,b]<-sim.mod.cressie.boot$practicalRange
+  # 
+  #   }
+  #   par(mfrow=c(2,2))
+  #   hist(tau2vec.npbs[n,], main=paste("npbs tau2",storm_name, nvec[n])); abline(v=tau2vec[i], col="blue")
+  #   hist(sig2vec.npbs[n,], main=paste("npbs sig2",storm_name, nvec[n])); abline(v=sig2vec[i], col="blue")
+  #   hist(phivec.npbs[n,], main=paste("npbs phi",storm_name, nvec[n])); abline(v=phivec[i], col="blue")
+  #   hist(prRangevec.npbs[n,], main=paste("npbs prRange",storm_name, nvec[n])); abline(v=prRangevec[i], col="blue")
+  # }
+  # 
+  # 
 }
 
 svg.param.ests.error <- cbind(all.storm.names,all.storm.years,phivec,prRangevec,tau2vec,sig2vec)
 # write.csv(svg.param.ests.error, "svg.param.ests.error_deg.csv")
 
 # save.image("LogPrecipVariograms_boot_1thru10.wks")
-# dev.off()
+dev.off()
 # save.image(paste0("LogPrecipVariograms_",storm_name,radius,"km"))
 ```
 
