@@ -23,9 +23,9 @@ library(geoR) #as.geodata, variog, variofit
 Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
-pdf("logbuffer.boots/logbuffer.boots.01to02wDIRVAR.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*#*#*#*#*
+# pdf("logbuffer.boots/logbuffer.boots.01to02wDIRVAR.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*#*#*#*#*
 all.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("NAMandST4", recursive = F)[1:2] #/Volumes/LACIEHD/
+most.storm.folders <- list.dirs("NAMandST4", recursive = F)[45:47] #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
 all.storm.names <- c()
 all.storm.years <- c()
@@ -162,8 +162,10 @@ for(i in 1:length(most.storm.folders)){
     NAMfile <- list.files(NAM_folder,full.names = T)[first24[j]]
     
     #Establish correct NAM band for total precip, mostly depends on date of storm (3 w issues)
-    date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][1,2] + 1
+    date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][2,2] + 1
     storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
+    storm_hour_NAM <- as.numeric(substr(NAMfile,date_start+9,date_start+10))
+    storm_step_NAM <- as.numeric(substr(NAMfile,date_start+14,date_start+16))
     if(storm_date < 20060701){NAM_band <- 10} else 
       if(storm_date > 20060701 && storm_date < 20170101){NAM_band <- 11} else {NAM_band <- 373}
     # if(storm_name=="charley"&&j==1&&storm_date<20050000){NAM_band <- 13} 
@@ -242,9 +244,6 @@ for(i in 1:length(most.storm.folders)){
     storms.out.of.hurdat <- c(storms.out.of.hurdat, i)}
 
   
-  date_start <- str_locate_all(pattern ='_218_', NAMfile)[[1]][1,2] + 1
-  storm_date <- as.numeric(substr(NAMfile,date_start,date_start+7))
-
   #######################################################################
   # Original radius 700, changed to 250 and 500 for efficiency in trials runs with simulating error fields
   radius <- 700
@@ -259,7 +258,7 @@ for(i in 1:length(most.storm.folders)){
   ST4_plotter <- log(ST4trythis+ST4trythis2)
   values(ST4_plotter)[which(values(ST4_plotter<=0))] <- 0   
   
-
+  
   
   # 24 HOUR PRECIP ANALYSIS
   # Convert the three rasters to data frames for ggplot
@@ -295,7 +294,23 @@ for(i in 1:length(most.storm.folders)){
             "pennsylvania", "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah",
             "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming")
 
-
+  plot(NAM_plotter,xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                       max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+                ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                       max(eye1_latlon[1],eye2_latlon[1])+plot.edge))
+  
+  
+  #
+  #
+  #
+  #
+  #
+  ## if NAM info available, plot the points on namplotter
+  #
+  # use storm_step_NAM along with date to search through output from NAM_NHC_track_info.R
+  #
+  #
+  #
   g1= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) + 
     geom_tile() + theme_classic() + 
     geom_polygon(data=subset(map_data("state"), region %in% regions), 
@@ -355,26 +370,28 @@ for(i in 1:length(most.storm.folders)){
                      ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
   vario.plot
   
-  #############################
-  #                           #
-  # DIRECTIONAL VARIOGRAMS    #
-  #                           #
-  #############################
-    
-  angle_vec <- c(0,pi/4,pi/2,3*pi/4)
-  dir_variogs[[i]] <- list()
-  max_dist <- c()
-  max_semivar <- c()
-  for (l in 1:length(angle_vec)) {
-    dir_variogs[[i]][[l]] <- variog(simul.geo, estimator.type="modulus", direction = angle_vec[l])
-    max_dist <- max(max_dist, max(dir_variogs[[i]][[l]]$u))
-    max_semivar <- max(max_semivar, max(dir_variogs[[i]][[l]]$v))
-  }
-  par(mfrow=c(2,2))
-  for (l in 1:length(angle_vec)){plot(dir_variogs[[i]][[l]],
-                                      main=paste0(storm_year, storm_name," ",
-                                                  round(angle_vec[l],3),"rad"),
-                                      xlim=c(0,max_dist), ylim=c(0,max_semivar))}
+  # #############################
+  # #                           #
+  # # DIRECTIONAL VARIOGRAMS    #
+  # #                           #
+  # ## # # # # # # ## ## #  # # #
+  #   
+  # angle_vec <- c(0,pi/4,pi/2,3*pi/4)
+  # dir_variogs[[i]] <- list()
+  # max_dist <- c()
+  # max_semivar <- c()
+  # for (l in 1:length(angle_vec)) {
+  #   dir_variogs[[i]][[l]] <- variog(simul.geo, estimator.type="modulus", direction = angle_vec[l])
+  #   max_dist <- max(max_dist, max(dir_variogs[[i]][[l]]$u))
+  #   max_semivar <- max(max_semivar, max(dir_variogs[[i]][[l]]$v))
+  # }
+  # par(mfrow=c(2,2))
+  # for (l in 1:length(angle_vec)){plot(dir_variogs[[i]][[l]],
+  #                                     main=paste0(storm_year, storm_name," ",
+  #                                                 round(angle_vec[l],3),"rad"),
+  #                                     xlim=c(0,max_dist), ylim=c(0,max_semivar))}
+  # 
+  
   
   # #############################
   # #                           #
@@ -468,7 +485,7 @@ svg.param.ests.error <- cbind(all.storm.names,all.storm.years,phivec,prRangevec,
 # write.csv(svg.param.ests.error, "svg.param.ests.error_deg.csv")
 
 # save.image("LogPrecipVariograms_boot_1thru10.wks")
-dev.off()
+# dev.off()
 # save.image(paste0("LogPrecipVariograms_",storm_name,radius,"km"))
 ```
 
