@@ -276,6 +276,7 @@ for(i in 1:length(most.storm.folders)){
   error_spdf <- as((error), "SpatialPixelsDataFrame")
   error_df <- as.data.frame(error_spdf)
   colnames(error_df) <- c("value", "x", "y")
+  write.csv(error_df, paste0("csv/errordf_",storm_name,storm_year,"_",radius,"km.csv"))
   error.max <- max(abs(error_df$value))
   precip.max <- max(c(ST4_df$value,NAM_df$value))
   precip.min <- min(c(ST4_df$value,NAM_df$value))
