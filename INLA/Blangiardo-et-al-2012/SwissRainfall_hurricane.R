@@ -1,3 +1,4 @@
+# Based on code from Blangiardo
 remove(list=ls())
 require(geoR)
 require(INLA)
