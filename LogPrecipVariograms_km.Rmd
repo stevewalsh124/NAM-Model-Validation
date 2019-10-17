@@ -12,7 +12,7 @@ library(raster)
 library(ncdf4)
 library(sf)
 library(dplyr)
-library(stringr) #str_locate_all "_218_" in the NAM file names 
+library(stringr) #str_locate_all "_218_" in the NAM file names
 library(rgdal)
 library(colorspace)
 library(ggplot2)
@@ -23,14 +23,18 @@ library(geoR) #as.geodata, variog, variofit
 Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
-# pdf("logbuffer.prevariogram4.pdf")
-all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)[46:47] #/Volumes/LACIEHD/
+# pdf("pdf/47storms_km.pdf")   #    ("LogPrecipVariograms_km_LCC_MaternSVGestimates.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*
+all.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
+most.storm.folders <- list.dirs("NAMandST4", recursive = F)#[-c(2,5,7,16,22,25,35,47)] #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
+all.storm.names <- c()
+
+all.storm.years <- c()
 #[-c(2,3,6,8)]#THE NON12HR STORMS
-#[c(5,16,22,25,35,47)] #R session aborted when fitting Matern
+#[-c(5,16,22,25,35,47)] #R session aborted when fitting Matern
 #[-c(2,3,6,8,5,16,22,25,35,47)]# to avoid aborting R and storms w/o 12hr precip
 #[-c(1,12:36)] #to avoid JPEG2000 driver issue on Mac
+#[-c(2,7,27)] #skip these when fitting the directional variograms with LCC projn
 
 # these will be lists of lists (#lists=#storms),
 # where each element in a list is rasters for a storm
@@ -39,19 +43,29 @@ ST4list <- list()
 
 #collecting the parameter estimates
 SVGparamest <- list()
+SVGparamboot <- list()
+dir_variogs <- list()
 
 phivec    <- c()
 sig2vec   <- c()
 tau2vec   <- c()
 prRangevec<- c()
+kappavec  <- c()
 
 # load, modify and project land/sea mask 
 mask <- raster("lsmask.nc")
 mask[mask==-1] <- 0
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- resample(mask, projectRaster(raster("/Volumes/LACIEHD/nam_218_20050829_1200_f012.grib"),
-                                            crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
+# mask.regrid <- resample(mask, projectRaster(raster("nam_218_20050829_1200_f012.grib"),
+#                                             crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
+NAM_km_for_mask <- projectRaster(raster("nam_218_20050829_1200_f012.grib"),
+                                 crs="+proj=lcc +lat_1=25 +lat_2=25 +lat_0=25 
+                                 +lon_0=-95 +x_0=0 +y_0=0 +a=6371200 +b=6371200 
+                                 +units=km +no_defs ")
+mask <- projectRaster(mask, NAM_km_for_mask, method = 'ngb')
+mask.regrid <- resample(mask, NAM_km_for_mask, method='ngb')
+# plot(mask.regrid)
 
 # Multiple plot function
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
@@ -118,6 +132,34 @@ ST4bufferprecip <- function(NAM_df,LatLonVec,LatLonVec2,radius){
   return(raster_buffer)
 }
 
+#Combine multiple rasters in all locations, not just their intersection
+mosaicList <- function(rasList){
+#Internal function to make a list of raster objects from list of files.
+  ListRasters <- function(list_names) {
+    raster_list <- list() # initialise the list of rasters
+    for (i in 1:(length(list_names))){
+      grd_name <- list_names[i] # list_names contains all the names of the images in .grd format
+      raster_file <- raster::raster(grd_name)
+    }
+    raster_list <- append(raster_list, raster_file) # update raster_list at each iteration
+  }
+
+  #convert every raster path to a raster object and create list of the results
+  raster.list <-sapply(rasList, FUN = ListRasters)
+
+  # edit settings of the raster list for use in do.call and mosaic
+  names(raster.list) <- NULL
+  #####This function deals with overlapping areas
+  raster.list$fun <- sum
+
+  #run do call to implement mosaic over the list of raster objects.
+  mos <- do.call(raster::mosaic, raster.list)
+
+  #set crs of output
+  crs(mos) <- crs(x = raster(rasList[1]))
+  return(mos)
+}
+
 for(i in 1:length(most.storm.folders)){
   # i <- 1
   currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #[-1] avoids parent folder
@@ -126,6 +168,7 @@ for(i in 1:length(most.storm.folders)){
 
   name_start <- tail(str_locate_all(pattern ='/', ST4_folder)[[1]],1)
   storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
+  all.storm.names[i] <- storm_name
   print(paste0("Storm #",i,": ",storm_name))
 
   hurdat_csv <- list.files(most.storm.folders[i], pattern = ".csv")
@@ -143,7 +186,9 @@ for(i in 1:length(most.storm.folders)){
   for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
     # k <-1
     ST4file <- list.files(ST4_folder,full.names = T)[k]
-    ST4list[[i]][[k]] <- (raster(ST4file) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
+    # ST4list[[i]][[k]] <- (raster(ST4file) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
+    ST4list[[i]][[k]] <- (raster(ST4file) %>% projectRaster(crs="+proj=lcc +lat_1=25 +lat_2=25 +lat_0=25 +lon_0=-95 +x_0=0 +y_0=0 +a=6371200 +b=6371200 +units=km +no_defs "))
+
     ST4list[[i]][[k]] <- resample(ST4list[[i]][[k]], mask.regrid, method = "bilinear")
     
     print(min(values(ST4list[[i]][[k]]), na.rm=T))
@@ -171,7 +216,7 @@ for(i in 1:length(most.storm.folders)){
     # if(storm_name=="frances"&&j==2&&storm_date<20050000){NAM_band <- 14} 
 
     print(NAM_band)
-    NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=longlat +datum=WGS84"))
+    NAMlist[[i]][[j]] <- (raster(NAMfile, band=NAM_band) %>% projectRaster(crs = "+proj=lcc +lat_1=25 +lat_2=25 +lat_0=25 +lon_0=-95 +x_0=0 +y_0=0 +a=6371200 +b=6371200 +units=km +no_defs"))
     print(min(values(NAMlist[[i]][[j]]), na.rm=T))
     # values(NAMlist[[i]][[j]])[which(values(NAMlist[[i]][[j]]<=1))] <- 1 
     #change nonpositive projected precipitation to 0.0000000001 to implement log precip without -Inf
@@ -209,10 +254,12 @@ for(i in 1:length(most.storm.folders)){
   hurdat_file <- list.files(most.storm.folders[i], pattern = ".csv", recursive = F, full.names = T)
   hurdat <- read.csv(hurdat_file)
   colnames(hurdat) <- c("BTid", "SNum", "Year", "Month", "Day", "Hour", "Lat", "Lon", "Winds", "Pressure")
+  hurdat[,8:7]<-project(as.matrix(hurdat[,8:7]), "+proj=lcc +lat_1=25 +lat_2=25 +lat_0=25 +lon_0=-95 +x_0=0 +y_0=0 +a=6371200 +b=6371200")/1000
   
   time_start  <- tail(str_locate_all(pattern ='/', eye_1)[[1]],1)[,2]
   storm_time  <- substr(eye_1,time_start[1]+5,nchar(eye_1))
   storm_year  <- substr(storm_time,1,4)
+  all.storm.years[i] <- storm_year
   storm_month <- substr(storm_time,5,6)
   storm_day   <- substr(storm_time,7,8)
   storm_hour  <- substr(storm_time,9,10)
@@ -241,7 +288,7 @@ for(i in 1:length(most.storm.folders)){
 
   #######################################################################
   # Original radius 700, changed to 250 and 500 for efficiency in trials runs with simulating error fields
-  radius <- 700
+  radius <- 700 * 1e2 #this became kilometers instead of degrees so I multiplied by 1e2
   ST4trythis  <- ST4bufferprecip(ST4_df_first12, eye1_latlon, eye2_latlon, radius)
   ST4trythis2 <- ST4bufferprecip(ST4_df_second12, eye2_latlon, eye1_latlon, radius)
   
@@ -261,23 +308,40 @@ for(i in 1:length(most.storm.folders)){
   NAM_df <- as.data.frame(NAM_spdf)
   colnames(NAM_df) <- c("value", "x", "y")
   # Using this to load into simulate_error_field.R
-  write.csv(NAM_df, paste0("csv/namdf_",storm_name,storm_year,"_",radius,"km.csv"))
+  # write.csv(NAM_df, paste0("csv/INLAvsWLS/NAM/namdf_",storm_year,storm_name,"_",radius,"km.csv"))
   
   ST4_spdf <- as(ST4_plotter, "SpatialPixelsDataFrame")
   ST4_df <- as.data.frame(ST4_spdf)
   colnames(ST4_df) <- c("value", "x", "y")
+  # write.csv(ST4_df, paste0("csv/INLAvsWLS/ST4/st4df_",storm_year,storm_name,"_",radius,"km.csv"))
+
   
   error <- NAM_plotter - ST4_plotter
   error_spdf <- as((error), "SpatialPixelsDataFrame")
   error_df <- as.data.frame(error_spdf)
   colnames(error_df) <- c("value", "x", "y")
+  # write.csv(error_df, paste0("csv/INLAvsWLS/error/errordf_",storm_year,storm_name,"_",radius,"km.csv"))
   error.max <- max(abs(error_df$value))
   precip.max <- max(c(ST4_df$value,NAM_df$value))
   precip.min <- min(c(ST4_df$value,NAM_df$value))
   
+  #write rasters from the errors to combine all on common map
+  writeRaster(error, paste0("error_rasters_km/",storm_year,storm_name), overwrite=T) 
+  # in the loop for I in the storms
+  this_error <- error
+  this_error[!is.na(this_error)] <- 1
+  this_error[is.na(this_error)] <- 0
+  
+  if(i==1){ errorcounts <-this_error}
+  if(i>1){errorcounts <- errorcounts+this_error}
+
+  this_error_spdf <- as((this_error*mask), "SpatialPixelsDataFrame")
+  this_error_df <- as.data.frame(this_error_spdf)
+  colnames(this_error_df) <- c("value", "x", "y")
+
   brk=seq(-1*ceiling(error.max),ceiling(error.max),ceiling(error.max/5))
   my.limits = c(-1*ceiling(error.max),ceiling(error.max))
-  plot.edge <-7.2  #this is approx the number of degrees (100km) from the storm's eye
+  plot.edge <-7.2 * 1e2  #this is approx the number of degrees (100km) from the storm's eye
   precipcolors <- c("#FFFFFF", "#EFFBEF", "#E0F8E0", "#BCF5A9", "#81F781",
                   "#2EFE2E", "#9AFE2E", "#C8FE2E", "#FFFF00",
                   "#FACC2E", "#FFBF00", "#FF8000", "#FF4000","#FF0000")
@@ -296,10 +360,12 @@ for(i in 1:length(most.storm.folders)){
                  aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
     scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) +
     labs(title =paste(storm_name, storm_date,"NAM"), x = "Longitude", y="Latitude") + 
-    coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
-                       max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
-                ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
-                       max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+    coord_fixed(xlim=c(-4294,3320),ylim=c(-904,4440), ratio = 1)
+
+    # coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+    #                    max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+    #             ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+    #                    max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
 
   g2= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) + 
@@ -308,10 +374,12 @@ for(i in 1:length(most.storm.folders)){
                  aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
     scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) + 
     labs(title =paste(paste(storm_name, storm_date,"ST4")),x = "Longitude", y="Latitude") + 
-    coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
-                       max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
-                ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
-                       max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+    coord_fixed(xlim=c(-4294,3320),ylim=c(-904,4440), ratio = 1)
+
+    # coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+    #                    max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+    #             ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+    #                    max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
   g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) + 
     geom_tile() + theme_classic() + 
@@ -320,53 +388,239 @@ for(i in 1:length(most.storm.folders)){
     scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
     labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
          x = "Longitude", y="Latitude")+
-    coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
-                       max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
-                ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
-                       max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
-    simul <- cbind(error_df[,2],error_df[,3],error_df[,1])
-    simul.geo <- as.geodata(simul)
-    
-    simul.modvar <- variog(simul.geo, estimator.type="modulus")
+    coord_fixed(xlim=c(-4294,3320),ylim=c(-904,4440), ratio = 1)
   
-    initial.values <- expand.grid(seq(0.01, 6, by=.02), seq(0.01, 4, by=.02))
-    # initial.values <- expand.grid(seq(0, 6, by=.01), seq(0, 4, by=.01))
-    # initial.values <- c(2.96,1.34)
-    sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="gaussian", 
-                                    fix.nugget=F, weights="cressie", fix.kappa = F) # , nugget=0
+  g4= ggplot(aes(x=x,y=y,fill=value),data=this_error_df) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+    labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
+         x = "Longitude", y="Latitude")+
+    coord_fixed(xlim=c(-4294,3320),ylim=c(-904,4440), ratio = 1)
 
-    SVGparamest[[i]] <- sim.mod.cressie
+    # coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge,
+    #                    max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+    #             ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge,
+    #                    max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+  # simul <- cbind(error_df[,2],error_df[,3],error_df[,1])
+  # simul.geo <- as.geodata(simul)
     
-    boot.mod.cressie <- boot.variofit(geodata = simul.geo, 
-                                      obj.variog = simul.modvar,
-                                      model.pars = sim.mod.cressie)
-    
-    SVGparamboot[[i]]<- boot.mod.cressie
-
-    print(sim.mod.cressie)
-    tau2vec[i]  <- sim.mod.cressie$nugget
-    sig2vec[i]  <- sim.mod.cressie$cov.pars[1]
-    phivec[i]   <- sim.mod.cressie$cov.pars[2]
-    prRangevec[i]<-sim.mod.cressie$practicalRange
-
+  # simul.modvar <- variog(simul.geo, estimator.type="modulus")
   
-  vario.plot <- plot(simul.modvar,main=paste0("SVG for ", storm_year," ",storm_name),
-                     ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
+  # initial.values <- expand.grid(seq(0.01, 6, by=.02), seq(0.01, 1e3, by=10))
+  # initial.values <- expand.grid(seq(0, 6, by=.01), seq(0, 4, by=.01))
+  # initial.values <- c(2.96,1.34)
+  # sim.mod.cressie     <- variofit(simul.modvar, ini.cov.pars=initial.values, cov.model="matern", 
+                                  # fix.nugget=F, weights="cressie", fix.kappa = T, kappa = 1) # , nugget=0
 
-  multiplot(g1, g2, g3, cols=1)
+  # SVGparamest[[i]] <- sim.mod.cressie
+  
+  #print(sim.mod.cressie)
+  # tau2vec[i]  <- sim.mod.cressie$nugget
+  # sig2vec[i]  <- sim.mod.cressie$cov.pars[1]
+  # phivec[i]   <- sim.mod.cressie$cov.pars[2]
+  # prRangevec[i]<-sim.mod.cressie$practicalRange
+  # kappavec[i] <- sim.mod.cressie$kappa
+  
+  multiplot(g1, g2, g3, g4, cols=2)
+  
+  par(mfrow=c(1,1))
+  # vario.plot <- plot(simul.modvar,main=paste0("SVG for ", storm_year," ",storm_name),
+                     # ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
+  # vario.plot
+  
+  #############################
+  #                           #
+  # DIRECTIONAL VARIOGRAMS    #
+  #                           #
+  #############################
+    
+  # angle_vec <- c(0,pi/4,pi/2,3*pi/4)
+  # dir_variogs[[i]] <- list()
+  # max_dist <- c()
+  # max_semivar <- c()
+  # for (l in 1:length(angle_vec)) {
+  #   dir_variogs[[i]][[l]] <- variog(simul.geo, estimator.type="modulus", direction = angle_vec[l])
+  #   max_dist <- max(max_dist, max(dir_variogs[[i]][[l]]$u))
+  #   max_semivar <- max(max_semivar, max(dir_variogs[[i]][[l]]$v))
+  # }
+  # par(mfrow=c(2,2))
+  # for (l in 1:length(angle_vec)){plot(dir_variogs[[i]][[l]],
+  #                                     main=paste0(storm_year, storm_name," ",
+  #                                                 round(angle_vec[l],3),"rad"),
+  #                                     xlim=c(0,max_dist), ylim=c(0,max_semivar))}
 
-  vario.plot
+  # #############################
+  # #                           #
+  # # THIS IS THE BOOT SECTION  #
+  # #                           #
+  # #### ## ## ## ## ## ## ## ###
+  # 
+  # # BOOTSTRAP APPROACHES: PARAMETRIC AND NONPARAMETRIC-ISH
+  # 
+  # # PARAMETRIC BOOTSTRAP FROM boot.variofit in geoR package
+  # boot.mod.cressie <- boot.variofit(geodata = simul.geo,
+  #                                   obj.variog = simul.modvar,
+  #                                   model.pars = sim.mod.cressie,
+  #                                   nsim = 200)
+  # 
+  # SVGparamboot[[i]]<- boot.mod.cressie
+  # 
+  # par(mfrow=c(3,2))
+  # t.tau2 <- SVGparamboot[[i]]$tausq
+  # t.sig2 <- SVGparamboot[[i]]$sigmasq
+  # t.phi <- SVGparamboot[[i]]$phi
+  # 
+  # hist(t.tau2, main=paste("tau2",i));abline(v=tau2vec[i],col="blue")
+  # hist(t.tau2[!t.tau2 %in% boxplot.stats(t.tau2)$out], main=paste("tau2",i,"no out"))
+  # abline(v=tau2vec[i],col="blue")
+  # 
+  # hist(t.sig2, main=paste("sig2",i));abline(v=sig2vec[i],col="blue")
+  # hist(t.sig2[!t.sig2 %in% boxplot.stats(t.sig2)$out], main=paste("sig2",i,"no out"))
+  # abline(v=sig2vec[i],col="blue")
+  # 
+  # hist(t.phi, main=paste("phi",i));abline(v=phivec[i],col="blue")
+  # hist(t.phi[!t.phi %in% boxplot.stats(t.phi)$out], main=paste("phi",i,"no out"))
+  # abline(v=phivec[i],col="blue")
+  # 
+  # 
+  # 
+  # #### ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+  # # Non-parametric bootstrap-ish approach      #
+  # # -ish: sampling w/o replacement, dependence #
+  # #### ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+  # 
+  # set.seed(8123)
+  # B <- 200
+  # nvec <- c(1.01,1.1,2,8,32,64)
+  # N <- length(nvec)
+  # tau2vec.npbs <- matrix(NA, nrow = N, ncol = B)
+  # sig2vec.npbs <- matrix(NA, nrow = N, ncol = B)
+  # phivec.npbs  <- matrix(NA, nrow = N, ncol = B)
+  # prRangevec.npbs <- matrix(NA, nrow = N, ncol = B)
+  # for (n in 1:N) {
+  #   for (b in 1:B) {
+  #     npoints <- dim(error_df)[1]
+  #     boot.sub <- sample(1:npoints, size=npoints/nvec[n])
+  # 
+  #     # ggplot(aes(x=x,y=y,fill=value),data=error_df[boot.sub,]) +
+  #     #   geom_tile() + theme_classic() +
+  #     #   geom_polygon(data=subset(map_data("state"), region %in% regions),
+  #     #                      aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  #     #   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+  #     #   labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
+  #     #              x = "Longitude", y="Latitude")+
+  #     #   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge,
+  #     #                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+  #     #               ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge,
+  #     #               max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+  # 
+  # 
+  #     simul.boot <- cbind(error_df[boot.sub,2],error_df[boot.sub,3],error_df[boot.sub,1])
+  #     simul.geo.boot <- as.geodata(simul.boot)
+  # 
+  #     simul.modvar.boot <- variog(simul.geo.boot, estimator.type="modulus")
+  # 
+  #     sim.mod.cressie.boot <- variofit(simul.modvar.boot, ini.cov.pars=initial.values,
+  #                                      cov.model="gaussian", fix.nugget=F,
+  #                                      weights="cressie", fix.kappa = F)
+  # 
+  #     tau2vec.npbs[n,b]  <- sim.mod.cressie.boot$nugget
+  #     sig2vec.npbs[n,b]  <- sim.mod.cressie.boot$cov.pars[1]
+  #     phivec.npbs[n,b]   <- sim.mod.cressie.boot$cov.pars[2]
+  #     prRangevec.npbs[n,b]<-sim.mod.cressie.boot$practicalRange
+  # 
+  #   }
+  #   par(mfrow=c(2,2))
+  #   hist(tau2vec.npbs[n,], main=paste("npbs tau2",storm_name, nvec[n])); abline(v=tau2vec[i], col="blue")
+  #   hist(sig2vec.npbs[n,], main=paste("npbs sig2",storm_name, nvec[n])); abline(v=sig2vec[i], col="blue")
+  #   hist(phivec.npbs[n,], main=paste("npbs phi",storm_name, nvec[n])); abline(v=phivec[i], col="blue")
+  #   hist(prRangevec.npbs[n,], main=paste("npbs prRange",storm_name, nvec[n])); abline(v=prRangevec[i], col="blue")
+  # }
+  # 
+  # 
 }
 
-svg.param.ests.error <- cbind(phivec,prRangevec,tau2vec,sig2vec)
-# write.csv(svg.param.ests.error, "svg.param.ests.error_deg.csv")
 
-save.image("LogPrecipVariograms_boot_46and47.wks")
+###################################################
+#Sum up the error fields, also using moving windows
+### ### ### ### ### ### ### ### ### ### ### ### ###
+
+
+#break storms into 5 year moving windows... first is 2004-2008, last is 2013-2017
+# window_subs <- list(1:28,8:29,16:29,19:32,23:36,29:37,30:38,30:40,33:43,37:47)
+# raster_files <- list.files("error_rasters", pattern = ".grd", full.names = T)
+# pdf("pdf/5storm_moving_windows.pdf")
+# for (t in 1:(length(raster_files)-5)) {
+#   error_sum <- mosaicList(raster_files[t:(t+5)])
+#   # plot(error_sum)
+#   all_error_spdf <- as((error_sum), "SpatialPixelsDataFrame")
+#   all_error_df <- as.data.frame(all_error_spdf)
+#   colnames(all_error_df) <- c("value", "x", "y")
+#   
+#   g4= ggplot(aes(x=x,y=y,fill=value),data=all_error_df) + 
+#   geom_tile() + theme_classic() + 
+#   geom_polygon(data=subset(map_data("state"), region %in% regions), 
+#                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+#   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+#   labs(title =paste("Storms",t," to ", t+5,"Sum of Errors: NAM - ST4"))+
+#   coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)  
+#   plot(g4)
+# }
+# dev.off()
+
+# pdf("pdf/5year_moving_windows.pdf")
+# for (t in 1:10) { #10 because 2004to2008 - 2013to2017
+#   error_sum <- mosaicList(raster_files[window_subs[[t]]])
+#   # plot(error_sum)
+#   all_error_spdf <- as((error_sum), "SpatialPixelsDataFrame")
+#   all_error_df <- as.data.frame(all_error_spdf)
+#   colnames(all_error_df) <- c("value", "x", "y")
+#   
+#   g4= ggplot(aes(x=x,y=y,fill=value),data=all_error_df) + 
+#   geom_tile() + theme_classic() + 
+#   geom_polygon(data=subset(map_data("state"), region %in% regions), 
+#                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+#   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+#   labs(title =paste("Years",2003+t," to ", 2007+t,"Sum of Errors: NAM - ST4"))+
+#   coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)  
+#   plot(g4)
+# }
+# 
+# error_sum <- mosaicList(raster_files)
+# # plot(error_sum)
+# all_error_spdf <- as((error_sum), "SpatialPixelsDataFrame")
+# all_error_df <- as.data.frame(all_error_spdf)
+# colnames(all_error_df) <- c("value", "x", "y")
+# 
+# g4= ggplot(aes(x=x,y=y,fill=value),data=all_error_df) + 
+#   geom_tile() + theme_classic() + 
+#   geom_polygon(data=subset(map_data("state"), region %in% regions), 
+#                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+#   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+#   labs(title =paste("Sum of All Errors: NAM - ST4"))+
+#   coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)  
+#   plot(g4)
+# dev.off()
+
+plot(errorcounts)
+plot(errorcounts*mask)
+
+#bad right now, figure out mismatched extents
+# avg_errors <- error_sum/resample(errorcounts*mask,error_sum)
+# plot(avg_errors)
+
+# svg.param.ests.error.km <- cbind(all.storm.names,all.storm.years,phivec,prRangevec,tau2vec,sig2vec, kappavec)
+# write.csv(svg.param.ests.error, "csv/INLAvsWLS/svg.param.ests.error_KM_LCC_MaternSVGestimates.csv")
+# print(svg.param.ests.error.km)
+
+# save.image("LogPrecipVariograms_boot_1thru10.wks")
 # dev.off()
 # save.image(paste0("LogPrecipVariograms_",storm_name,radius,"km"))
 ```
 
-```{r}
+```{r, eval=F}
 # pdf("SVG.G.48.km.old.hist.pdf")
 
 par(mfrow=c(2,2))
@@ -381,7 +635,7 @@ pairs(cbind(tau2vec,phivec,sig2vec, prRangevec)) #,kappavec
 # dev.off()
 ```
 
-```{r}
+```{r, eval=F}
 # pdf("SVG.G.48.km.error.bygroups.pdf")
 all_content = readLines("US_20042017_landfalls_mod.csv")
 skip_second = all_content[-6]
@@ -515,7 +769,7 @@ plot(sig2vec, type="l", main=expression(paste(sigma^2, " over time")))
 # dev.off()
 ```
 
-```{r}
+```{r, eval=F}
 # pdf("SVGskrt.pdf")
 dim(landfalls[stormsTS,]);dim(landfalls[storms1,]);
 dim(landfalls[storms2,]);dim(landfalls[storms3,]);
@@ -603,7 +857,7 @@ pairs(cbind(tau2vec[storms_3_4_5],phivec[storms_3_4_5],sig2vec[storms_3_4_5], pr
 # dev.off()
 ```
 
-```{r}
+```{r, eval=F}
 # pdf("SVG.G.48.km.old.byplottype.pdf")
 
 par(mfrow=c(1,3))

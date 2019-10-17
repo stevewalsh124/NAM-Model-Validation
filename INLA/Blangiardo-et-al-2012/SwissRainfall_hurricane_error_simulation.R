@@ -1,4 +1,4 @@
-# remove(list=ls())
+# remove(list=ls()) 
 require(geoR)
 require(INLA)
 require(gstat)

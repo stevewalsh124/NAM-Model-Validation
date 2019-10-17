@@ -1,4 +1,4 @@
-#Simualate error fields for each hurricane
+#Simualate error fields for each hurricane 
 library(SpatialEpi) #latlong2grid
 library(dplyr)
 getwd()
