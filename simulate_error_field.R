@@ -15,15 +15,16 @@ set.seed(1234)
 
 
 ################################
-#     CHANGE STORM NUMBER      #
+#  CHANGE STORM NUMBER/ITERS   #
 ################################
 
+iters <- 700
 storm_number <- 46 #45 is harvey
 # OTHER THINGS TO CHANGE: iters, nam_df_csv
 
 params_deg_csv <- read.csv("csv/svg.param.ests.error_deg.csv")
 params_csv <- read.csv("csv/svg.param.ests.error4.1.19.csv")
-nam_df_csv <- read.csv("csv/namdf_irma2017_700km.csv") ##################CHANGE THIS FOR THE STORM######
+nam_df_csv <- read.csv("csv/namdf_harvey2017_700km.csv") ##################CHANGE THIS FOR THE STORM######
 # nam_df_full <- read.csv("namdf_irma2017_700km.csv")
 storms1 <- read.csv("csv/storms1.csv")[,2]
 storms2 <- read.csv("csv/storms2.csv")[,2]
@@ -127,7 +128,6 @@ plot(NAM_plotter, xlim= c(xmin.loc,xmax.loc), ylim=c(ymin.loc,ymax.loc),
 
 covmatrix <- diag(tau2,nrow(t)) + covfunc.Gaussian(t,phi,sigma2)
 # image(covmatrix)
-iters <- 70
 
 values_precip_iters <- matrix(NA, nrow = dim(s)[1], ncol = iters)
 forecast_plus_error_rasters <- list()

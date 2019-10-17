@@ -23,7 +23,35 @@ gauss <- read.csv("svg.param.ests.error_deg_ARC_GAUSS_deg.csv")
 matern <- read.csv("svg.param.ests.error_deg_ARC_MATERN_deg.csv")
 
 
+#INLA for degrees: orig, center, scale
+inla_deg_orig <- read.csv("csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA.csv")
+inla_deg_center1 <- read.csv("csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_center.csv")
+inla_deg_center2 <- read.csv("csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_center2ndhalf.csv")
+inla_deg_center <- rbind(inla_deg_center1, inla_deg_center2[30:47,])
+inla_deg_scale1 <- read.csv("csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_center_scale.csv")
+inla_deg_scale2 <- read.csv("csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_center_scale2ndhalf.csv")
+inla_deg_scale <- rbind(inla_deg_scale1, inla_deg_scale2[42:47,])
 
+par(mar=c(5,4,4,1))
+plot(inla_deg_orig$range_Ivec, inla_deg_scale$range_Ivec, main="INLA range\n Orig Vs Scale")
+lm(inla_deg_orig$range_Ivec~ inla_deg_scale$range_Ivec)
+
+plot(inla_deg_orig$sig2ep_Ivec, inla_deg_scale$sig2ep_Ivec, main="INLA tau^2\n Orig Vs Scale")
+lm(inla_deg_orig$sig2ep_Ivec~ inla_deg_scale$sig2ep_Ivec)
+
+plot(inla_deg_orig$sig2om_Ivec, inla_deg_scale$sig2om_Ivec, main="INLA sig^2\n Orig Vs Scale")
+lm(inla_deg_orig$sig2om_Ivec~ inla_deg_scale$sig2om_Ivec)
+
+
+
+plot(inla_deg_orig$range_Ivec, inla_deg_center$range_Ivec, main="INLA range\n Orig Vs Center")
+lm(inla_deg_orig$range_Ivec~ inla_deg_center$range_Ivec)
+
+plot(inla_deg_orig$sig2ep_Ivec, inla_deg_center$sig2ep_Ivec, main="INLA tau^2\n Orig Vs Center")
+lm(inla_deg_orig$sig2ep_Ivec~ inla_deg_center$sig2ep_Ivec)
+
+plot(inla_deg_orig$sig2om_Ivec, inla_deg_center$sig2om_Ivec, main="INLA sig^2\n Orig Vs Center")
+lm(inla_deg_orig$sig2om_Ivec~ inla_deg_center$sig2om_Ivec)
 
 
 

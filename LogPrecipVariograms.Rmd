@@ -23,9 +23,10 @@ library(geoR) #as.geodata, variog, variofit
 Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
-# pdf("logbuffer.boots/logbuffer.boots.01to02wDIRVAR.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*#*#*#*#*
+# pdf("logbuffer.boots/logbuffer.boots.01to02wDIRVAR.pdf")
+#*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*#*#*#*#*
 all.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("NAMandST4", recursive = F)[45:47] #/Volumes/LACIEHD/
+most.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
 all.storm.names <- c()
 all.storm.years <- c()
@@ -266,7 +267,7 @@ for(i in 1:length(most.storm.folders)){
   NAM_df <- as.data.frame(NAM_spdf)
   colnames(NAM_df) <- c("value", "x", "y")
   # Using this to load into simulate_error_field.R
-  write.csv(NAM_df, paste0("csv/namdf_",storm_name,storm_year,"_",radius,"km.csv"))
+  # write.csv(NAM_df, paste0("csv/namdf_",storm_name,storm_year,"_",radius,"km.csv"))
   
   ST4_spdf <- as(ST4_plotter, "SpatialPixelsDataFrame")
   ST4_df <- as.data.frame(ST4_spdf)
@@ -276,7 +277,7 @@ for(i in 1:length(most.storm.folders)){
   error_spdf <- as((error), "SpatialPixelsDataFrame")
   error_df <- as.data.frame(error_spdf)
   colnames(error_df) <- c("value", "x", "y")
-  write.csv(error_df, paste0("csv/errordf_",storm_name,storm_year,"_",radius,"km.csv"))
+  write.csv(error_df, paste0("csv/INLAvsWLSdeg/errordf_",storm_year,storm_name,"_",radius,"km.csv"))
   error.max <- max(abs(error_df$value))
   precip.max <- max(c(ST4_df$value,NAM_df$value))
   precip.min <- min(c(ST4_df$value,NAM_df$value))
