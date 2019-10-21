@@ -11,8 +11,8 @@ library(stringr)
 
 before <- Sys.time()
 
-storms_to_eval <- 47
-pdf("posterior_plots_storm47.pdf")
+storms_to_eval <- c(1:40,42:47)
+pdf("posterior_plots_allstormsbut41_covmtx.pdf")
 
 include.elevation = F #include/exclude elevation 
 # I for INLA results
@@ -23,6 +23,8 @@ sig2om_Ivec_MED <- c()
 sig2ep_Ivec_MED <- c()
 range_Ivec_MED <- c()
 name_Ivec <- c()
+mods <- list()
+results <- list()
 
 for(i in 1:length(list.files("csv/INLAvsWLSdeg/",full.names = T)[storms_to_eval])){
   # i <- 1
@@ -155,6 +157,10 @@ for(i in 1:length(list.files("csv/INLAvsWLSdeg/",full.names = T)[storms_to_eval]
   mod$dic$dic
   print(summary(mod))
   
+  result = inla.spde2.result(mod, "field", spde)
+  mods[[i]] <- mod
+  results[[i]] <- result
+  
   ###########################################################################
   #EXTRACT POSTERIOR SUMMARY STATISTICS
   ###########################################################################
@@ -225,7 +231,6 @@ for(i in 1:length(list.files("csv/INLAvsWLSdeg/",full.names = T)[storms_to_eval]
   
   #Plotting posterior densities for range, variance, 
   par(mfrow=c(3,2))
-  result = inla.spde2.result(mod, "field", spde)
   plot(result[["marginals.range.nominal"]][[1]], type = "l",
        main = paste(name_Ivec[i], "Nominal range, posterior density"))
   abline(v=range_, col="blue")
@@ -257,14 +262,17 @@ for(i in 1:length(list.files("csv/INLAvsWLSdeg/",full.names = T)[storms_to_eval]
   abline(v=theta2mode, col="green")
 }
 
+#internal covariance matrix
+for (i in 1:length(mods)) {image(mods[[i]]$misc$cov.intern, main=paste(name_Ivec[i]))}
+
 svg.param.ests.errorINLA <- cbind(name_Ivec, range_Ivec,sig2ep_Ivec,sig2om_Ivec)
 svg.param.ests.errorINLA_MED <- cbind(name_Ivec, range_Ivec_MED,sig2ep_Ivec_MED,sig2om_Ivec_MED)
 print(svg.param.ests.errorINLA)
 
 # write.csv(svg.param.ests.errorINLA,
-# "csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_center_scale2ndhalf.csv")
+# "csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_center_scale_allbut41.csv")
 # write.csv(svg.param.ests.errorINLA_MED,
-# "csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_MED_center_scale2ndhalf.csv")
+# "csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_MED_center_scale_allbut41.csv")
 
 
 dev.off()
