@@ -435,7 +435,7 @@ g5= ggplot(aes(x=x,y=y,fill=value),data=all_error_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
   labs(title =paste("Sum of All Errors: NAM - ST4"))+
   coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)
-plot(g5)
+plot(g5) + scale_colour_manual(values = cols, limits = c("4", "6", "8", "10"))
 
 Nmap <- resample(errorcounts, error_sum, method="ngb")
 plot(Nmap, main="Plot of counts resampled")
@@ -459,13 +459,54 @@ plot(PW_mean, main="Pointwise Mean")
 plot(abs(PW_mean),main="Absolute Value of Pointwise Mean")
 S2 <- (error_sum_sq - (error_sum * error_sum)/Nmap)/(Nmap - 1)  
 plot(S2, main="Pointwise Variance Map")
-# dev.off()
 # svg.param.ests.error <- cbind(phivec,prRangevec,tau2vec,sig2vec)
 # write.csv(svg.param.ests.error, "svg.param.ests.error_deg.csv")
 
 # save.image("LogPrecipVariograms_boot_46and47.wks")
 # dev.off()
 # save.image(paste0("LogPrecipVariograms_",storm_name,radius,"km"))
+
+
+# writeRaster(error_sum, "error_rasters_summary/error_sum")
+# writeRaster(error_sum_deg, "error_rasters_summary/error_sum_deg")
+# writeRaster(error_sum_sq, "error_rasters_summary/error_sum_sq")
+# writeRaster(errorcounts, "error_rasters_summary/errorcounts")
+# writeRaster(Nmap, "error_rasters_summary/Nmap")
+# writeRaster(PW_mean, "error_rasters_summary/PW_mean")
+# writeRaster(S2, "error_rasters_summary/S2")
+ggplot(PW_mean/sqrt(S2))
+plot(g5) + scale_colour_manual(values = c("red","green","blue","black"), limits = c("4", "6", "8", "10"))
+
+g6= ggplot(aes(x=x,y=y,fill=value),data=PW_mean_df) +
+  geom_tile() + theme_classic() +
+  geom_polygon(data=subset(map_data("state"), region %in% regions),
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+  labs(title =paste("Pointwise Mean"))+
+  coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)
+plot(g6)
+
+g7= ggplot(aes(x=x,y=y,fill=value),data=PW_mean_df) +
+  geom_tile() + theme_classic() +
+  geom_polygon(data=subset(map_data("state"), region %in% regions),
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colours = terrain.colors(100))+  labs(title =paste("Pointwise Mean"))+
+  coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)
+plot(g7)
+
+
+pal <- wes_palette("Zissou1", 2, type = "discrete")
+ggplot(PW_mean_df, aes(x,y)) +
+  geom_raster(aes(fill = value)) +
+  scale_fill_gradientn(colours = pal) +  coord_equal() 
+
+
+maskNA <- raster("lsmask.nc")
+maskNA[maskNA==-1] <- NA
+extent(maskNA)[1] <- extent(maskNA)[1]-360
+extent(maskNA)[2] <- extent(maskNA)[2]-360
+plot(PW_mean*resample(maskNA,PW_mean,"ngb"), col=c("black",terrain.colors(9),"black"), breaks=c(-4.5,seq(-2,2,length.out = 10),3.5))
+plot(PW_mean*resample(maskNA,PW_mean,"ngb")/sqrt(S2), col=c("black",terrain.colors(9),"black"), breaks=c(-56,seq(-2,2,length.out = 10),37))
 ```
 
 ```{r}
