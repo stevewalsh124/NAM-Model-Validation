@@ -12,7 +12,7 @@ library(stringr)
 before <- Sys.time()
 
 storms_to_eval <- c(1:40,42:47)
-pdf("posterior_plots_allstormsbut41_covmtx.pdf")
+# pdf("posterior_plots_allstormsbut41_covmtx.pdf")
 
 include.elevation = F #include/exclude elevation 
 # I for INLA results
@@ -275,7 +275,7 @@ print(svg.param.ests.errorINLA)
 # "csv/INLAvsWLS/svg.param.ests.error_deg_MaternSVGestimatesINLA_MED_center_scale_allbut41.csv")
 
 
-dev.off()
+# dev.off()
 
 
 after <- Sys.time()
