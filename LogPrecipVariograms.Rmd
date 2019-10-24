@@ -435,7 +435,7 @@ g5= ggplot(aes(x=x,y=y,fill=value),data=all_error_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
   labs(title =paste("Sum of All Errors: NAM - ST4"))+
   coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)
-plot(g5) + scale_colour_manual(values = cols, limits = c("4", "6", "8", "10"))
+plot(g5)
 
 Nmap <- resample(errorcounts, error_sum, method="ngb")
 plot(Nmap, main="Plot of counts resampled")
@@ -447,6 +447,7 @@ plot(PW_mean, main="Pointwise Mean")
 PW_mean_spdf <- as((PW_mean), "SpatialPixelsDataFrame")
 PW_mean_df <- as.data.frame(PW_mean_spdf)
 colnames(PW_mean_df) <- c("value", "x", "y")
+
 g6= ggplot(aes(x=x,y=y,fill=value),data=PW_mean_df) +
   geom_tile() + theme_classic() +
   geom_polygon(data=subset(map_data("state"), region %in% regions),
@@ -454,11 +455,13 @@ g6= ggplot(aes(x=x,y=y,fill=value),data=PW_mean_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
   labs(title =paste("Pointwise Mean"))+
   coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)
-plot(g6)
+plot(g6) + scale_colour_manual(values = c("red","green","blue","black"), limits = c("4", "6", "8", "10"))
+
 plot(PW_mean, main="Pointwise Mean")
 plot(abs(PW_mean),main="Absolute Value of Pointwise Mean")
 S2 <- (error_sum_sq - (error_sum * error_sum)/Nmap)/(Nmap - 1)  
 plot(S2, main="Pointwise Variance Map")
+
 # svg.param.ests.error <- cbind(phivec,prRangevec,tau2vec,sig2vec)
 # write.csv(svg.param.ests.error, "svg.param.ests.error_deg.csv")
 
@@ -474,17 +477,6 @@ plot(S2, main="Pointwise Variance Map")
 # writeRaster(Nmap, "error_rasters_summary/Nmap")
 # writeRaster(PW_mean, "error_rasters_summary/PW_mean")
 # writeRaster(S2, "error_rasters_summary/S2")
-ggplot(PW_mean/sqrt(S2))
-plot(g5) + scale_colour_manual(values = c("red","green","blue","black"), limits = c("4", "6", "8", "10"))
-
-g6= ggplot(aes(x=x,y=y,fill=value),data=PW_mean_df) +
-  geom_tile() + theme_classic() +
-  geom_polygon(data=subset(map_data("state"), region %in% regions),
-               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
-  labs(title =paste("Pointwise Mean"))+
-  coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)
-plot(g6)
 
 g7= ggplot(aes(x=x,y=y,fill=value),data=PW_mean_df) +
   geom_tile() + theme_classic() +
