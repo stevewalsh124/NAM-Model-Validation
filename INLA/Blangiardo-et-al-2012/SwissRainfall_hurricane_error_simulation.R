@@ -8,14 +8,23 @@ library(stringr)
 #compare results with WLS approach, here alpha = 2, so nu = 1 in these WLS results:
 WLS_results_fixnu1 <- read.csv("csv/INLAvsWLS/svg.param.ests.error_KM_LCC_MaternSVGestimates.csv")
 sim_params <- read.csv("sim_params.csv")
+sim_params$tau2 <- 0.01
+sim_params$phi <- 1
+sim_params$sig2 <- 0.5
+sim_params$xmin <- sim_params$ymin <- 0
+sim_params$xmax <- sim_params$ymax <- 15
+sim_params$res <- .2
+sim_params <- sim_params[1,] #[(dim(sim_params)[1]+1):1000,]
+iters <- 200
 
-iters <- 5
+mods <- list()
+results <- list()
 
 INLAmedians <- list()
 INLAmeans <- list()
 
 for (c in 1:length(sim_params)) {
-  print(c)
+  print(c) #c <- 1
   xaxis <- seq(sim_params$xmin[c], sim_params$xmax[c], sim_params$res[c])#seq(140,1500, by=35)#seq(-105,-90,.5)#seq(0,2,0.05)
   yaxis <- seq(sim_params$ymin[c], sim_params$ymax[c], sim_params$res[c])#seq(445,1930, by=35)#seq(24,35,.5)#seq(0,2,0.05)
   # xaxis <- (xaxis - mean(xaxis))/(max(xaxis)-min(xaxis))
@@ -68,15 +77,23 @@ for (c in 1:length(sim_params)) {
     # hurricane <- read.csv(storm_file)
     est.coord <- s#hurricane[,3:4]
     est.data  <- x#hurricane[,2]
-    
+    center.coord <- est.coord
+    center.coord[,1] <- center.coord[,1] - mean(center.coord[,1])
+    center.coord[,2] <- center.coord[,2] - mean(center.coord[,2])
+    est.coord <- center.coord
+    # scale.coord <- center.coord
+    # scale.coord[,1] <- scale.coord[,1]/max(abs(scale.coord[,1]))
+    # scale.coord[,2] <- scale.coord[,2]/max(abs(scale.coord[,2]))
+    # est.coord <- scale.coord
     
     ###########################################################################
     #SPDE/INLA 
     ###########################################################################
     #-- Create the mesh --#
     mesh =
-      inla.mesh.create.helper(points=est.coord,
-                              max.edge=c(40,100), min.angle=c(21,21))
+      inla.mesh.create.helper(points=est.coord, max.edge= 40)
+                              # max.edge=c(40,100), min.angle=c(21,21))
+
     mesh$n
     
     #-- Plot the triangulation --#
@@ -178,9 +195,11 @@ for (c in 1:length(sim_params)) {
                  control.predictor=list(A=inla.stack.A(stack), compute=TRUE),
                  control.compute=list(cpo=TRUE, dic=TRUE),
                  keep=FALSE, verbose=TRUE)
-    
+    mods[[i]] <- mod
     mod$dic$dic
     print(summary(mod))
+    result = inla.spde2.result(mod, "field", spde)
+    results[[i]] <- result
     
     ###########################################################################
     #EXTRACT POSTERIOR SUMMARY STATISTICS
@@ -254,10 +273,14 @@ for (c in 1:length(sim_params)) {
   par(mfrow = c(2, 2))
   plot(mod$marginals.fix[[1]], type = "l", xlab = "Intercept", ylab = "Density", 
        main= "1 sim: intercept distbn"); abline(v=0, col="blue")
-  plot(mod$marginals.hyp[[1]], type = "l", ylab = "Density", xlab = "range", main="1 sim range distbn"); abline(v=phi, col="green") #check what phi is...
-  plot(mod$marginals.hyperpar[[2]], type="l")
-  plot(mod$marginals.hyperpar[[3]], type="l")
   
+  plot(mod$marginals.hyp[[1]], type = "l", ylab = "Density", xlab = "range", main="1 sim range distbn"); abline(v=phi, col="green") #check what phi is...
+  abline(v=sqrt(8)/phi, lwd=2, col="maroon")
+  
+  plot(mod$marginals.hyperpar[[2]], type="l")
+  abline(v=log(1/sqrt(4*pi*phi^2*sigma2)))
+  plot(mod$marginals.hyperpar[[3]], type="l")
+  abline(v=log(phi))
 
   # write.csv(svg.param.ests.errorINLA_SIM,
   #           paste0("csv/INLAvsWLS/svg.param.ests.error_",
@@ -280,3 +303,6 @@ for (c in 1:length(sim_params)) {
 
 #INLAmedians
 #INLAmeans
+
+# write.csv(svg.param.ests.errorINLA_SIM, "svg.param.ests.errorINLA116.csv")
+# write.csv(svg.param.ests.errorINLA_MED_SIM, "svg.param.ests.errorINLA_MED116.csv")
