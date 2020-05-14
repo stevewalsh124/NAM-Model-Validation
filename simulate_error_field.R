@@ -261,4 +261,4 @@ hist(sig2_boot)
 hist(phi_boot)
 # hist(sort(phi_boot)[-1])
 
-save.image("sim_error_boot_Irma.wks")
+#save.image("sim_error_boot_Irma.wks")
