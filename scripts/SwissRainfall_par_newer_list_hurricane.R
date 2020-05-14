@@ -1,5 +1,5 @@
 setwd("~")
-remove(list=ls())
+remove(list =ls())
 require(geoR)
 # install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(INLA)
@@ -32,9 +32,9 @@ sig2ep_Ivec_MED <- c()
 range_Ivec_MED <- c()
 name_Ivec <- c()
 
-storms_to_eval <- 28
+storms_to_eval <- 3
 fix.nug = T
-nug.val <- 0.01
+nug.val <- 0#.01
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -58,7 +58,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                       .init=list(list(), list(), list(), list(),
                                  list(), list(), list(), list(),
                                  list(), list(), list(), list(),
-                                 list(), list())) %dopar% {
+                                 list(), list(), list())) %dopar% {
                        require(geoR)
                        library(INLA)
                        require(gstat)
@@ -76,7 +76,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                        print(name_Ivec)#name_Ivec[i]
                        
                        hurricane <- read.csv(storm_file)
-                       if(small_sample){hurricane <- hurricane[sample(1:dim(hurricane)[1], 300),]}
+                       if(small_sample){hurricane <- hurricane[sample(1:dim(hurricane)[1], 100),]}
                        est.coord <- hurricane[,3:4]
                        center.coord <- est.coord
                        center.coord$x <- center.coord$x - min(center.coord$x)
@@ -135,7 +135,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                          psiR = 1
                          psiA = 0
                          trend = "cte"
-                         nugget = 0
+                         nugget = nug.val
                          method.lik = "ML"
                          compute.dists = TRUE
                          realisations = NULL
@@ -460,7 +460,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                        #}
                        list(name_Ivec, sig2om_Ivec, range_Ivec,sig2ep_Ivec, beta, 
                             MLtemp$cov.pars[1], MLtemp$cov.pars[2], MLtemp$nugget, MLtemp$beta, MLtemp$kappa,
-                            MLtemp, as.geodata(hurricane[,c(3,4,2)]), hur_opt$par, hur_opt$hessian)
+                            MLtemp, as.geodata(hurricane[,c(3,4,2)]), hur_opt$par, hur_opt$hessian, hur_opt)
 }
 
 stopCluster(cl)
