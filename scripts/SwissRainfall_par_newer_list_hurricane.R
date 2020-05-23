@@ -67,7 +67,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                        # i <- 17;co <- 1
                        if(!exists("co")) co <- 1
                                    
-                       storm_file <- list.files("~/NAM-Model-Validation/INLAvsWLSdeg_minusPWmeanNA/",
+                       storm_file <- list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanT",
                                                 full.names = T)[storms_to_eval[co]] #"csv/INLAvsWLS/error"
                        name_start_INLA <- str_locate_all(pattern ='_', storm_file)[[1]][,1]
                        name_Ivec <- substr(storm_file,
