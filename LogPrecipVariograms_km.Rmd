@@ -24,8 +24,8 @@ Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
 # pdf("pdf/47storms_km.pdf")   #    ("LogPrecipVariograms_km_LCC_MaternSVGestimates.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*
-all.storm.folders <- list.dirs("NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("NAMandST4", recursive = F)#[-c(2,5,7,16,22,25,35,47)] #/Volumes/LACIEHD/
+all.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F) #/Volumes/LACIEHD/
+most.storm.folders <- list.dirs("/Volumes/LACIEHD/NAMandST4", recursive = F)#[-c(2,5,7,16,22,25,35,47)] #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
 all.storm.names <- c()
 
@@ -59,7 +59,7 @@ extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
 # mask.regrid <- resample(mask, projectRaster(raster("nam_218_20050829_1200_f012.grib"),
 #                                             crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
-NAM_km_for_mask <- projectRaster(raster("nam_218_20050829_1200_f012.grib"),
+NAM_km_for_mask <- projectRaster(raster("~/NAM-Model-Validation/nam_218_20170826_0000_012.grb2"),
                                  crs="+proj=lcc +lat_1=25 +lat_2=25 +lat_0=25 
                                  +lon_0=-95 +x_0=0 +y_0=0 +a=6371200 +b=6371200 
                                  +units=km +no_defs ")
@@ -326,7 +326,7 @@ for(i in 1:length(most.storm.folders)){
   precip.min <- min(c(ST4_df$value,NAM_df$value))
   
   #write rasters from the errors to combine all on common map
-  writeRaster(error, paste0("error_rasters_km/",storm_year,storm_name), overwrite=T) 
+  writeRaster(error, paste0("/Volumes/LACIEHD/error_rasters_km/",storm_year,storm_name), overwrite=T) 
   # in the loop for I in the storms
   this_error <- error
   this_error[!is.na(this_error)] <- 1
@@ -606,6 +606,9 @@ for(i in 1:length(most.storm.folders)){
 
 plot(errorcounts)
 plot(errorcounts*mask)
+
+# raster_files <- list.files("error_rasters", pattern = ".grd", full.names = T)
+# error_sum <- mosaicList(raster_files)
 
 #bad right now, figure out mismatched extents
 # avg_errors <- error_sum/resample(errorcounts*mask,error_sum)
