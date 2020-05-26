@@ -11,15 +11,15 @@ before <- Sys.time()
 #Change NAM_pred, ST4_pred, and x_pred
 #Change name of PDF
 
-NAM_pred <- read.csv("~/NAM-Model-Validation/csvtest/prediction/2018michael/NAM_GIS.csv")
-ST4_pred <- read.csv("~/NAM-Model-Validation/csvtest/prediction/2018michael/ST4_GIS.csv")
-x_pred <- c(1,0,1) # Alberto 2018: GULF storm
+NAM_pred <- read.csv("~/NAM-Model-Validation/prediction/2019barry/2019barry_NAMdf.csv")#read.csv("~/NAM-Model-Validation/csvtest/prediction/2018florence/NAM_GIS.csv")
+ST4_pred <- read.csv("~/NAM-Model-Validation/prediction/2019barry/2019barry_ST4df.csv")#read.csv("~/NAM-Model-Validation/csvtest/prediction/2018florence/ST4_GIS.csv")
+x_pred <- c(1,0,0) # Alberto 2018: GULF storm
 
-Ngen <- 5000
+Ngen <- 1000
 subtractPWmean <- T
 PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
 
-# pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_Michael2018_GIS_GHiG_NA_",PWstamp, Ngen,".pdf"))
+pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_Barry2019_GIS_GHiG_NA_newPWmean_",PWstamp, Ngen,".pdf"))
 library(LaplacesDemon)
 library(geoR)
 library(raster)
@@ -184,4 +184,4 @@ for (i in (1:3)+1) {
   US(add=T, col="lightgray")
 }
 
-# dev.off()
+dev.off()

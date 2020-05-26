@@ -3,7 +3,7 @@
 
 # run storms_collect.R first
 
-# pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG.pdf")
+pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_newPWmean.pdf")
 # remove(list=ls())
 # load("NAM-Model-Validation/RData/par_optim_allbut43.RData")
 # rm(list=setdiff(ls(), c("par_optim")))
@@ -450,5 +450,5 @@ hist(theta_hat[,1], xlab=expression(hat(sigma^2)[MLE]), main=NULL, cex.axis=2, c
 hist(theta_hat[,2], xlab=expression(hat(phi)[MLE]), main=NULL, cex.axis=2, cex.lab=2)
 hist(theta_hat[,3], xlab=expression(hat(kappa)[MLE]), main=NULL, cex.axis=2, cex.lab=2)
 
-# dev.off()
+dev.off()
 rnorm(5)
