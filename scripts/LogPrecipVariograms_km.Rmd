@@ -23,7 +23,7 @@ library(geoR) #as.geodata, variog, variofit
 Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
-# pdf("pdf/47storms_km.pdf")   #    ("LogPrecipVariograms_km_LCC_MaternSVGestimates.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*
+pdf("~/NAM-Model-Validation/pdf/47storms_km.pdf")   #    ("LogPrecipVariograms_km_LCC_MaternSVGestimates.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*
 all.storm.folders <- list.dirs("~/NAMandST4", recursive = F) #/Volumes/LACIEHD/
 most.storm.folders <- list.dirs("~/NAMandST4", recursive = F)#[-c(2,5,7,16,22,25,35,47)] #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
@@ -326,7 +326,7 @@ for(i in 1:length(most.storm.folders)){
   precip.min <- min(c(ST4_df$value,NAM_df$value))
   
   #write rasters from the errors to combine all on common map
-  writeRaster(error, paste0("/Volumes/LACIEHD/error_rasters_km/",storm_year,storm_name), overwrite=T) 
+  writeRaster(error, paste0("~/NAM-Model-Validation/error_rasters_km/",storm_year,storm_name), overwrite=T)
   # in the loop for I in the storms
   this_error <- error
   this_error[!is.na(this_error)] <- 1
@@ -619,7 +619,7 @@ plot(errorcounts*mask)
 # print(svg.param.ests.error.km)
 
 # save.image("LogPrecipVariograms_boot_1thru10.wks")
-# dev.off()
+dev.off()
 # save.image(paste0("LogPrecipVariograms_",storm_name,radius,"km"))
 ```
 
