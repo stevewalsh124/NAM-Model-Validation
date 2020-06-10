@@ -11,6 +11,7 @@ library(colorspace)
 library(ggplot2)
 library(SpatialEpi) #latlong2grid()
 library(geoR) #as.geodata, variog, variofit
+library(fields) #US()
 
 # Plotting 47 Storms' Log Precipitation for First 24 Hours After Landfall
 
