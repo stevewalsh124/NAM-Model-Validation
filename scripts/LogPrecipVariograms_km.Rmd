@@ -23,9 +23,9 @@ library(geoR) #as.geodata, variog, variofit
 Plotting 47 Storms' Log Precipitation for First 12 Hours After Landfall
 
 ```{r plot.all.47}
-pdf("~/NAM-Model-Validation/pdf/47storms_km.pdf")   #    ("LogPrecipVariograms_km_LCC_MaternSVGestimates.pdf") #*#**###*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#**#**##*#*#*#*#*#*#*#*
-all.storm.folders <- list.dirs("~/NAMandST4", recursive = F) #/Volumes/LACIEHD/
-most.storm.folders <- list.dirs("~/NAMandST4", recursive = F)#[-c(2,5,7,16,22,25,35,47)] #/Volumes/LACIEHD/
+pdf("~/NAM-Model-Validation/pdf/47storms_km.pdf")   #    ("LogPrecipVariograms_km_LCC_MaternSVGestimates.pdf") 
+
+storm.dirs <- list.dirs("~/NAMandST4", recursive = F)#[-c(2,5,7,16,22,25,35,47)] #/Volumes/LACIEHD/
 storms.out.of.hurdat <- c()
 all.storm.names <- c()
 
@@ -54,7 +54,7 @@ kappavec  <- c()
 
 # load, modify and project land/sea mask 
 mask <- raster("~/NAM-Model-Validation/lsmask.nc")
-mask[mask==-1] <- 0
+mask[mask==-1] <- NA
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
 # mask.regrid <- resample(mask, projectRaster(raster("nam_218_20050829_1200_f012.grib"),
@@ -160,9 +160,9 @@ mosaicList <- function(rasList){
   return(mos)
 }
 
-for(i in 1:length(most.storm.folders)){
+for(i in 1:length(storm.dirs)){
   # i <- 1
-  currentST4_NAM_folders <- list.dirs(most.storm.folders[i])[-1] #[-1] avoids parent folder
+  currentST4_NAM_folders <- list.dirs(storm.dirs[i])[-1] #[-1] avoids parent folder
   ST4_folder <- currentST4_NAM_folders[1]
   NAM_folder <- currentST4_NAM_folders[2] #uncomment the [2] as well
 
@@ -171,7 +171,7 @@ for(i in 1:length(most.storm.folders)){
   all.storm.names[i] <- storm_name
   print(paste0("Storm #",i,": ",storm_name))
 
-  hurdat_csv <- list.files(most.storm.folders[i], pattern = ".csv")
+  hurdat_csv <- list.files(storm.dirs[i], pattern = ".csv")
   
   print(length(list.files(NAM_folder))) #should be 15 or 18, depending if 72hr timestep exists
   NAMlist[[i]] <- list()
@@ -251,7 +251,7 @@ for(i in 1:length(most.storm.folders)){
   eye_1 <- list.files(ST4_folder,full.names = T)[1]
   eye_2 <- list.files(ST4_folder,full.names = T)[3] # add 12 hours to eye_1, aka look 2 rows down
 
-  hurdat_file <- list.files(most.storm.folders[i], pattern = ".csv", recursive = F, full.names = T)
+  hurdat_file <- list.files(storm.dirs[i], pattern = ".csv", recursive = F, full.names = T)
   hurdat <- read.csv(hurdat_file)
   colnames(hurdat) <- c("BTid", "SNum", "Year", "Month", "Day", "Hour", "Lat", "Lon", "Winds", "Pressure")
   hurdat[,8:7]<-project(as.matrix(hurdat[,8:7]), "+proj=lcc +lat_1=25 +lat_2=25 +lat_0=25 +lon_0=-95 +x_0=0 +y_0=0 +a=6371200 +b=6371200")/1000
