@@ -1,5 +1,6 @@
-#"Plot All Storms"
-  
+# Plotting 47 Storms' Log Precipitation for First 24 Hours After Landfall
+# Steve Walsh
+
 library(sp)
 library(raster)
 library(ncdf4)
@@ -12,8 +13,6 @@ library(ggplot2)
 library(SpatialEpi) #latlong2grid()
 library(geoR) #as.geodata, variog, variofit
 library(fields) #US()
-
-# Plotting 47 Storms' Log Precipitation for First 24 Hours After Landfall
 
 # Imagine that the two circular buffer areas create a Venn diagram shape.
 # Do you want it so that A\B and B\A have 12hr of precip while A intersect B has 24hr? (choose F)
@@ -35,7 +34,7 @@ storm.dirs <- list.dirs("~/NAMandST4", recursive = F)#~/NAM-Model-Validation/pre
 storms.out.of.hurdat <- c()
 
 # Change this file so that it corresponds to the new buffering
-PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_mean.grd")
+PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post.grd")
 
 #[-c(2,3,6,8)]#THE NON12HR STORMS
 #[c(5,16,22,25,35,47)] #R session aborted when fitting Matern
