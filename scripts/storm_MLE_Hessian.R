@@ -1,3 +1,7 @@
+# Obtain MLE estimates and corresponding Hessian matrices
+# for the spatial covariance parameters phi, kappa, sigma2
+# Based on the csvs from LogPrecipVariograms.R
+
 setwd("~")
 remove(list =ls())
 require(geoR)
