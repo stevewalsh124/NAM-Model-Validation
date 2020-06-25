@@ -13,13 +13,16 @@ before <- Sys.time()
 
 NAM_pred <- read.csv("~/NAM-Model-Validation/prediction/2019barry/2019barry_NAMdf.csv")#read.csv("~/NAM-Model-Validation/csvtest/prediction/2018florence/NAM_GIS.csv")
 ST4_pred <- read.csv("~/NAM-Model-Validation/prediction/2019barry/2019barry_ST4df.csv")#read.csv("~/NAM-Model-Validation/csvtest/prediction/2018florence/ST4_GIS.csv")
-x_pred <- c(1,0,0) # Alberto 2018: GULF storm
+x_pred <- c(1,0,1) # Alberto 2018: GULF storm
+# First is always 1, ATL baseline; next are indicators for FL and GULF respectively
+# 2018: Alberto FL, Florence ATL, Gordon GULF, Michael FL
+# 2019: Barry GULF, Dorian ATL
 
 Ngen <- 1000
 subtractPWmean <- T
 PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
 
-pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_Barry2019_GIS_GHiG_NA_newPWmean_",PWstamp, Ngen,".pdf"))
+pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_Barry2019_GIS_GHiG_NA_postPWmean_",PWstamp, Ngen,".pdf"))
 library(LaplacesDemon)
 library(geoR)
 library(raster)
@@ -33,7 +36,7 @@ mask.regrid <- resample(mask, projectRaster(raster(
   "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
   crs = "+proj=longlat +datum=WGS84"), method='ngb') 
 
-PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_mean.grd")*mask.regrid
+PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post.grd")*mask.regrid
 
 # run GibbsSamplerHurrRegr first for B and as.square
 B_pred <- as.square(apply(B[burn:iters,], 2, median))

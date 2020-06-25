@@ -1,4 +1,4 @@
-setwd("~/NAM-Model-Validation/RData/RDatafixnug0/") #01/hadnug0not001in_optim/")#estnug0")# ##01
+setwd("~/NAM-Model-Validation/RData/RDatafixnug0/fix0_postPWmean/") #01/hadnug0not001in_optim/")#estnug0")# ##01
 data_files <- list.files(pattern = ".RData")
 
 all_storm_res <- matrix(NA, length(data_files), 9)
@@ -149,7 +149,7 @@ dim(locs[avail,])
 
 # Compare MLEs before and after the change in PWmean map (all24 vs 12/24/12 and the Maine bug)
 # newer_res <- all_storm_res
-both <- merge(newer_res, all_storm_res, by="row.names", all=T)
+both <- merge(dataPWres, all_storm_res, by="row.names", all=T)
 
 order(-1*(abs(both$MLEsigma2.x - both$MLEsigma2.y)))
 order(-1*(abs(both$MLEphi.x - both$MLEphi.y)))
