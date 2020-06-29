@@ -18,7 +18,7 @@ library(fields) #US()
 # Do you want it so that A\B and B\A have 12hr of precip while A intersect B has 24hr? (choose F)
 # Do you want the entire union of A and B to have 24 hrs of precip? (choose T)
 addbothbuffers = T
-pred <- F
+pred <- T
 
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
@@ -27,10 +27,13 @@ makePWmean = F
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
 pdf(paste0("~/NAM-Model-Validation/pdf/logbuffer_47_ngb_",
-    if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},
+    if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},if(pred){"pred"},
     "_bothbuffers.pdf"))
 
-storm.dirs <- list.dirs("~/NAMandST4", recursive = F)#~/NAM-Model-Validation/prediction
+if(pred){
+  storm.dirs <- list.dirs("~/NAM-Model-Validation/prediction", recursive = F)
+} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F) }
+
 storms.out.of.hurdat <- c()
 
 # Change this file so that it corresponds to the new buffering
@@ -542,7 +545,7 @@ if(makePWmean){
 # Plot pointwise means, variances and standard errors
 par(mfrow=c(2,3))
 pwms <- vars <- stds <- list()
-for (n in 1:6) { 
+for (n in c(1,6)) { 
   par(mar=c(5,4,4,2)+.1)
   # par(mfrow=c(1,2))
   Nmap <- error_counts

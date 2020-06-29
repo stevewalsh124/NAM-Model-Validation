@@ -131,8 +131,8 @@ for (i in 1:length(hessians)) {if(!is.positive.definite(hessians[[i]])){print("o
 
 
 #Gibbs sampler for B, theta_i and Sigma_theta
-iters <- 10020
-burn  <- 20
+iters <- 10100
+burn  <- 100
 
 # mu_theta     <- matrix(NA, nrow = iters, ncol = P)
 Sigma_theta  <- matrix(NA, nrow = iters, ncol = P^2)
