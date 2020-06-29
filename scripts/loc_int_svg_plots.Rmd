@@ -39,9 +39,9 @@ pairs(cbind(tau2vec,phivec,sig2vec, prRangevec)) #,kappavec
 
 ```{r}
 # pdf("SVG.G.48.km.error.bygroups.pdf")
-all_content = readLines("US_20042017_landfalls_mod.csv")
+all_content = readLines("~/NAM-Model-Validation/csv/US_20042017_landfalls_mod.csv")
 skip_second = all_content[-6]
-landfalls = read.csv(textConnection(skip_second), header = F, stringsAsFactors = FALSE)
+landfalls = read.csv(textConnection(skip_second), header = T, stringsAsFactors = FALSE)
 colnames(landfalls) <- c("Year","Storm","Landfall Time (UTC)","BT.Lat","BTLon","SSHWS")
 landfalls$inten <- factor(ifelse(landfalls$SSHWS%in%c("TS","1","2"),"TS,1,2","3,4,5"))
 landfalls$inten_alt <- factor(ifelse(landfalls$SSHWS%in%c("TS"),"TS",
@@ -68,12 +68,13 @@ stormsFL  <- which(landfalls$BT.Lat<32&landfalls$BTLon> -88)
 stormsGULF<- which(landfalls$BT.Lat<32&landfalls$BTLon< -88)
 dim(landfalls[stormsATL,]);dim(landfalls[stormsFL,]);dim(landfalls[stormsGULF,])
 
-# plot(landfalls[,5:4], main="Plot by Location")
-# points(landfalls[stormsATL,5:4],col="red")
-# points(landfalls[stormsFL,5:4],col="blue")
-# points(landfalls[stormsGULF,5:4],col="green")
-# legend("topleft", inset=.02, title="Storm Location",
-#    c("ATL","FL","GULF"), fill=c("red","blue","green"), horiz=TRUE, cex=1)
+plot(landfalls[,5:4], main="Plot by Location")
+points(landfalls[stormsATL,5:4],col="red", pch=16)
+points(landfalls[stormsFL,5:4],col="blue", pch=16)
+points(landfalls[stormsGULF,5:4],col="green", pch=16)
+legend("topleft", inset=.02, title="Storm Location",
+   c("ATL","FL","GULF"), fill=c("red","blue","green"), horiz=TRUE, cex=1)
+fields::US(col="gray80", add=T)
 
 
 # par(cex.axis=2, cex.lab=2, cex.main=3.5)  #for poster sized semivariogram

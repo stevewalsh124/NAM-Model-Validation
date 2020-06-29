@@ -18,7 +18,7 @@ library(fields) #US()
 # Do you want it so that A\B and B\A have 12hr of precip while A intersect B has 24hr? (choose F)
 # Do you want the entire union of A and B to have 24 hrs of precip? (choose T)
 addbothbuffers = T
-pred <- T
+pred <- F
 
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
