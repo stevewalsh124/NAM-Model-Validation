@@ -127,7 +127,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                        # likfitreml_res1[i,] <- c(REMLtemp$cov.pars, REMLtemp$nugget, REMLtemp$kappa)
                        # print(likfitreml_res1[i,])
                        
-                       loglikhd.spatial <- function (geodata, theta_GRF) 
+                       loglikhd.spatial <- function (geodata, theta_GRF) #based on geoR::loglik.GRF
                        {
                          cov.pars = theta_GRF[1:2]
                          kappa = theta_GRF[3]
