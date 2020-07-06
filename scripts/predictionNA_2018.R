@@ -10,18 +10,25 @@ library(LaplacesDemon)
 library(geoR)
 library(raster)
 library(RandomFields)
-library(fields)
 library(stringr)
 
 before <- Sys.time()
 
 #Change NAM_pred, ST4_pred, and x_pred
 #Change name of PDF
+#change pwmean, sum(post)_cov_mtx, and load call below
+
+load("~/NAM-Model-Validation/RData/Gibbs_dataPW.RData")
 
 path <- "~/NAM-Model-Validation/prediction"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
 
-for (s in 1:length(pred_dirs)) {
+args <- commandArgs(TRUE)
+if(length(args) > 0)
+  for(i in 1:length(args))
+    eval(parse(text=args[[i]]))
+
+# for (s in 1:length(pred_dirs)) {
   
   pred_dir <- pred_dirs[s]
   
@@ -33,6 +40,22 @@ for (s in 1:length(pred_dirs)) {
                               year, name, "/", year, name,"_NAMdf.csv"))
   ST4_pred <- read.csv(paste0("~/NAM-Model-Validation/prediction/",
                               year, name, "/", year, name,"_ST4df.csv"))
+  
+  
+  ## Uncertainty corresponding to pointwise mean
+  PWM1_df <- read.csv("~/NAM-Model-Validation/csv/PWM1_df.csv")
+  load("~/NAM-Model-Validation/RData/sum_cov_mtx.RData") #post
+  
+  ind <- c() 
+  for (i in 1:nrow(PWM1_df)) {
+      if(length(which(abs(PWM1_df$x - NAM_pred$x[i]) < 1e-3 & abs(PWM1_df$y - NAM_pred$y[i]) < 1e-3))>0){
+        ind[i] <- which(abs(PWM1_df$x - NAM_pred$x[i]) < 1e-3 & abs(PWM1_df$y - NAM_pred$y[i]) < 1e-3)
+        next
+      }
+  }
+  
+  this_PWM <- PWM1_df[ind,]
+  this_post_cov <- sum_cov_mtx[ind,ind] #post
   
   # Alberto 2018: GULF storm
   # First is always 1, ATL baseline; next are indicators for FL and GULF respectively
@@ -47,7 +70,7 @@ for (s in 1:length(pred_dirs)) {
   PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
   
   pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_",name,
-             year,"_GIS_GHiG_NA_postPWmean2_",PWstamp, Ngen,".pdf"))
+             year,"_GIS_GHiG_NA_postPWmean3_",PWstamp, Ngen,".pdf"))
   
   mask <- raster("~/NAM-Model-Validation/lsmask.nc")
   mask[mask==-1]  <- NA
@@ -57,7 +80,7 @@ for (s in 1:length(pred_dirs)) {
     "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
     crs = "+proj=longlat +datum=WGS84"), method='ngb') 
   
-  PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post.grd")*mask.regrid
+  PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_mean.grd")*mask.regrid
   
   # run GibbsSamplerHurrRegr first for B and as.square
   B_pred <- as.square(apply(B[burn:iters,], 2, median))
@@ -95,9 +118,14 @@ for (s in 1:length(pred_dirs)) {
   coords <- cbind(NAM_pred$x, NAM_pred$y)
   coordsST4 <- cbind(ST4_pred$x, ST4_pred$y)
   
-  simvals <- matrix(NA, nrow = nrow(NAM_pred), ncol = Ngen) 
+  simvals <- simPWM <- matrix(NA, nrow = nrow(NAM_pred), ncol = Ngen) 
   for (g in 1:Ngen) {
     if(g %% 50 == 0) cat(g,"\n")
+    
+    # Uncertainty in PWmean
+    simPWM[,g] <- t(chol(this_post_cov)) %*% rnorm(nrow(this_PWM))
+    
+    
     simvals[,g] <- RFsimulate(model = RMwhittle(nu = exp(theta_pred[g,3]), var = exp(theta_pred[g,1]), 
                                                 scale = exp(theta_pred[g,2])), 
                               err.model = RMnugget(var = unique(all_storm_res[,"MLEnugget"])),
@@ -112,29 +140,48 @@ for (s in 1:length(pred_dirs)) {
   plot(sim_r, main="Simulated Error Field")
   
   # calculate 95%ile for each point
-  ub_rain <- apply(simvals, 1, function(x) quantile(x, .95))
-  ub_rain99 <- apply(simvals, 1, function(x) quantile(x, .99))
-  ub_rain100 <- apply(simvals, 1, max)
+  ub_rain      <- apply(simvals, 1, function(x) quantile(x, .95))
+  ub_rain_PW   <- apply(simvals + simPWM, 1, function(x) quantile(x, .95))
+  ub_rain99    <- apply(simvals, 1, function(x) quantile(x, .99))
+  ub_rain99_PW <- apply(simvals + simPWM, 1, function(x) quantile(x, .99))
+  ub_rain100   <- apply(simvals, 1, max)
+  ub_rain100_PW<- apply(simvals + simPWM, 1, max)
   plot(rasterFromXYZ(cbind(coords, ub_rain+NAM_pred$value)), main = "NAM + 95% UB on EFs")
   
   # compare NAM with ST4, and NAM+UB with ST4
-  par(mfrow=c(1,3))
   off_base <- ifelse(NAM_pred$value < ST4_pred$value, 1, 0)
   mean(off_base)
   plot(rasterFromXYZ(cbind(coords,off_base)), main= bquote("NAM < ST4"~.(round(mean(off_base),4))))
   
+  par(mfrow=c(2,2))
   off_est <- ifelse(ub_rain+NAM_pred$value < ST4_pred$value, 1, 0)
   mean(off_est)
   plot(rasterFromXYZ(cbind(coords,off_est)), main=bquote("NAM + 95% UB < ST4"~.(round(mean(off_est),4))))
+  
+  off_est_PW <- ifelse(ub_rain_PW+NAM_pred$value < ST4_pred$value, 1, 0)
+  mean(off_est_PW)
+  plot(rasterFromXYZ(cbind(coords,off_est_PW)), main=bquote("NAM + 95% UB < ST4"~.(round(mean(off_est_PW),4))))
   
   off_est99 <- ifelse(ub_rain99+NAM_pred$value < ST4_pred$value, 1, 0)
   mean(off_est99)
   plot(rasterFromXYZ(cbind(coords,off_est99)), main=bquote("NAM + 99% UB < ST4"~.(round(mean(off_est99),4))))
   
+  off_est99_PW <- ifelse(ub_rain99_PW+NAM_pred$value < ST4_pred$value, 1, 0)
+  mean(off_est99_PW)
+  plot(rasterFromXYZ(cbind(coords,off_est99_PW)), main=bquote("NAM + 99% UB < ST4"~.(round(mean(off_est99_PW),4))))
+  
   off_est100 <- ifelse(ub_rain100+NAM_pred$value < ST4_pred$value, 1, 0)
   mean(off_est100)
   plot(rasterFromXYZ(cbind(coords,off_est100)), main=bquote("NAM + 100% UB < ST4"~.(round(mean(off_est100),4))))
   
+  off_est100_PW <- ifelse(ub_rain100_PW+NAM_pred$value < ST4_pred$value, 1, 0)
+  mean(off_est100_PW)
+  plot(rasterFromXYZ(cbind(coords,off_est100_PW)), main=bquote("NAM + 100% UB < ST4"~.(round(mean(off_est100_PW),4))))
+  
+  ests <- cbind(mean(off_base), mean(off_est), mean(off_est99), mean(off_est100))
+  ests_PW<-cbind(mean(off_base), mean(off_est_PW), mean(off_est99_PW), mean(off_est100_PW))
+  
+  write.csv(rbind(ests,ests_PW), paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_dataPWmean.csv"))
   
   #2in = 50.8mm
   sim_prob <- matrix(NA, nrow = nrow(simvals), ncol = Ngen)
@@ -184,30 +231,30 @@ for (s in 1:length(pred_dirs)) {
     max_p <- max(max_p, values(NAM_r+sim_r), na.rm = T)
   }
   par(mfrow=c(2,3))
-  plot(NAM_r + PW_mean, zlim=c(min_p,max_p), main="NAM forecast"); US(add=T, col="lightgray")
-  plot(ST4_r, zlim=c(min_p,max_p), main="ST4 observed"); US(add=T, col="lightgray")
-  plot(NAM_r, zlim=c(min_p,max_p), main="NAM bias adj"); US(add=T, col="lightgray")
+  plot(NAM_r + PW_mean, zlim=c(min_p,max_p), main="NAM forecast"); #US(add=T, col="lightgray")
+  plot(ST4_r, zlim=c(min_p,max_p), main="ST4 observed"); #US(add=T, col="lightgray")
+  plot(NAM_r, zlim=c(min_p,max_p), main="NAM bias adj"); #US(add=T, col="lightgray")
   for (i in (1:3)+1) {
     sim <- cbind(coords, simvals[,i])
     sim_r <-rasterFromXYZ(sim)
     plot(NAM_r+sim_r, main=paste("NAM bias adj + error field",i),zlim=c(min_p,max_p))
-    US(add=T, col="lightgray")
+    #US(add=T, col="lightgray")
   }
   
   #plot with c(0,7 bounds)
   par(mfrow=c(2,3))
-  plot(NAM_r + PW_mean, zlim=c(0,7), main="NAM forecast"); US(add=T, col="lightgray")
-  plot(ST4_r, zlim=c(0,7), main="ST4 observed"); US(add=T, col="lightgray")
-  plot(NAM_r, zlim=c(0,7), main="NAM bias adj"); US(add=T, col="lightgray")
+  plot(NAM_r + PW_mean, zlim=c(0,7), main="NAM forecast"); #US(add=T, col="lightgray")
+  plot(ST4_r, zlim=c(0,7), main="ST4 observed"); #US(add=T, col="lightgray")
+  plot(NAM_r, zlim=c(0,7), main="NAM bias adj"); #US(add=T, col="lightgray")
   for (i in (1:3)+1) {
     sim <- cbind(coords, simvals[,i])
     sim_r <-rasterFromXYZ(sim)
     temp <- NAM_r + sim_r
     values(temp)[values(temp)>=7] = 7
     plot(temp, main=paste("NAM bias adj + error field",i),zlim=c(0,7))
-    US(add=T, col="lightgray")
+    #US(add=T, col="lightgray")
   }
   
   dev.off()
   
-}
+# }

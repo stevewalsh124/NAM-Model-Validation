@@ -2,8 +2,9 @@
 # Steve Walsh Feb 2020
 
 # run storms_collect.R first
+# pick data vs posterior pwmean; change pdf and save.image() names
 
-pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_postPWmean.pdf")
+pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_dataPWmean.pdf")
 # remove(list=ls())
 # load("NAM-Model-Validation/RData/par_optim_allbut43.RData")
 # rm(list=setdiff(ls(), c("par_optim")))
@@ -452,3 +453,5 @@ hist(theta_hat[,3], xlab=expression(hat(kappa)[MLE]), main=NULL, cex.axis=2, cex
 
 dev.off()
 rnorm(5)
+
+save.image(file = "~/NAM-Model-Validation/RData/Gibbs_dataPW.RData")

@@ -25,6 +25,7 @@ geq1[geq1 < 1] <- NA
 # Convert raster to data frame for ggplot
 PWmean1 <- as(error_sum/geq1, "SpatialPixelsDataFrame")
 PWM1_df <- as.data.frame(PWmean1)
+# write.csv(PWM1_df, file = "~/NAM-Model-Validation/csv/PWM1_df.csv")
 
 ## Prior mean: 0
 x0 <- rep(0,nrow(PWM1_df))

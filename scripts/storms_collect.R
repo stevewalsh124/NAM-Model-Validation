@@ -1,5 +1,9 @@
-setwd("~/NAM-Model-Validation/RData/RDatafixnug0/fix0_postPWmean/") #01/hadnug0not001in_optim/")#estnug0")# ##01
-data_files <- list.files(pattern = ".RData")
+# After running storm_MLE_Hessian.R for all 47 storms, use this
+# code to collect all 47 results into a single data frame
+# This will be input into the Gibbs sampler
+
+path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0/fix0_postPWmean"
+data_files <- list.files(path, pattern = ".RData", full.names = T)
 
 all_storm_res <- matrix(NA, length(data_files), 9)
 rownamez <- lik_vals <- c()
@@ -90,7 +94,7 @@ old_fixnug
 
 hess_opt
 
-avail<-c(); for(i in 1:47) avail[i] <- (i %in% as.numeric(substr(data_files,7,8)))
+avail<-c(); for(i in 1:47) avail[i] <- (i %in% as.numeric(substr(data_files,nchar(path) + 8, nchar(path) + 9)))
 numvec <- 1:47
 numvec[!avail]
 

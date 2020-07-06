@@ -170,7 +170,7 @@ for (st in storm) { # which(n_pixels < 3000)
   }
 }
 
-save(all_prc_mtx, file=paste0("~/NAM-Model-Validation/RData/all_prc_mtx/",storm,".RData"))
+save(all_prc_mtx, file=paste0("~/NAM-Model-Validation/RData/all_prc_mtx/",ifelse(storm<10, paste0("0",storm),storm),".RData"))
 
 # a <- dim(all_prc_mtx)[1]
 sum_prec_mtx <- prior.prec.mtx
