@@ -37,7 +37,7 @@ if(pred){
 storms.out.of.hurdat <- c()
 
 # Change this file so that it corresponds to the new buffering
-PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post.grd")
+PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post_flat.grd")
 
 #[-c(2,3,6,8)]#THE NON12HR STORMS
 #[c(5,16,22,25,35,47)] #R session aborted when fitting Matern
@@ -385,7 +385,7 @@ for(i in 1:length(storm.dirs)){
 
   if(!pred){
     if(subtractPWmean){
-      write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df/subtractPWmeanT/errordf_PW_",
+      write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df/subtractPWmeanT_flat/errordf_PW_",
                                  storm_year,storm_name,"_",radius,"deg.csv"))
     } else {
       write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/errordf_",
