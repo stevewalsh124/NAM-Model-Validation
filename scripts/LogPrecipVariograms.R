@@ -22,8 +22,8 @@ pred <- F
 
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
-subtractPWmean = T
-makePWmean = F
+subtractPWmean = F
+makePWmean = T
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
 pdf(paste0("~/NAM-Model-Validation/pdf/logbuffer_47_ngb_",
@@ -353,9 +353,18 @@ for(i in 1:length(storm.dirs)){
   
   # Use these to load into simulate_error_field.R, prediction, etc
   if(pred){
+    if(!dir.exists(paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/"))) {
+      dir.create(paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/"), recursive = T)
+      }
     write.csv(NAM_df, paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/",storm_yearname,"_NAMdf.csv"))
     write.csv(ST4_df, paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/",storm_yearname,"_ST4df.csv"))
   } else {
+    if(!dir.exists("~/NAM-Model-Validation/csv/nam_df/")) {
+      dir.create("~/NAM-Model-Validation/csv/nam_df/", recursive = T)
+    }
+    if(!dir.exists("~/NAM-Model-Validation/csv/st4_df/")) {
+      dir.create("~/NAM-Model-Validation/csv/st4_df/", recursive = T)
+    }
     write.csv(NAM_df, paste0("~/NAM-Model-Validation/csv/nam_df/namdf_", storm_name,storm_year,"_",radius,"km.csv"))
     write.csv(ST4_df, paste0("~/NAM-Model-Validation/csv/st4_df/st4df_",storm_name,storm_year,"_",radius,"km.csv"))
   }
@@ -368,6 +377,15 @@ for(i in 1:length(storm.dirs)){
   }
   
   if(makePWmean){
+    if(!dir.exists("~/NAM-Model-Validation/error_rasters/")) {
+      dir.create("~/NAM-Model-Validation/error_rasters/", recursive = T)
+    }
+    if(!dir.exists("~/NAM-Model-Validation/error_rasters_squared/")) {
+      dir.create("~/NAM-Model-Validation/error_rasters_squared/", recursive = T)
+    }
+    if(!dir.exists("~/NAM-Model-Validation/error_rasters_counts/")) {
+      dir.create("~/NAM-Model-Validation/error_rasters_counts/", recursive = T)
+    }
     #write rasters from the errors to combine all on common map
     writeRaster(error, paste0("~/NAM-Model-Validation/error_rasters/",storm_year,storm_name), overwrite=T) 
     writeRaster(error*error, paste0("~/NAM-Model-Validation/error_rasters_squared/",storm_year,storm_name), overwrite=T)
@@ -385,9 +403,15 @@ for(i in 1:length(storm.dirs)){
 
   if(!pred){
     if(subtractPWmean){
+      if(!dir.exists("~/NAM-Model-Validation/csv/error_df/subtractPWmeanT_flat/")) {
+        dir.create("~/NAM-Model-Validation/csv/error_df/subtractPWmeanT_flat/", recursive = T)
+      }
       write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df/subtractPWmeanT_flat/errordf_PW_",
                                  storm_year,storm_name,"_",radius,"deg.csv"))
     } else {
+      if(!dir.exists("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/")) {
+        dir.create("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/", recursive = T)
+      }
       write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/errordf_",
                                  storm_year,storm_name,"_",radius,"deg.csv"))
     }
@@ -507,6 +531,9 @@ if(makePWmean){
   error_files <- list.files("~/NAM-Model-Validation/error_rasters_counts/", pattern = ".grd", full.names = T)
   error_counts <- mosaicList(error_files)
   
+  if(!dir.exists("~/NAM-Model-Validation/error_rasters_summary")) {
+    dir.create("~/NAM-Model-Validation/error_rasters_summary", recursive = T)
+  }
   writeRaster(error_counts, "~/NAM-Model-Validation/error_rasters_summary/error_counts", overwrite=T)
   writeRaster(error_sum, "~/NAM-Model-Validation/error_rasters_summary/error_sum", overwrite=T)
   writeRaster(error_sum_sq, "~/NAM-Model-Validation/error_rasters_summary/error_sum_sq", overwrite = T)
