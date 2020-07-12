@@ -22,8 +22,8 @@ pred <- F
 
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
-subtractPWmean = F
-makePWmean = T
+subtractPWmean = T
+makePWmean = F
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
 pdf(paste0("~/NAM-Model-Validation/pdf/logbuffer_47_ngb_",
