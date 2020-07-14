@@ -4,7 +4,7 @@
 # run storms_collect.R first
 # pick data vs posterior pwmean; change pdf and save.image() names
 
-pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_dataPWmean.pdf")
+pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_flatPWmean.pdf")
 # remove(list=ls())
 # load("NAM-Model-Validation/RData/par_optim_allbut43.RData")
 # rm(list=setdiff(ls(), c("par_optim")))
@@ -334,9 +334,9 @@ for (i in 1:P) {
 ## Make plots comparing theta_i posterior density to 
 ## theta_i_hat from MLE with corresponding Hessian^-1 variance
 # pdf("NAM-Model-Validation/pdf/Gibbs/compare_postthetai_thetaihat_col.pdf")
-par(mfrow=c(1,1))
+par(mfrow=c(1,3))
 # make it easier to see each of the densities in their corresponding plots
-smush <- c(.06,.055,.009)
+smush <- c(.15,.15,.03)
 for (i in 1:P) {
   plot(0, 0, col = "white", xlab = "", ylab = "", 
        xlim=c(min(theta_hat[,i], emp_thetaMED[,i]),
@@ -454,4 +454,4 @@ hist(theta_hat[,3], xlab=expression(hat(kappa)[MLE]), main=NULL, cex.axis=2, cex
 dev.off()
 rnorm(5)
 
-save.image(file = "~/NAM-Model-Validation/RData/Gibbs_dataPW.RData")
+save.image(file = "~/NAM-Model-Validation/RData/Gibbs_flatPW.RData")

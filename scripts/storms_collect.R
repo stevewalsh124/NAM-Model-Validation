@@ -2,7 +2,7 @@
 # code to collect all 47 results into a single data frame
 # This will be input into the Gibbs sampler
 
-path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0/fix0_postPWmean"
+path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0/fix0_flatPWmean/"
 data_files <- list.files(path, pattern = ".RData", full.names = T)
 
 all_storm_res <- matrix(NA, length(data_files), 9)
@@ -153,7 +153,7 @@ dim(locs[avail,])
 
 # Compare MLEs before and after the change in PWmean map (all24 vs 12/24/12 and the Maine bug)
 # newer_res <- all_storm_res
-both <- merge(dataPWres, all_storm_res, by="row.names", all=T)
+both <- merge(flat_storm_res, all_storm_res, by="row.names", all=T)
 
 order(-1*(abs(both$MLEsigma2.x - both$MLEsigma2.y)))
 order(-1*(abs(both$MLEphi.x - both$MLEphi.y)))

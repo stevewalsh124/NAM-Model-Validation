@@ -16,9 +16,9 @@ before <- Sys.time()
 
 #Change NAM_pred, ST4_pred, and x_pred
 #Change name of PDF
-#change pwmean, sum(post)_cov_mtx, and load call below
+#change pwmean, sum(post)_cov_mtx, csv, load call below
 
-load("~/NAM-Model-Validation/RData/Gibbs_dataPW.RData")
+load("~/NAM-Model-Validation/RData/Gibbs_flatPW.RData")
 
 path <- "~/NAM-Model-Validation/prediction"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
@@ -43,7 +43,7 @@ if(length(args) > 0)
   
   
   ## Uncertainty corresponding to pointwise mean
-  PWM1_df <- read.csv("~/NAM-Model-Validation/csv/PWM1_df.csv")
+  PWM1_df <- read.csv("~/NAM-Model-Validation/csv/PWM1_df.csv", row.names = 1)
   load("~/NAM-Model-Validation/RData/sum_cov_mtx.RData") #post
   
   ind <- c() 
@@ -70,7 +70,7 @@ if(length(args) > 0)
   PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
   
   pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_",name,
-             year,"_GIS_GHiG_NA_postPWmean3_",PWstamp, Ngen,".pdf"))
+             year,"_GIS_GHiG_NA_flatPWmean_",PWstamp, Ngen,".pdf"))
   
   mask <- raster("~/NAM-Model-Validation/lsmask.nc")
   mask[mask==-1]  <- NA
@@ -80,7 +80,7 @@ if(length(args) > 0)
     "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
     crs = "+proj=longlat +datum=WGS84"), method='ngb') 
   
-  PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_mean.grd")*mask.regrid
+  PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post_flat.grd")*mask.regrid
   
   # run GibbsSamplerHurrRegr first for B and as.square
   B_pred <- as.square(apply(B[burn:iters,], 2, median))
@@ -181,7 +181,7 @@ if(length(args) > 0)
   ests <- cbind(mean(off_base), mean(off_est), mean(off_est99), mean(off_est100))
   ests_PW<-cbind(mean(off_base), mean(off_est_PW), mean(off_est99_PW), mean(off_est100_PW))
   
-  write.csv(rbind(ests,ests_PW), paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_dataPWmean.csv"))
+  write.csv(rbind(ests,ests_PW), paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_flatPWmean.csv"))
   
   #2in = 50.8mm
   sim_prob <- matrix(NA, nrow = nrow(simvals), ncol = Ngen)

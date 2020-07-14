@@ -39,12 +39,11 @@ PWmean1 <- as(error_sum/geq1, "SpatialPixelsDataFrame")
 PWM1_df <- as.data.frame(PWmean1)
 colnames(PWM1_df) <- c("value", "x", "y")
 # write.csv(PWM1_df, "~/NAM-Model-Validation/csv/error_df/PWmean_geq1.csv")
-PWMEME <- read.csv("~/NAM-Model-Validation/csv/error_df/PWmean_geq1.csv", row.names = 1)
 
-write.csv(data.frame(x = sprintf("%.20f", PWM1_df$x),
-                     y = sprintf("%.20f", PWM1_df$y),
-                     value = sprintf("%.20f", PWM1_df$value)),
-                     "~/NAM-Model-Validation/csv/error_df/geq1_sprint.csv")
+# write.csv(data.frame(x = sprintf("%.20f", PWM1_df$x),
+#                      y = sprintf("%.20f", PWM1_df$y),
+#                      value = sprintf("%.20f", PWM1_df$value)),
+#                      "~/NAM-Model-Validation/csv/error_df/geq1_sprint.csv")
 
 # only look at >= 20
 geq20 <- error_counts
@@ -140,7 +139,7 @@ sigma2 <- MLtemp$sigmasq
 phi <- MLtemp$phi
 nu <- MLtemp$kappa
 # plot(seq(0,10,0.01),sigma2*matern(seq(0,10,0.01),phi=phi,kappa=nu),type="l") #(1/phi)
-priorcovmatrix <- sigma2*matern(D,phi=phi,kappa=nu) # + diag(tau2,nrow(t))
+priorcovmatrix <- sigma2*geoR::matern(D,phi=phi,kappa=nu) # + diag(tau2,nrow(t))
 prior.prec.mtx <- solve(priorcovmatrix)
 
 
@@ -155,7 +154,7 @@ for (st in storm) { # which(n_pixels < 3000)
   phi <- all_storm_res[st,"MLEphi"]
   nu <- all_storm_res[st,"MLEkappa"]
   # plot(seq(0,10,0.01),sigma2*matern(seq(0,10,0.01),phi=phi,kappa=nu),type="l") #(1/phi)
-  covmatrix <- sigma2*matern(D,phi=phi,kappa=nu) # + diag(tau2,nrow(t))
+  covmatrix <- sigma2*geoR::matern(D,phi=phi,kappa=nu) # + diag(tau2,nrow(t))
   prec.mtx <- solve(covmatrix)
   
   for (i in 1:nrow(prec.mtx)) {
@@ -170,7 +169,7 @@ for (st in storm) { # which(n_pixels < 3000)
   }
 }
 
-save(all_prc_mtx, file=paste0("~/NAM-Model-Validation/RData/all_prc_mtx/",ifelse(storm<10, paste0("0",storm),storm),".RData"))
+# save(all_prc_mtx, file=paste0("~/NAM-Model-Validation/RData/all_prc_mtx/",ifelse(storm<10, paste0("0",storm),storm),".RData"))
 
 # a <- dim(all_prc_mtx)[1]
 sum_prec_mtx <- prior.prec.mtx
@@ -183,7 +182,7 @@ for(i in 1:length(precs)){
 
 system.time(sum_cov_mtx <- solve(sum_prec_mtx))
 post_cov_mtx <- sum_cov_mtx
-save(post_cov_mtx, file="~/NAM-Model-Validation/RData/post_cov_mtx.RData")
+# save(post_cov_mtx, file="~/NAM-Model-Validation/RData/post_cov_mtx.RData")
 
 times <- c(1140, 1155, 1156, 1208, 1209, 1210, 1224, 1254, 1301, 1313, 1314, 1410, 1420, 1422, 1443, 
            1450, 1502, 1512, 1518, 1522, 1528, 1538, 1541, 1548, 1551, 1601, 1626, 1634, 1645, 1659, 
