@@ -13,9 +13,7 @@ library(RandomFields)
 library(stringr)
 
 before <- Sys.time()
-
-#Change NAM_pred, ST4_pred, and x_pred
-#Change name of PDF
+s <- 5 #NAM_pred, ST4_pred, and x_pred, name of PDF change based on s
 #change pwmean, sum(post)_cov_mtx, csv, load call below
 
 load("~/NAM-Model-Validation/RData/Gibbs_flatPW.RData")
