@@ -1,6 +1,42 @@
 library(raster) #raster, extent
 library(fields) #US()
 
+########################
+# Plot NAM, ST4, error #
+########################
+
+# run LogPrecipVariograms with desired storm number for storm.dirs (45 for harvey, etc)
+# pick subtractPWmean T or F
+png(paste0("~/NAM-Model-Validation/png/NAM_ST4_error_", storm_year, storm_name,".png"),
+    width=760, height=260)
+multiplot(g1, g2, g3, cols=3)
+dev.off()
+
+error_counts_plot <- error_counts*mask.regrid
+error_counts_plot[error_counts_plot <= 0] <- NA
+plot(error_counts_plot, 
+     xlim = extent(PW_mean)[1:2], 
+     ylim = extent(PW_mean)[3:4],
+     cex.axis = 3)
+US(add=T, col="gray")
+
+png("~/NAM-Model-Validation/png/error_counts.png", height = 500, width = 700)
+par(mfrow=c(1,1))
+r <- raster(nrows=5, ncols=5, vals=1:25)
+plot(error_counts_plot, 
+     xlim = extent(PW_mean)[1:2], 
+     ylim = extent(PW_mean)[3:4], legend=F, cex.axis=2)
+r.range <- c(minValue(error_counts_plot), maxValue(error_counts_plot))
+plot(error_counts_plot, legend.only=TRUE,
+     legend.width=2, legend.shrink=1,
+     axis.args=list(#at=seq(r.range[1]-1, r.range[2], 5),
+                    #labels=seq(r.range[1]-1, r.range[2], 5), 
+                    cex.axis=1.45))#,
+     # legend.args=list(text='Error counts', side=4, font=2, line=2.5, cex=1))
+US(add=T, col="darkgray")
+dev.off()
+
+
 ################
 # Plot PWmeans #
 ################
@@ -8,6 +44,38 @@ library(fields) #US()
 # these generated from LogPrecipVariograms and PWmean_post, respectively
 dataPWmean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_mean.grd")
 flatPWmean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post_flat.grd")
+
+val <- max(abs(c(floor(4*minValue(pwms))/4, ceiling(4*maxValue(pwms))/4)))
+plot(PW_mean, main = paste0("PW mean when n >= ",n),
+     col=c("blue",cm.colors(length(seq(-1.5,1.5,.25)[abs(seq(-1.5,1.5,.25)) < val ])-1),"red"),
+     breaks=c(-val,seq(-1.5,1.5,.25)[abs(seq(-1.5,1.5,.25)) < val ],val))
+US(add=T, col="gray75")
+
+plot(PW_mean, main = paste0("PW mean when n >= ",n),
+     col=cm.colors(18),
+     breaks=seq(-3,3,.25))
+US(add=T, col="gray75")
+
+plot(PW_mean, main="Pointwise Mean")
+PW_mean_spdf <- as((PW_mean), "SpatialPixelsDataFrame")
+PW_mean_df <- as.data.frame(PW_mean_spdf)
+colnames(PW_mean_df) <- c("value", "x", "y")
+
+g4= ggplot(aes(x=x,y=y,fill=value),data=PW_mean_df) +
+  geom_tile() + theme_classic() +
+  geom_polygon(data=subset(map_data("state"), region %in% regions),
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+  # labs(title =paste("Pointwise Mean"))+
+  coord_fixed(xlim=extent(PW_mean)[1:2],ylim=extent(PW_mean)[3:4], ratio = 1)+
+  theme(axis.text=element_text(size=18), axis.title=element_text(size=18,face="bold"), 
+        legend.title = element_text(size=18), legend.text = element_text(size=16))
+plot(g4)
+
+png("~/NAM-Model-Validation/png/PWmeanggplot.png", width=800, height=500)
+plot(g4)
+dev.off()
+
 
 png("~/NAM-Model-Validation/png/dataPWmean.png", width=1000, height=700)
 plot(dataPWmean, cex.axis=2, 
@@ -20,6 +88,75 @@ plot(flatPWmean, cex.axis=2,
      xlim=extent(flatPWmean)[1:2], ylim=extent(flatPWmean)[3:4])
 US(add=T, col="darkgray")
 dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#PWmean, PWvar, PWstandardizederror
+par(mfrow=c(1,3),mar=c(5,4,4,2)+.1)
+pwms <- vars <- stds <- list()
+for (n in 5) { 
+  # par(mfrow=c(1,2))
+  Nmap <- error_counts
+  Nmap[Nmap < n] <- NA
+  # Nmap[Nmap >= n] <- 1
+  
+  pwms <- PW_mean_geq5 <- error_sum/Nmap
+  
+  val <- max(abs(range(values(pwms), na.rm = T)))
+  plot(pwms, main = paste0("PW mean when n >= ",n),
+       col=cm.colors(10),
+       zlim=c(-val,val),
+       xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4], cex.axis=2); US(add=T, col="gray75")
+  
+  vars <- S2_geq5 <- ((error_sum_sq - (error_sum*error_sum)/Nmap)/(Nmap-1))*mask.regrid
+  plot(S2_geq5, main=paste0("Pointwise Variance when n >= ", n),
+       xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4], cex.axis=2);US(add=T, col="gray49")
+  
+  stds <- std_error_geq5 <- PW_mean_geq5/(sqrt(S2_geq5/Nmap))
+  # png("stdgeq5.png",width = 1000, height = 1000) #cex.main = 2.5, cex.axis = 2
+  val <- max(abs(range(values(stds), na.rm = T)))
+  plot(stds, main = paste0("Std err when n >= ",n), legend=F,
+       col=cm.colors(10),
+       xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4],zlim=c(-val,val),
+        cex.axis=2); US(add=T, col="gray75")
+  plot(stds, legend.only=TRUE,
+       legend.width=2, legend.shrink=1, col=cm.colors(10),
+       axis.args=list(at=c(-val,val),
+         #labels=seq(r.range[1]-1, r.range[2], 5), 
+         cex.axis=1.45))#,
+  # legend.args=list(text='Error counts', side=4, font=2, line=2.5, cex=1))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #####################
@@ -78,7 +215,7 @@ for (i in 1:P) {
 }
 dev.off()
 
-png("~/NAM-Model-Validation/png/NMV_compareMLEpost2.png", width = 1400, height = 700)
+png("~/NAM-Model-Validation/png/NMV_compareMLEpost2.png", width = 1500, height = 500)
 par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
 for (i in 1:P) {
   plot(0, 0, col = "white", ylab = "", 
