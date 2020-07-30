@@ -109,7 +109,7 @@ theta_hat <- theta_i_hat_sim
 
 
 #Gibbs sampler for B, theta_i and Sigma_theta
-iters <- 5100
+iters <- 10100
 burn  <- 100
 
 # mu_theta     <- matrix(NA, nrow = iters, ncol = P)
