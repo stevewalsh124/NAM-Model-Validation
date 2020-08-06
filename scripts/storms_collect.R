@@ -102,8 +102,8 @@ locs <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv")
 rownames(locs) <- sort(c(allstormnames, "2016matthew"))
 dim(locs[avail,])
 
-
-
+save(all_storm_res, file="~/NAM-Model-Validation/RData/all_storm_res.RData")
+save(hess_opt, file="~/NAM-Model-Validation/RData/hess_opt.RData")
 
 # est0 <- all_storm_res
 # fix0 <- all_storm_res
