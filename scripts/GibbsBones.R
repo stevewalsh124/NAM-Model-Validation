@@ -15,7 +15,7 @@ nowtime <- function(){gsub(gsub(gsub(Sys.time(),pattern = " ", replacement = "")
 
 nreps <- 1
 
-iters <- 10100
+iters <- 5100
 burn  <- 100
 
 trueBSig <- F
@@ -54,11 +54,11 @@ for (nr in 1:nreps) {
   # grp_B <- cbind(exp(truthB[,1]), exp(truthB[,1] + truthB[,2]), exp(truthB[,1]+truthB[,3]))
   N <- 47; P <- 3
   
-  hes_vec <- cov_vec <- matrix(NA, N, P^2)
-  for (i in 1:N) {
-    cov_vec[i,] <- c(solve(hess_sim[[i]]))
-    hes_vec[i,] <- c(hess_sim[[i]])
-  }
+  # hes_vec <- cov_vec <- matrix(NA, N, P^2)
+  # for (i in 1:N) {
+  #   cov_vec[i,] <- c(solve(hess_sim[[i]]))
+  #   hes_vec[i,] <- c(hess_sim[[i]])
+  # }
   
   # Psi <- symmtrz(as.square(colMeans(cov_vec)))# symmtrz(solve(as.square(colMeans(hes_vec))))#
   
@@ -285,3 +285,10 @@ apply(tru_cover, 2, mean)
 
 # hat_cover_true_estPsi <- hat_cover
 # tru_cover_true_estPsi <- tru_cover
+
+par(mfrow=c(1,3))
+xseq <- seq(0.5,1,by=0.005)
+for (i in 1:P) {
+  hist(tru_cover[,i], main = i, freq=F)
+  lines(xseq, dnorm(xseq, mean = .95, sd = sqrt(.95*.05/N)))
+}
