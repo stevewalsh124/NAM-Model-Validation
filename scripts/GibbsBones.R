@@ -235,6 +235,8 @@ for (nr in 1:nreps) {
   tru_cover[nr,] <-  colMeans((theta_i_sim)    < emp_thetaUB & (theta_i_sim)    > emp_thetaLB)
   hat_cover[nr,] <- colMeans(log(estvals) < emp_thetaUB & log(estvals) > emp_thetaLB)
   
+  print(tru_cover[nr,]); print(hat_cover[nr,])
+  
   # Collect the "bad thetas": one of the true elements of theta_i 
   # isn't contained in the 95% credible interval
   bad_thetas <- which(apply(theta_i_sim < emp_thetaUB & theta_i_sim > emp_thetaLB, 1, all)==F)
