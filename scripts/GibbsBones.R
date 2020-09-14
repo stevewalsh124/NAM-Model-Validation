@@ -15,7 +15,7 @@ nowtime <- function(){gsub(gsub(gsub(Sys.time(),pattern = " ", replacement = "")
 
 nreps <- 1
 
-iters <- 5100
+iters <- 2100
 burn  <- 100
 
 trueBSig <- F
@@ -29,7 +29,7 @@ hat_cover <- tru_cover <- matrix(NA, nrow = nreps, ncol = 3)
 
 for (nr in 1:nreps) {
   print(paste("this is rep", nr))
-  seed <- 1
+  # seed <- 1
   # set.seed(seed)
   
   load("~/NAM-Model-Validation/RData/truthB")
@@ -97,7 +97,7 @@ for (nr in 1:nreps) {
   ##############################################
   ##############################################
   
-  theta_bar <- apply(theta_hat, 2, mean)
+  # theta_bar <- apply(theta_hat, 2, mean)
   
   # true_Sigma_theta <- cov(theta_hat)
   
@@ -123,8 +123,8 @@ for (nr in 1:nreps) {
   # Generate simulated data based on the hurricane data:
   # Simulate theta_i, i=1:nsims, from a normal
   
-  avgHess <- Reduce("+", hessians) / length(hessians)
-  avgGHGt <- Reduce("+", GHGt) / length(GHGt)
+  # avgHess <- Reduce("+", hessians) / length(hessians)
+  # avgGHGt <- Reduce("+", GHGt) / length(GHGt)
   # is.positive.definite(avgHess) is TRUE, not for solve(avgHess)
   
   # theta_i_sim  <- theta_i_hat_sim  <- matrix(NA, nrow = nsims, ncol = 3)
@@ -217,7 +217,8 @@ for (nr in 1:nreps) {
   }
   
   
-  # What do we expect? 95% coverage for each of the params composing theta_i's, coverage for generating B and Sigma_theta
+  # What do we expect? 95% coverage for each of the params 
+  # composing theta_i's, coverage for generating B and Sigma_theta
   
   B_burn <- B[(burn+1):iters,]
   Sigma_burn <- Sigma_theta[(burn+1):iters,]
