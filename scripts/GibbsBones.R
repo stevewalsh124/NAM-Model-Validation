@@ -15,7 +15,7 @@ nowtime <- function(){gsub(gsub(gsub(Sys.time(),pattern = " ", replacement = "")
 
 nreps <- 1
 
-iters <- 2100
+iters <- 3100
 burn  <- 100
 
 trueBSig <- F
@@ -72,6 +72,7 @@ for (nr in 1:nreps) {
   }
   
   hessians <- hess_sim
+  ### for (i in 1:3) {estvals[,i] <- estvals[,i] + colMeans(exp(theta_i_sim)-estvals)[i]} #cheating/debugging
   theta_hat <- log(estvals)#theta_hat_sim
   
   ###############DELTA METHOD###################
@@ -184,7 +185,7 @@ for (nr in 1:nreps) {
   
   for (i in 2:iters) {
     #i <- 2; j <- 1; i <- 3
-    if(i %% 500 ==0) print(i)
+    if(i %% 1000 ==0) print(i)
     
     # Update B
     sum_th_xt <- matrix(0, P, P)
@@ -241,6 +242,7 @@ for (nr in 1:nreps) {
   # Collect the "bad thetas": one of the true elements of theta_i 
   # isn't contained in the 95% credible interval
   bad_thetas <- which(apply(theta_i_sim < emp_thetaUB & theta_i_sim > emp_thetaLB, 1, all)==F)
+  print("bad thetas:"); print(bad_thetas)
   # cbind(emp_thetaLB[bad_thetas,], theta_i_sim[bad_thetas,], emp_thetaUB[bad_thetas,])
   
   theta_cols <- c("sigma2","phi","kappa") 
