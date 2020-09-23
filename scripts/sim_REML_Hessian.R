@@ -137,9 +137,9 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                                     data = geodata$data 
                                     obj.model = NULL
                                     cov.model = "matern" 
-                                    cov.pars = theta_GRF[1:2]
+                                    cov.pars = log(theta_GRF[1:2])
                                     nugget = 0 
-                                    kappa = theta_GRF[3]
+                                    kappa = log(theta_GRF[3])
                                     lambda = 1 
                                     psiR = 1 
                                     psiA = 0
