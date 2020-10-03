@@ -32,7 +32,7 @@ pdf(paste0("~/NAM-Model-Validation/pdf/logbuffer_47_ngb_",
 
 if(pred){
   storm.dirs <- list.dirs("~/NAM-Model-Validation/prediction", recursive = F)
-} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F) }
+} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F)[1:2] } #[1:5] eg to run only the first 5
 
 storms.out.of.hurdat <- c()
 
@@ -59,10 +59,10 @@ prRangevec<- c()
 namevec <- c()
 
 # load, modify and project land/sea mask 
-mask <- raster("~/NAM-Model-Validation/lsmask.nc")
-mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
-extent(mask)[1] <- extent(mask)[1]-360
-extent(mask)[2] <- extent(mask)[2]-360
+mask <- raster("mask_ed.grd") #raster("~/NAM-Model-Validation/lsmask.nc")
+# mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
+# extent(mask)[1] <- extent(mask)[1]-360
+# extent(mask)[2] <- extent(mask)[2]-360
 mask.regrid <- resample(mask, projectRaster(raster(
   "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
   crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
@@ -376,6 +376,9 @@ for(i in 1:length(storm.dirs)){
     error <- NAM_plotter - ST4_plotter
   }
   
+  nam_points <- rasterToPoints(NAM_plotter)	
+  error_points <- rasterToPoints(error)	
+  
   if(makePWmean){
     if(!dir.exists("~/NAM-Model-Validation/error_rasters/")) {
       dir.create("~/NAM-Model-Validation/error_rasters/", recursive = T)
@@ -501,8 +504,12 @@ for(i in 1:length(storm.dirs)){
   #   SVGparamboot[[i]] <- boot.mod.cressie
   
   if(!pred){
+    par(mfrow=c(1,2))
     plot(simul.modvar, main=paste0("SVG for ", storm_year," ",storm_name),
          ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
+    
+    plot(nam_points[,3], error_points[,3])	
+    print("all NAM and error locs equal?"); print(all.equal(nam_points[,1:2], error_points[,1:2]))	
   }
   
   multiplot(g1, g2, g3, cols=1)

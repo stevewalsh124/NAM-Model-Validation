@@ -5,8 +5,13 @@ library(raster)
 library(fields)
 library(LaplacesDemon)
 
-seed <- 4
+seed <- 1
 set.seed(seed)
+
+real.dom <- F
+lo <- 80 #length.out
+lb <- -15
+ub <-  15
 
 # Make directories for simulated fields and output, if they do not exist
 seed.dir <- paste0("~/NAM-Model-Validation/csv/sim_df/seed",seed)
@@ -40,7 +45,7 @@ xi <- with(loc_int, model.matrix(~ storm_locs))
 # Generate true theta values based on loaded B and Sigma_theta
 theta_i_sim <- matrix(nrow=N, ncol=P)
 for (i in 1:N) {theta_i_sim[i,] <-  rmvn(n=1, mu=t(truthB%*%xi[i,]), Sigma = symmtrz(truthSig))}
-save(theta_i_sim, file=paste0("~/NAM-Model-Validation/RData/RDatasim0/theta_i_sim",seed))
+# save(theta_i_sim, file=paste0("~/NAM-Model-Validation/RData/RDatasim0/theta_i_sim",seed))
 
 # Look at histogram with overlays attempting to correspond to the mixture over locations (Bx_i)
 xseq <- seq(-2,2,by=0.01)
@@ -60,20 +65,22 @@ for(i in 1:3){
 #   for(i in 1:length(args))
 #     eval(parse(text=args[[i]]))
 
-par(mfrow=c(3,2))
+par(mfrow=c(2,2))
 for (st in 1:N) {
   print(paste("this is storm", st))
   storm <- read.csv(list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/", full.names = T)[st], row.names = 1)
-
-  # Simulated locations from unit square
-  # xaxis <- seq(0,1,0.01)#storm$x#seq(0,1,0.01)
-  # yaxis <- seq(0,1,0.01)#storm$y#seq(0,1,0.01)
-  # s <- matrix(NA,nrow=length(xaxis)*length(yaxis),ncol=2)
-  # for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] <- c(xaxis[i],yaxis[j])
-
-  # Simulated locations based on actual locations
-  s <- storm[,c(2,3)]
-  # plot(s)
+  
+  if(real.dom){
+    # Simulated locations based on actual locations
+    s <- storm[,c(2,3)]
+    # plot(s)
+  } else {
+    # Simulated locations from unit square
+    xaxis <- seq(lb, ub, length.out = lo)#storm$x#seq(0,1,0.01)
+    yaxis <- seq(lb, ub, length.out = lo)#storm$y#seq(0,1,0.01)
+    s <- matrix(NA,nrow=length(xaxis)*length(yaxis),ncol=2)
+    for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] <- c(xaxis[i],yaxis[j])
+  }
 
   t <- as.matrix(dist(s))
   # image(t)
@@ -92,15 +99,17 @@ for (st in 1:N) {
   # plot(seq(0,1,0.001),c(tau2,rep(0,length(seq(0,1,0.001))-1))+sigma2*matern(seq(0,1,0.001),phi=(1/phi),kappa=nu))
   covmatrix <- diag(tau2,nrow(t)) + sigma2*matern(t,phi=phi,kappa=nu)
   # image(covmatrix)
-  x <- t(chol(covmatrix)) %*% rnorm(nrow(s))
+  z1 <- t(chol(covmatrix)) %*% rnorm(nrow(s))
   # z <- matrix(NA,nrow=length(xaxis),ncol=length(yaxis))
   # for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) z[i,j] <- x[i+(j-1)*length(xaxis)]
   # persp(x=storm$x, y=storm$y, z=z)
   # image(z)
-  write.csv(cbind(storm[,c(2,3)], z=x),
+  sim.out <- cbind(x=s[,1],y=s[,2], z=z1)
+  colnames(sim.out) <- c("x","y","z")
+  write.csv(sim.out,
             file = paste0(seed.dir,"/","sim",if(st<10){"0"},st,".csv"), row.names = F)
 
-  plot(rasterFromXYZ(cbind(storm[,c(2,3)], x)), main = st); US(add=T)
+  # plot(rasterFromXYZ(cbind(s, z1)), main = st); US(add=T)
 
-  plot(rasterFromXYZ(storm[,c(2,3,1)]), main = loc_int$storm_locs[st]); US(add=T)
+  # plot(rasterFromXYZ(storm[,c(2,3,1)]), main = loc_int$storm_locs[st]); US(add=T)
 }

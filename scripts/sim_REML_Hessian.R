@@ -82,7 +82,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                                   storm_file <- list.files(paste0("~/NAM-Model-Validation/csv/sim_df/seed",seed),
                                                            full.names = T)[storms_to_eval[co]] #"csv/INLAvsWLS/error"
                                   hurricane <- read.csv(storm_file)
-                                  if(small_sample){hurricane <- hurricane[sample(1:dim(hurricane)[1], 100),]}
+                                  if(small_sample){hurricane <- hurricane[sample(1:dim(hurricane)[1], 1000),]}
                                   est.coord <- hurricane[,1:2]
                                   center.coord <- est.coord
                                   center.coord$x <- center.coord$x - min(center.coord$x)
@@ -137,9 +137,9 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                                     data = geodata$data 
                                     obj.model = NULL
                                     cov.model = "matern" 
-                                    cov.pars = log(theta_GRF[1:2])
+                                    cov.pars = theta_GRF[1:2]
                                     nugget = 0 
-                                    kappa = log(theta_GRF[3])
+                                    kappa = theta_GRF[3]
                                     lambda = 1 
                                     psiR = 1 
                                     psiA = 0
