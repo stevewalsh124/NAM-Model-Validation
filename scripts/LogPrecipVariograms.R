@@ -32,7 +32,7 @@ pdf(paste0("~/NAM-Model-Validation/pdf/logbuffer_47_ngb_",
 
 if(pred){
   storm.dirs <- list.dirs("~/NAM-Model-Validation/prediction", recursive = F)
-} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F)[1:2] } #[1:5] eg to run only the first 5
+} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F) } #[1:5] eg to run only the first 5
 
 storms.out.of.hurdat <- c()
 
