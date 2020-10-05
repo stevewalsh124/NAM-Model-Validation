@@ -27,12 +27,12 @@ makePWmean = F
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
 pdf(paste0("~/NAM-Model-Validation/pdf/logbuffer_47_ngb_",
-    if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},if(pred){"pred"},
-    "_bothbuffers.pdf"))
+           if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},if(pred){"pred"},
+           "_bothbuffers.pdf"))
 
 if(pred){
   storm.dirs <- list.dirs("~/NAM-Model-Validation/prediction", recursive = F)
-} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F) } #[1:5] eg to run only the first 5
+} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F) }
 
 storms.out.of.hurdat <- c()
 
@@ -59,10 +59,10 @@ prRangevec<- c()
 namevec <- c()
 
 # load, modify and project land/sea mask 
-mask <- raster("mask_ed.grd") #raster("~/NAM-Model-Validation/lsmask.nc")
-# mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
-# extent(mask)[1] <- extent(mask)[1]-360
-# extent(mask)[2] <- extent(mask)[2]-360
+mask <- raster("~/NAM-Model-Validation/lsmask.nc")
+mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
+extent(mask)[1] <- extent(mask)[1]-360
+extent(mask)[2] <- extent(mask)[2]-360
 mask.regrid <- resample(mask, projectRaster(raster(
   "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
   crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
@@ -88,7 +88,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     # ncol: Number of columns of plots
     # nrow: Number of rows needed, calculated from # of cols
     layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-    ncol = cols, nrow = ceiling(numPlots/cols))
+                     ncol = cols, nrow = ceiling(numPlots/cols))
   }
   if (numPlots==1) {
     print(plots[[1]])
@@ -101,7 +101,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
       # Get the i,j matrix positions of the regions that contain this subplot
       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
       print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-      layout.pos.col = matchidx$col))
+                                      layout.pos.col = matchidx$col))
     }
   }
 }
@@ -355,7 +355,7 @@ for(i in 1:length(storm.dirs)){
   if(pred){
     if(!dir.exists(paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/"))) {
       dir.create(paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/"), recursive = T)
-      }
+    }
     write.csv(NAM_df, paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/",storm_yearname,"_NAMdf.csv"))
     write.csv(ST4_df, paste0("~/NAM-Model-Validation/prediction/",storm_yearname,"/",storm_yearname,"_ST4df.csv"))
   } else {
@@ -376,9 +376,6 @@ for(i in 1:length(storm.dirs)){
     error <- NAM_plotter - ST4_plotter
   }
   
-  nam_points <- rasterToPoints(NAM_plotter)	
-  error_points <- rasterToPoints(error)	
-  
   if(makePWmean){
     if(!dir.exists("~/NAM-Model-Validation/error_rasters/")) {
       dir.create("~/NAM-Model-Validation/error_rasters/", recursive = T)
@@ -397,13 +394,13 @@ for(i in 1:length(storm.dirs)){
     error_count[!is.na(error_count)] <- 1
     error_count[is.na(error_count)] <- 0
     writeRaster(error_count, paste0("~/NAM-Model-Validation/error_rasters_counts/",storm_year,storm_name), overwrite=T)
-
+    
   }
   
   error_spdf <- as((error), "SpatialPixelsDataFrame")
   error_df <- as.data.frame(error_spdf)
   colnames(error_df) <- c("value", "x", "y")
-
+  
   if(!pred){
     if(subtractPWmean){
       if(!dir.exists("~/NAM-Model-Validation/csv/error_df/subtractPWmeanT_flat/")) {
@@ -504,12 +501,8 @@ for(i in 1:length(storm.dirs)){
   #   SVGparamboot[[i]] <- boot.mod.cressie
   
   if(!pred){
-    par(mfrow=c(1,2))
     plot(simul.modvar, main=paste0("SVG for ", storm_year," ",storm_name),
          ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
-    
-    plot(nam_points[,3], error_points[,3])	
-    print("all NAM and error locs equal?"); print(all.equal(nam_points[,1:2], error_points[,1:2]))	
   }
   
   multiplot(g1, g2, g3, cols=1)
@@ -560,7 +553,7 @@ if(makePWmean){
   #   labs(title =paste("Pointwise Mean"))+
   #   coord_fixed(xlim=c(-110,-65),ylim=c(25,50), ratio = 1)
   # plot(g4) + scale_colour_manual(values = c("red","green","blue","black"), limits = c("4", "6", "8", "10"))
-
+  
   plot(PW_mean, main="Pointwise Mean")
   plot(abs(PW_mean),main="Absolute Value of Pointwise Mean")
   S2 <- (error_sum_sq - (error_sum * error_sum)/error_counts)/(error_counts - 1)  
@@ -585,7 +578,7 @@ for (n in c(1,6)) {
   Nmap <- error_counts
   Nmap[Nmap < n] <- NA
   # Nmap[Nmap >= n] <- 1
-
+  
   pwms[[n]] <- PW_mean_geq5 <- error_sum/Nmap
   
   val <- max(abs(c(floor(4*minValue(pwms[[n]]))/4, ceiling(4*maxValue(pwms[[n]]))/4)))
@@ -596,7 +589,7 @@ for (n in c(1,6)) {
   
   vars[[n]] <- S2_geq5 <- ((error_sum_sq - (error_sum*error_sum)/Nmap)/(Nmap-1))*mask.regrid
   plot(S2_geq5, main=paste0("Pointwise Variance when n >= ", n));US(add=T, col="gray49")
-
+  
   stds[[n]] <- std_error_geq5 <- PW_mean_geq5/(sqrt(S2_geq5/Nmap))
   # png("stdgeq5.png",width = 1000, height = 1000) #cex.main = 2.5, cex.axis = 2
   val <- max(abs(c(floor(10*minValue(stds[[n]]))/10, ceiling(10*maxValue(stds[[n]]))/10)))
