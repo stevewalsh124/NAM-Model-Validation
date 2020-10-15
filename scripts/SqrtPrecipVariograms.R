@@ -22,8 +22,8 @@ pred <- F
 
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
-subtractPWmean = F
-makePWmean = T
+subtractPWmean = T
+makePWmean = F
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
 pdf(paste0("~/NAM-Model-Validation/pdf/sqrtbuffer_47_ngb_",
@@ -37,7 +37,7 @@ if(pred){
 storms.out.of.hurdat <- c()
 
 # Change this file so that it corresponds to the new buffering
-PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post_flat.grd")
+PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean.grd")
 
 #[-c(2,3,6,8)]#THE NON12HR STORMS
 #[c(5,16,22,25,35,47)] #R session aborted when fitting Matern
@@ -370,10 +370,10 @@ for(i in 1:length(storm.dirs)){
   }
   
   if(subtractPWmean){
-    error <- NAM_plotter - ST4_plotter - PW_mean_buff
+    error <- ST4_plotter - NAM_plotter - PW_mean_buff
     
   } else {
-    error <- NAM_plotter - ST4_plotter
+    error <- ST4_plotter - NAM_plotter
   }
   
   if(makePWmean){
@@ -502,7 +502,7 @@ for(i in 1:length(storm.dirs)){
   
   if(!pred){
     plot(simul.modvar, main=paste0("SVG for ", storm_year," ",storm_name),
-         ylim=c(0,2));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
+         ylim=c(0,10));lines(sim.mod.cressie,col="orange")#;lines(sim.mod.cressie.nug,col="red")
   }
   
   multiplot(g1, g2, g3, cols=1)
@@ -510,9 +510,13 @@ for(i in 1:length(storm.dirs)){
 
 svg.param.ests.error <- cbind(namevec, phivec, prRangevec, tau2vec, sig2vec)
 if(subtractPWmean) {
-  write.csv(svg.param.ests.error, "~/NAM-Model-Validation/csv/svg.param.ests.error_deg_subtractPWmean_sqrt.csv")
+  write.csv(svg.param.ests.error, 
+            paste0("~/NAM-Model-Validation/csv/svg.param.ests.error_deg_subtractPWmean_",
+            if(pred){"pred_"},"sqrt.csv"))
 } else {
-  write.csv(svg.param.ests.error, "~/NAM-Model-Validation/csv/svg.param.ests.error_deg_noPWmean_sqrt.csv")
+  write.csv(svg.param.ests.error, 
+            paste0("~/NAM-Model-Validation/csv/svg.param.ests.error_deg_noPWmean_",
+            if(pred){"pred_"},"sqrt.csv"))
 }
 
 # save.image("LogPrecipVariograms.wks")
@@ -522,13 +526,13 @@ dev.off()
 
 # Make the new raster summary files for pointwise (PW) mean, variance, std errors
 if(makePWmean){
-  raster_files <- list.files("~/NAM-Model-Validation/error_rasters/", pattern = ".grd", full.names = T)
+  raster_files <- list.files("~/NAM-Model-Validation/error_rasters_sqrt/", pattern = ".grd", full.names = T)
   error_sum <- mosaicList(raster_files)
   
-  raster_files_sq <- list.files("~/NAM-Model-Validation/error_rasters_squared/", pattern = ".grd", full.names = T)
+  raster_files_sq <- list.files("~/NAM-Model-Validation/error_rasters_squared_sqrt/", pattern = ".grd", full.names = T)
   error_sum_sq <- mosaicList(raster_files_sq)
   
-  error_files <- list.files("~/NAM-Model-Validation/error_rasters_counts/", pattern = ".grd", full.names = T)
+  error_files <- list.files("~/NAM-Model-Validation/error_rasters_counts_sqrt/", pattern = ".grd", full.names = T)
   error_counts <- mosaicList(error_files)
   
   if(!dir.exists("~/NAM-Model-Validation/error_rasters_summary_sqrt")) {
@@ -563,9 +567,9 @@ if(makePWmean){
   plot(PW_mean/sqrt(S2))
 } else {
   # if not making the raster summaries, load them
-  error_counts <- raster("~/NAM-Model-Validation/error_rasters_summary/error_counts.grd")
-  error_sum    <- raster("~/NAM-Model-Validation/error_rasters_summary/error_sum.grd")
-  error_sum_sq <- raster("~/NAM-Model-Validation/error_rasters_summary/error_sum_sq.grd")
+  error_counts <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/error_counts.grd")
+  error_sum    <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum.grd")
+  error_sum_sq <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum_sq.grd")
 }
 
 

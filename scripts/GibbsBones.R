@@ -13,9 +13,9 @@ library(MCMCpack)
 nowtime <- function(){gsub(gsub(gsub(Sys.time(),pattern = " ", replacement = ""),
                                 pattern="-", replacement=""),pattern=":", replacement="")}
 
-nreps <- 1
+nreps <- 3
 
-iters <- 3100
+iters <- 10100
 burn  <- 100
 
 trueBSig <- F
@@ -297,3 +297,10 @@ for (i in 1:P) {
   hist(tru_cover[,i], main = i, freq=F)
   lines(xseq, dnorm(xseq, mean = .95, sd = sqrt(.95*.05/N)))
 }
+
+# save the coverages to a csv
+colnames(tru_cover) <- c("sigma2cov","phicov","kappacov")
+write.csv(tru_cover, file=paste0("~/NAM-Model-Validation/csv/simsMLEout/tru_cover",
+                                 "_",seed,"_",nreps,"_",iters,".csv"), row.names = F)
+read.csv(paste0("~/NAM-Model-Validation/csv/simsMLEout/tru_cover",
+                "_",seed,"_",nreps,"_",iters,".csv"))

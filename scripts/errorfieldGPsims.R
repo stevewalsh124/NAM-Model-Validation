@@ -5,10 +5,18 @@ library(raster)
 library(fields)
 library(LaplacesDemon)
 
-seed <- 1
+# Change seed for sims, particular truth (log precip vs sqrt precip, eg) and 
+# whether or not you want to use the real domains or a square w/ dims [lb, ub]
+# with sampling density of "lo" points per segment
+
+seed <- 11
 set.seed(seed)
 
-real.dom <- F
+# Load in the true generating B and Sigma_theta matrices (estimated from true data)
+load("~/NAM-Model-Validation/RData/truthBsqrt")
+load("~/NAM-Model-Validation/RData/truthSigsqrt")
+
+real.dom <- T
 lo <- 80 #length.out
 lb <- -15
 ub <-  15
@@ -24,10 +32,6 @@ if(!dir.exists(seed.RDa.out)){dir.create(seed.RDa.out)}
 # Functions to make a matrix symmetric (pos def) and convert a vector to square matrix
 symmtrz <- function(X){as.matrix((X+t(X))/2)}
 as.square <- function(mat){matrix(mat, nrow=sqrt(length(mat)),ncol=sqrt(length(mat)))}
-
-# Load in the true generating B and Sigma_theta matrices (estimated from true data)
-load("~/NAM-Model-Validation/RData/truthB")
-load("~/NAM-Model-Validation/RData/truthSig")
 
 # Load in the landfall locations and intensities to use for Bx_i mean structure
 loc_int <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv", row.names = 1)
@@ -45,7 +49,7 @@ xi <- with(loc_int, model.matrix(~ storm_locs))
 # Generate true theta values based on loaded B and Sigma_theta
 theta_i_sim <- matrix(nrow=N, ncol=P)
 for (i in 1:N) {theta_i_sim[i,] <-  rmvn(n=1, mu=t(truthB%*%xi[i,]), Sigma = symmtrz(truthSig))}
-# save(theta_i_sim, file=paste0("~/NAM-Model-Validation/RData/RDatasim0/theta_i_sim",seed))
+save(theta_i_sim, file=paste0("~/NAM-Model-Validation/RData/RDatasim0/theta_i_sim",seed))
 
 # Look at histogram with overlays attempting to correspond to the mixture over locations (Bx_i)
 xseq <- seq(-2,2,by=0.01)
@@ -97,7 +101,7 @@ for (st in 1:N) {
   phi <- exp(theta_i_sim[st,2])
   nu <- exp(theta_i_sim[st,3])
   # plot(seq(0,1,0.001),c(tau2,rep(0,length(seq(0,1,0.001))-1))+sigma2*matern(seq(0,1,0.001),phi=(1/phi),kappa=nu))
-  covmatrix <- diag(tau2,nrow(t)) + sigma2*matern(t,phi=phi,kappa=nu)
+  covmatrix <- diag(tau2,nrow(t)) + sigma2*geoR::matern(t,phi=phi,kappa=nu)
   # image(covmatrix)
   z1 <- t(chol(covmatrix)) %*% rnorm(nrow(s))
   # z <- matrix(NA,nrow=length(xaxis),ncol=length(yaxis))

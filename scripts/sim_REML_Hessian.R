@@ -265,7 +265,7 @@ par_calcy <- foreach(co=1:cores, .combine= 'comb',
                                   hess_time <- system.time({hur_opt <- optim(par = c(MLtemp$cov.pars, MLtemp$kappa), 
                                                                              fn = LL_REML, geodata=as.geodata(hurricane),
                                                                              hessian = T, method = "L-BFGS-B", 
-                                                                             lower = c(0,0,0), upper = c(10,10,10))})
+                                                                             lower = c(0,0,0), upper = c(20,20,20))})
                                   
                                   print(hur_opt$par);print(hur_opt$hessian);print(paste("The above was from storm #", storms_to_eval[co]))
                                   print(hess_time)
