@@ -3,7 +3,7 @@
 # This will be input into the Gibbs sampler
 
 path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0/"
-data_files <- list.files(path, pattern = "sqrt", full.names = T)
+data_files <- list.files(path, pattern = "sqrt_2020101", full.names = T)
 
 all_storm_res <- matrix(NA, length(data_files), 5)
 rownamez <- lik_vals <- c()
