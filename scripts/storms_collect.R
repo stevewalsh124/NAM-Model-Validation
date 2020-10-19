@@ -2,10 +2,10 @@
 # code to collect all 47 results into a single data frame
 # This will be input into the Gibbs sampler
 
-path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0/fix0_flatPWmean/"
-data_files <- list.files(path, pattern = ".RData", full.names = T)
+path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0"
+data_files <- list.files(path, pattern = "2020101", full.names = T)
 
-all_storm_res <- matrix(NA, length(data_files), 9)
+all_storm_res <- matrix(NA, length(data_files), 5)
 rownamez <- lik_vals <- c()
 hess_opt <- hess_lik <- list()
 for (pe in 1:length(data_files)) {
@@ -25,15 +25,13 @@ for (pe in 1:length(data_files)) {
   par_calcy_vec2 <- par_calcy_vec
   if(is.null(dim(par_calcy_vec))) par_calcy_vec <- t(par_calcy_vec)
   
-  colnames(par_calcy_vec) <- c("name_Ivec", "sig2om_Ivec", "range_Ivec","sig2ep_Ivec", "beta",
-                               "MLEsigma2","MLEphi","MLEnugget","MLEbeta","MLEkappa")
+  colnames(par_calcy_vec) <- c("name_Ivec", "MLEsigma2","MLEphi","MLEnugget","MLEbeta","MLEkappa")
 
   name_Ivec <- par_calcy_vec[,"name_Ivec"]
   par_calcy_vec <- par_calcy_vec[,-which(colnames(par_calcy_vec) %in% c("name_Ivec"))]
   ifelse(is.null(dim(par_calcy_vec)), 
          {par_calcy_vec <- as.numeric(par_calcy_vec); 
-         names(par_calcy_vec) <- c("sig2om_Ivec", "range_Ivec","sig2ep_Ivec", "beta",
-                                   "MLEsigma2","MLEphi","MLEnugget","MLEbeta","MLEkappa")
+         names(par_calcy_vec) <- c("MLEsigma2","MLEphi","MLEnugget","MLEbeta","MLEkappa")
          par_calcy_vec <- t(par_calcy_vec)},
          par_calcy_vec <- apply(par_calcy_vec, 2, as.numeric))
   rownamez[pe] <- name_Ivec
@@ -41,8 +39,7 @@ for (pe in 1:length(data_files)) {
 }
 
 rownames(all_storm_res) <- rownamez
-colnames(all_storm_res) <- c("sig2om_Ivec", "range_Ivec","sig2ep_Ivec", "beta",
-                             "MLEsigma2","MLEphi","MLEnugget","MLEbeta","MLEkappa")
+colnames(all_storm_res) <- c("MLEsigma2","MLEphi","MLEnugget","MLEbeta","MLEkappa")
 # all_storm_res <- all_storm_res[order(rownames(all_storm_res)),]
 # write.csv(all_storm_res, "~/NAM-Model-Validation/csv/all_storm_res.csv")
 
@@ -153,26 +150,27 @@ save(hess_opt, file="~/NAM-Model-Validation/RData/hess_opt.RData")
 
 # Compare MLEs before and after the change in PWmean map (all24 vs 12/24/12 and the Maine bug)
 # newer_res <- all_storm_res
-both <- merge(flat_storm_res, all_storm_res, by="row.names", all=T)
-
-order(-1*(abs(both$MLEsigma2.x - both$MLEsigma2.y)))
-order(-1*(abs(both$MLEphi.x - both$MLEphi.y)))
-order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y)))
-
-order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
-            abs(both$MLEphi.x - both$MLEphi.y) + 
-            abs(both$MLEsigma2.x - both$MLEsigma2.y)))
-rownames(all_storm_res)[order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
-                                    abs(both$MLEphi.x - both$MLEphi.y) + 
-                                    abs(both$MLEsigma2.x - both$MLEsigma2.y)))]
-
-library(plotly)
-plot_ly(data=both,x=~MLEkappa.x, y=~MLEkappa.y) %>% 
-  add_annotations(x = both$MLEkappa.x, y = both$MLEkappa.y, text = rownames(both), showarrow = FALSE)
-
-plot_ly(data=both,x=~MLEphi.x, y=~MLEphi.y) %>% 
-  add_annotations(x = both$MLEphi.x, y = both$MLEphi.y, text = rownames(both), showarrow = FALSE)
-
-plot_ly(data=both,x=~MLEsigma2.x, y=~MLEsigma2.y) %>% 
-  add_annotations(x = both$MLEsigma2.x, y = both$MLEsigma2.y, text = rownames(both), showarrow = FALSE)
-
+if(exists("flat_storm_res")){
+  both <- merge(flat_storm_res, all_storm_res, by="row.names", all=T)
+  
+  order(-1*(abs(both$MLEsigma2.x - both$MLEsigma2.y)))
+  order(-1*(abs(both$MLEphi.x - both$MLEphi.y)))
+  order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y)))
+  
+  order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
+              abs(both$MLEphi.x - both$MLEphi.y) + 
+              abs(both$MLEsigma2.x - both$MLEsigma2.y)))
+  rownames(all_storm_res)[order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
+                                      abs(both$MLEphi.x - both$MLEphi.y) + 
+                                      abs(both$MLEsigma2.x - both$MLEsigma2.y)))]
+  
+  library(plotly)
+  plot_ly(data=both,x=~MLEkappa.x, y=~MLEkappa.y) %>% 
+    add_annotations(x = both$MLEkappa.x, y = both$MLEkappa.y, text = rownames(both), showarrow = FALSE)
+  
+  plot_ly(data=both,x=~MLEphi.x, y=~MLEphi.y) %>% 
+    add_annotations(x = both$MLEphi.x, y = both$MLEphi.y, text = rownames(both), showarrow = FALSE)
+  
+  plot_ly(data=both,x=~MLEsigma2.x, y=~MLEsigma2.y) %>% 
+    add_annotations(x = both$MLEsigma2.x, y = both$MLEsigma2.y, text = rownames(both), showarrow = FALSE)
+}
