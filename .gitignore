@@ -3,3 +3,6 @@
 .RData
 .Ruserdata
 pdf/
+scripts/storm_sim/*out
+scripts/storm_sh/*out
+scripts/storm_sqrt/*out

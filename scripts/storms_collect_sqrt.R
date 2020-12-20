@@ -81,9 +81,10 @@ for(i in 1:length(data_files)) hess_opt_diagsqrt[i,] <- (sqrt(diag(hess_opt[[i]]
 # for(i in 1:length(data_files)) hess_lik_diagsqrt[i,] <- (sqrt(diag(hess_lik[[i]])))
 
 
-# ## Print the number of pixels in each Error Field (EF)
-# fileza <- list.files("~/NAM-Model-Validation/INLAvsWLSdeg_minusPWmeanNA/", full.names = T)
-# for (j in 1:length(fileza)) {print(c(j,dim(read.csv(fileza[j]))[1]))}
+## Print the number of pixels in each Error Field (EF)
+csvs <- list.files("~/NAM-Model-Validation/INLAvsWLSdeg_minusPWmeanNA/", full.names = T)
+npixels <- c()
+for (j in 1:length(csvs)) {npixels[j] <- nrow(read.csv(csvs[j]))}
 
 hist(hess_opt_diagsqrt[,1])
 hist(hess_opt_diagsqrt[,2])
