@@ -9,7 +9,7 @@ library(LaplacesDemon)
 # whether or not you want to use the real domains or a square w/ dims [lb, ub]
 # with sampling density of "lo" points per segment
 
-seed <- 11
+seed <- 13
 set.seed(seed)
 
 # Load in the true generating B and Sigma_theta matrices (estimated from true data)

@@ -466,7 +466,7 @@ for(i in 1:length(storm.dirs)){
     geom_polygon(data=subset(map_data("state"), region %in% regions), 
                  aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
     scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
-    labs(title =paste(paste(storm_name, storm_date,"Error: NAM - ST4")),
+    labs(title =paste(paste(storm_name, storm_date,"Error: Stage IV - NAM")),
          x = "Longitude", y="Latitude")+
     coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                        max(eye1_latlon[2],eye2_latlon[2])+plot.edge),

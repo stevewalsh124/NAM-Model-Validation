@@ -2,8 +2,13 @@
 # code to collect all 47 results into a single data frame
 # This will be input into the Gibbs sampler
 
-path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0/"
-data_files <- list.files(path, pattern = "sqrt_2020101", full.names = T)
+## When using the likfit Matern MLEs
+# path <- "/home/walsh124/NAM-Model-Validation/RData/RDatafixnug0/"
+# data_files <- list.files(path, pattern = "sqrt_2020101", full.names = T)
+
+## When using the likfit exponential MLEs
+path <- "/home/walsh124/NAM-Model-Validation/RData/RData_EXPTL/"	
+data_files <- list.files(path, full.names = T)
 
 all_storm_res <- matrix(NA, length(data_files), 5)
 rownamez <- lik_vals <- c()
@@ -44,62 +49,57 @@ colnames(all_storm_res) <- c("MLEsigma2","MLEphi","MLEnugget","MLEbeta","MLEkapp
 # all_storm_res <- all_storm_res[order(rownames(all_storm_res)),]
 # write.csv(all_storm_res, "~/NAM-Model-Validation/csv/all_storm_res.csv")
 
-old_fixnug <- read.csv("~/NAM-Model-Validation/csv/MLEestimates_buffer_ngb_PWmean/MLEvsINLAstorms_allbut43_nugfix0.csv", row.names = 1)
-allstormnames <- rownames(old_fixnug)
-old_fixnug <- old_fixnug[rownames(all_storm_res),]
+# ## Comparing old output with new output
+# old_fixnug <- read.csv("~/NAM-Model-Validation/csv/MLEestimates_buffer_ngb_PWmean/MLEvsINLAstorms_allbut43_nugfix0.csv", row.names = 1)
+# allstormnames <- rownames(old_fixnug)
+# old_fixnug <- old_fixnug[rownames(all_storm_res),]
+# par(mfrow=c(2,2))
+# for (q in c("MLEsigma2","MLEphi","MLEbeta")) {
+#   plot(all_storm_res[,q], old_fixnug[rownames(all_storm_res),q], main=q,
+#        xlab = NA, ylab=NA)
+#   print(lm(all_storm_res[,q]~ old_fixnug[rownames(all_storm_res),q]))
+#   abline(0,1)
+#   abline(lm(old_fixnug[rownames(all_storm_res),q]~all_storm_res[,q]), col="blue")
+#   
+# }
 
 par(mfrow=c(2,2))
-for (q in c("MLEsigma2","MLEphi","MLEbeta","MLEkappa")) {
-  plot(all_storm_res[,q], old_fixnug[rownames(all_storm_res),q], main=q,
-       xlab = NA, ylab=NA)
-  print(lm(all_storm_res[,q]~ old_fixnug[rownames(all_storm_res),q]))
-  abline(0,1)
-  abline(lm(old_fixnug[rownames(all_storm_res),q]~all_storm_res[,q]), col="blue")
-  
-}
+for (q in c(1:2)) {hist(all_storm_res[,q],main=colnames(all_storm_res)[q])}
+hist(log(all_storm_res[,1]/all_storm_res[,2]),main="theta_1")
+hist(log(all_storm_res[,1]),main="theta_2")
 
-par(mfrow=c(2,3))
-for (q in c(1:2,5)) {hist(all_storm_res[,q],main=colnames(all_storm_res)[q])}
-for (q in c(1:2,5)) {hist(log(all_storm_res[,q]),main=paste("log",colnames(all_storm_res)[q]))}
+# for (k in 1:length(data_files)) {print(c(rownames(all_storm_res)[k],sqrt(diag(hess_opt[[k]]))))}
 
-for (k in 1:length(data_files)) {
-  print(c(rownames(all_storm_res)[k],sqrt(diag(hess_opt[[k]]))))
-}
+# for (k in 1:length(data_files)) {
+#   print(c(rownames(all_storm_res)[k],sqrt(diag(hess_lik[[k]]))))
+# }
 
-for (k in 1:length(data_files)) {
-  print(c(rownames(all_storm_res)[k],sqrt(diag(hess_lik[[k]]))))
-}
-
-hess_opt_diagsqrt <- matrix(NA, nrow=length(data_files),3)
+hess_opt_diagsqrt <- matrix(NA, nrow=length(data_files), 2)
 for(i in 1:length(data_files)) hess_opt_diagsqrt[i,] <- (sqrt(diag(hess_opt[[i]])))
 
-
-hess_lik_diagsqrt <- matrix(NA, nrow=length(data_files), ncol = 2)
-for(i in 1:length(data_files)) hess_lik_diagsqrt[i,] <- (sqrt(diag(hess_lik[[i]])))
-
+# hess_lik_diagsqrt <- matrix(NA, nrow=length(data_files), ncol = 2)
+# for(i in 1:length(data_files)) hess_lik_diagsqrt[i,] <- (sqrt(diag(hess_lik[[i]])))
 
 
-fileza <- list.files("~/NAM-Model-Validation/INLAvsWLSdeg_minusPWmeanNA/", full.names = T)
-for (j in 1:length(fileza)) {
-  print(c(j,dim(read.csv(fileza[j]))[1]))
-}
+# ## Print the number of pixels in each Error Field (EF)
+# fileza <- list.files("~/NAM-Model-Validation/INLAvsWLSdeg_minusPWmeanNA/", full.names = T)
+# for (j in 1:length(fileza)) {print(c(j,dim(read.csv(fileza[j]))[1]))}
 
 hist(hess_opt_diagsqrt[,1])
 hist(hess_opt_diagsqrt[,2])
-hist(hess_opt_diagsqrt[,3])
 
-all_storm_res
-old_fixnug
+# all_storm_res
+# old_fixnug
 
-hess_opt
+# hess_opt
 
-avail<-c(); for(i in 1:47) avail[i] <- (i %in% as.numeric(substr(data_files,nchar(path) + 8, nchar(path) + 9)))
-numvec <- 1:47
-numvec[!avail]
-
-locs <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv")
-rownames(locs) <- sort(c(allstormnames, "2016matthew"))
-dim(locs[avail,])
+# avail<-c(); for(i in 1:47) avail[i] <- (i %in% as.numeric(substr(data_files,nchar(path) + 8, nchar(path) + 9)))
+# numvec <- 1:47
+# numvec[!avail]
+# 
+# locs <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv")
+# rownames(locs) <- sort(c(allstormnames, "2016matthew"))
+# dim(locs[avail,])
 
 # save(all_storm_res, file="~/NAM-Model-Validation/RData/all_storm_res.RData")
 # save(hess_opt, file="~/NAM-Model-Validation/RData/hess_opt.RData")
@@ -154,28 +154,29 @@ dim(locs[avail,])
 
 # Compare MLEs before and after the change in PWmean map (all24 vs 12/24/12 and the Maine bug)
 # newer_res <- all_storm_res
+# 
+# if(exists("flat_storm_res")){
+#   both <- merge(flat_storm_res, all_storm_res, by="row.names", all=T)
+#   
+#   order(-1*(abs(both$MLEsigma2.x - both$MLEsigma2.y)))
+#   order(-1*(abs(both$MLEphi.x - both$MLEphi.y)))
+#   order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y)))
+#   
+#   order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
+#               abs(both$MLEphi.x - both$MLEphi.y) + 
+#               abs(both$MLEsigma2.x - both$MLEsigma2.y)))
+#   rownames(all_storm_res)[order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
+#                                       abs(both$MLEphi.x - both$MLEphi.y) + 
+#                                       abs(both$MLEsigma2.x - both$MLEsigma2.y)))]
+#   
+#   library(plotly)
+#   plot_ly(data=both,x=~MLEkappa.x, y=~MLEkappa.y) %>% 
+#     add_annotations(x = both$MLEkappa.x, y = both$MLEkappa.y, text = rownames(both), showarrow = FALSE)
+#   
+#   plot_ly(data=both,x=~MLEphi.x, y=~MLEphi.y) %>% 
+#     add_annotations(x = both$MLEphi.x, y = both$MLEphi.y, text = rownames(both), showarrow = FALSE)
+#   
+#   plot_ly(data=both,x=~MLEsigma2.x, y=~MLEsigma2.y) %>% 
+#     add_annotations(x = both$MLEsigma2.x, y = both$MLEsigma2.y, text = rownames(both), showarrow = FALSE)
+# }
 
-if(exists("flat_storm_res")){
-  both <- merge(flat_storm_res, all_storm_res, by="row.names", all=T)
-  
-  order(-1*(abs(both$MLEsigma2.x - both$MLEsigma2.y)))
-  order(-1*(abs(both$MLEphi.x - both$MLEphi.y)))
-  order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y)))
-  
-  order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
-              abs(both$MLEphi.x - both$MLEphi.y) + 
-              abs(both$MLEsigma2.x - both$MLEsigma2.y)))
-  rownames(all_storm_res)[order(-1*(abs(both$MLEkappa.x - both$MLEkappa.y) + 
-                                      abs(both$MLEphi.x - both$MLEphi.y) + 
-                                      abs(both$MLEsigma2.x - both$MLEsigma2.y)))]
-  
-  library(plotly)
-  plot_ly(data=both,x=~MLEkappa.x, y=~MLEkappa.y) %>% 
-    add_annotations(x = both$MLEkappa.x, y = both$MLEkappa.y, text = rownames(both), showarrow = FALSE)
-  
-  plot_ly(data=both,x=~MLEphi.x, y=~MLEphi.y) %>% 
-    add_annotations(x = both$MLEphi.x, y = both$MLEphi.y, text = rownames(both), showarrow = FALSE)
-  
-  plot_ly(data=both,x=~MLEsigma2.x, y=~MLEsigma2.y) %>% 
-    add_annotations(x = both$MLEsigma2.x, y = both$MLEsigma2.y, text = rownames(both), showarrow = FALSE)
-}

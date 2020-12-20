@@ -1,6 +1,6 @@
 # Gather the results from the 
 
-seed <- 6 #"1orig"
+seed <- 12 #"1orig"
 
 estvalz <- do.call(rbind, lapply(list.files(path = paste0("~/NAM-Model-Validation/csv/simsMLEout/seed",seed,"/"),
                                             pattern = "sim_", full.names = T), read.csv))[,c(6,7,10)]
