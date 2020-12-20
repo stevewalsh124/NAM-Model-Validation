@@ -6,8 +6,6 @@ m <- length(cover_files)
 sim_means <- matrix(NA, m, 3)
 for (i in 1:m) sim_means[i,] <- colMeans(read.csv(cover_files[i]))
 
-colMeans(sim_means)
-
 theta1_evals <- theta2_evals <- matrix(NA, 47, m)
 for (i in 1:m) {
   theta1_evals[,i] <- read.csv(cover_files[i])[,2]
@@ -27,3 +25,5 @@ plot(pixels, rowMeans(theta2_evals))
 
 cor(pixels, rowMeans(theta1_evals))	
 cor(pixels, rowMeans(theta2_evals))
+
+colMeans(sim_means)
