@@ -385,20 +385,15 @@ for (i in 1:P) {
   }
 }
 
-par(mfrow=c(1,3))
+par(mfrow=c(1,P))
 plot(sig2var, main = bquote(paste("Variances for "~ hat(sigma)^2~" from "~ bar(H)^{-1},~" and "~sigma[MCMC]^2)),
-     xlab = expression(hat(sigma)^2), ylab = expression(sigma^2), col=loc_int$loc,  pch=as.factor(loc_int$loc)-1,
+     xlab = expression(hat(sigma)^2), ylab = expression(sigma^2), col=as.factor(loc_int$loc),  pch=as.numeric(as.factor(loc_int$loc))-1,
      xlim = range(sig2var), ylim = range(sig2var),
      cex=2, cex.lab=2, cex.axis=2, cex.main=1.5, cex.sub=2)
 abline(0,1)
 plot(phivar, main = expression(paste("Variances for ",hat(phi)," from ", bar(H)^{-1}," and ", phi[MCMC])),
-     xlab = expression(hat(phi)), ylab = expression(phi), col=loc_int$loc, pch=as.factor(loc_int$loc)-1,
+     xlab = expression(hat(phi)), ylab = expression(phi), col=as.factor(loc_int$loc), pch=as.numeric(as.factor(loc_int$loc))-1,
      xlim = range(phivar), ylim = range(phivar),
-     cex=2, cex.lab=2, cex.axis=2, cex.main=1.5, cex.sub=2)
-abline(0,1)
-plot(kapvar, main = expression(paste("Variances for ",hat(kappa)," from ", bar(H)^{-1}," and ", kappa[MCMC])),
-     xlab = expression(hat(kappa)), ylab = expression(kappa), col=loc_int$loc,  pch=as.factor(loc_int$loc)-1,
-     xlim = range(kapvar), ylim = range(kapvar),
      cex=2, cex.lab=2, cex.axis=2, cex.main=1.5, cex.sub=2)
 abline(0,1)
 
@@ -435,15 +430,13 @@ for (i in 1:N) {
 }
 
 # png("NAM-Model-Validation/png/burn_med_hist.png",width = 1400, height=1000)
-par(mfrow=c(1,3))
+par(mfrow=c(1,P))
 hist(burn_meds[,1], xlab=expression(sigma^2), main=NULL, cex.axis=2, cex.lab=2)
 hist(burn_meds[,2], xlab=expression(phi), main=NULL, cex.axis=2, cex.lab=2)
-hist(burn_meds[,3], xlab=expression(kappa), main=NULL, cex.axis=2, cex.lab=2)
 # dev.off()
 
 hist(theta_hat[,1], xlab=expression(hat(sigma^2)[MLE]), main=NULL, cex.axis=2, cex.lab=2)
 hist(theta_hat[,2], xlab=expression(hat(phi)[MLE]), main=NULL, cex.axis=2, cex.lab=2)
-hist(theta_hat[,3], xlab=expression(hat(kappa)[MLE]), main=NULL, cex.axis=2, cex.lab=2)
 
 # dev.off()
 rnorm(5)
