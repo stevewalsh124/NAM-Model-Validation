@@ -441,4 +441,7 @@ hist(theta_hat[,2], xlab=expression(hat(phi)[MLE]), main=NULL, cex.axis=2, cex.l
 # dev.off()
 rnorm(5)
 
+matrix(emp_B, P, R)
+matrix(emp_Sigma_theta, P, P)
+
 save.image(file = "~/NAM-Model-Validation/RData/Gibbs_sqrt.RData")
