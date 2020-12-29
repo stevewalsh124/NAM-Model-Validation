@@ -33,7 +33,7 @@ PWM1_df <- as.data.frame(PWmean1)
 # loads post_cov_mtx
 load("~/NAM-Model-Validation/RData/post_cov_mtx_expntl.RData")
 
-# loads sum_cov_mtx
+# loads sum_prec_mtx
 load("~/NAM-Model-Validation/RData/sum_prec_mtx_expntl.RData")
 data.prec.mtx <- sum_prec_mtx#solve(sum_cov_mtx)
 
@@ -68,6 +68,7 @@ new_m <- post_cov_mtx %*% sum_all_prcXy
 PW_post_new <- rasterFromXYZ(cbind(PWM1_df$x, PWM1_df$y, new_m))
 plot(PW_post_new, main = "new m")
 plot(PWmean, main = "old m")
+# writeRaster(PW_post_new, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_newm")
 
 ## end trialing
 
@@ -87,17 +88,29 @@ plot(PW_data, main="Data PW mean", breaks = brks,
      col = c("blue", "green", cm.colors(length(brks)-5), "orange", "red"))  # col = cm.colors(length(brks)-1)
 US(add=T, col="gray80")
 
-plot(PW_post, main="Posterior PW mean", breaks = brks, 
+plot(PW_post, main="Posterior PW mean (old m)", breaks = brks, 
+     col = c("blue", "green", cm.colors(length(brks)-5), "orange", "red"))
+US(add=T, col="gray80")
+
+plot(PW_data, main="Data PW mean", breaks = brks, 
+     col = c("blue", "green", cm.colors(length(brks)-5), "orange", "red"))  # col = cm.colors(length(brks)-1)
+US(add=T, col="gray80")
+
+plot(PW_post_new, main="Posterior PW mean (new m)", breaks = brks, 
      col = c("blue", "green", cm.colors(length(brks)-5), "orange", "red"))
 US(add=T, col="gray80")
 
 par(mfrow=c(1,1))
-plot(PW_post - PW_data, main="Subtract PW means")
+plot(PW_post - PW_data, main="Subtract PW means (old m)")
+US(add=T, col="gray80")
+
+plot(PW_post_new - PW_data, main="Subtract PW means (new m)")
 US(add=T, col="gray80")
 
 PW_post_df <- rasterToPoints(PW_post)
 sds <- sqrt(diag(post_cov_mtx))
 PW_post_sds <- rasterFromXYZ(cbind(PW_post_df[,1:2], sds))
+# writeRaster(PW_post_sds, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_sds")
 plot(PW_post_sds, main = "posterior SDs")
 US(add=T, col="gray80")
 
@@ -105,7 +118,12 @@ plot(PW_post_sds^2, main = "posterior Vars")
 US(add=T, col="gray80")
 
 # writeRaster(PW_post/PW_post_sds, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_stdz")
-plot(PW_post/PW_post_sds, main = "standardized mean",breaks = brks2, 
+plot(PW_post/PW_post_sds, main = "standardized mean (old m)",breaks = brks2, 
+     col = c("blue", "green", cm.colors(length(brks2)-5), "orange", "red"))
+US(add=T, col="gray80")
+
+# writeRaster(PW_post_new/PW_post_sds, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_stdz_newm")
+plot(PW_post_new/PW_post_sds, main = "standardized mean (new m)",breaks = brks2, 
      col = c("blue", "green", cm.colors(length(brks2)-5), "orange", "red"))
 US(add=T, col="gray80")
 

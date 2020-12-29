@@ -12,8 +12,8 @@ source("~/NAM-Model-Validation/scripts/storms_collect_sqrt.R")
 
 # set.seed(489)
 
-library(MCMCpack)    #riwish (inverse wishart draws)
-library(LaplacesDemon) #rmvn, rmatrixnorm (multivariate normal draws)
+suppressMessages(library(MCMCpack))    #riwish (inverse wishart draws)
+suppressMessages(library(LaplacesDemon)) #rmvn, rmatrixnorm (multivariate normal draws)
 
 rounder <- 9 #number of decimal places to round matrices so solve doesn't induce asymmetry
 # nsims <- 46 #number of theta_i, i \in 1:nsims; number of simulated storms
@@ -26,33 +26,26 @@ as.square <- function(mat){matrix(mat, nrow=sqrt(length(mat)),ncol=sqrt(length(m
 #testy <- matrix(rnorm(10000),100,100); all.equal(testy, as.square(as.vector(testy)))
 
 # These are the actual hurricane estimates
-theta_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
-N <- nrow(theta_hat)
-P <- ncol(theta_hat)
-# for(i in 1:N){ theta_hat[i,] <- par_optim[[1]][[i]] }
-# colnames(theta_hat) <- c("MLEsigma2","MLEphi","MLEkappa") 
+lambda_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
+N <- nrow(lambda_hat) # number of storms, 47
+P <- ncol(lambda_hat) # number of params, theta1 and theta2
+R <- 3 #number of landfall locations (ATL, FL, GULF)
 
-hessians <- hess_opt#par_optim[[2]]
-for (i in 1:length(hessians)) {
-  if(!is.positive.definite(hessians[[i]])){
-    print("one of the hessians is not pos def")}}
+# for(i in 1:N){ lambda_hat[i,] <- par_optim[[1]][[i]] }
+# colnames(lambda_hat) <- c("MLEsigma2","MLEphi","MLEkappa") 
 
-###############DELTA METHOD###################
-##############################################
-for (i in 1:length(hessians)) {
-  G <- diag(theta_hat[i,])
-  hessians[[i]] <- G%*%hessians[[i]]%*%t(G)
-  print(paste("symm",isSymmetric(hessians[[i]])))
-  
-  hessians[[i]] <- (hessians[[i]]+t(hessians[[i]]))/2
-  
-  print(paste("pos def",is.positive.definite(hessians[[i]])))
+theta_hat <- cbind(log(lambda_hat[,1]/lambda_hat[,2]), log(lambda_hat[,1]))
+
+hessians <- list()
+hess_theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs", full.names = T)
+if(length(hess_theta_files) != N){stop("number of MLEs != number of Hessians")}
+for (i in 1:N) {
+  hess <- read.csv(hess_theta_files[i], row.names = 1)
+  hess_mtx <- as.square(as.numeric(-1*hess))
+  hessians[[i]] <- (hess_mtx + t(hess_mtx))/2
+  if(!isSymmetric(hessians[[i]])){stop(paste("storm",i,"is not symm,etric"))}
+  if(!is.positive.definite(hessians[[i]])){stop(paste("storm",i,"is not pos def"))}
 }
-
-theta_hat <- log(theta_hat)
-
-##############################################
-##############################################
 
 theta_bar <- apply(theta_hat, 2, mean)
 
@@ -68,11 +61,11 @@ colnames(loc_int) <- c("int","loc")
 
 # Model matrix for locations
 x <- with(loc_int, model.matrix(~ loc))
-sum_x_xt <- matrix(0,3,3)
+sum_x_xt <- matrix(0, R, R)
 for(i in 1:dim(x)[1]){sum_x_xt <- sum_x_xt + x[i,]%*%t(x[i,])}
 V <- round(solve(sum_x_xt), rounder)
 
-sum_th_xt_true <- matrix(0, 2, 3)
+sum_th_xt_true <- matrix(0, P, R)
 for(j in 1:N){sum_th_xt_true <- sum_th_xt_true+ matrix(theta_hat[j,],2,1)%*%t(x[j,])}
 
 true_M<- sum_th_xt_true %*% round(solve(sum_x_xt), rounder)
@@ -139,7 +132,7 @@ burn  <- 100
 
 # mu_theta     <- matrix(NA, nrow = iters, ncol = P)
 Sigma_theta  <- matrix(NA, nrow = iters, ncol = P^2)
-B            <- matrix(NA, nrow = iters, ncol = P*3)
+B            <- matrix(NA, nrow = iters, ncol = P*R)
 theta        <- list()
 
 for (j in 1:N) {
@@ -150,17 +143,17 @@ for (j in 1:N) {
 # Initial values for Markov chains
 # mu_theta[1,]    <- c(50,50,50)            #theta_bar#EMPIRICAL BAYES
 Sigma_theta[1,] <- diag(rep(100, P))      #cov(theta_hat)#
-B[1,]           <- matrix(100, P, 3)
+B[1,]           <- matrix(100, P, R)
 #IW hyperparameters
 v0 <- 4                                   #increase for EMP BAYES/debugging
 S0 <- v0*cov(theta_hat)#diag(c(.01,.01,.01))                #EMPIRICAL BAYES
 
 for (i in 2:iters) {
   #i <- 2; j <- 1
-  if(i %% 500 ==0) print(i)
+  if(i %% 2000 ==0) print(i)
   
   # Update B
-  sum_th_xt <- matrix(0, P, 3)
+  sum_th_xt <- matrix(0, P, R)
   for(j in 1:N){sum_th_xt <- sum_th_xt+ theta[[j]][i-1,]%*%t(x[j,])}
   M <- sum_th_xt %*% V
   B[i,] <- rmatrixnorm(M = M, U = as.square(Sigma_theta[i-1,]), V = V)
@@ -190,12 +183,12 @@ theta_cols <- c("sigma2","phi")
 
 # Histograms and trace plots for B
 par(mfrow=c(1,P))
-for(i in 1: P*3) {
+for(i in 1: P*R) {
   hist(B[(burn+1):iters,i], main = paste("B",i))
   abline(v=as.vector(true_M)[i], lwd=2, col="blue")
   abline(v=apply(B[burn:iters,],2,mean)[i], lwd=2, col="green")
 }
-for(i in 1: P*3) {
+for(i in 1: P*R) {
   plot(B[(burn+1):iters,i], main = paste("B",i), type="l")
   abline(h=as.vector(true_M)[i], lwd=2, col="blue")
   abline(h=apply(B[burn:iters,],2,mean)[i], lwd=2, col="green")
@@ -383,7 +376,7 @@ for (i in 1:P) {
 }
 
 
-sig2var <- phivar <- matrix(NA,N,2)
+sig2var <- phivar <- matrix(NA,N,P)
 for (i in 1:P) {
   for (j in 1:N) {
     if(i==1) sig2var[j,] <- c(sqrt(solve(hessians[[j]])[i,i]),sd(theta_burn[[j]][,i]))

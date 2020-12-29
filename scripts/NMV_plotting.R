@@ -42,8 +42,8 @@ dev.off()
 ################
 
 # these generated from LogPrecipVariograms and PWmean_post, respectively
-dataPWmean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_mean.grd")
-flatPWmean <- raster("~/NAM-Model-Validation/error_rasters_summary/PW_post_flat.grd")
+dataPWmean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean.grd")
+flatPWmean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_newm.grd")
 
 val <- max(abs(c(floor(4*minValue(pwms))/4, ceiling(4*maxValue(pwms))/4)))
 plot(PW_mean, main = paste0("PW mean when n >= ",n),
@@ -95,63 +95,80 @@ dev.off()
 
 
 
+# # older PWmean, PWvar, PWstandardizederror
+# par(mfrow=c(1,3),mar=c(5,4,4,2)+.1)
+# pwms <- vars <- stds <- list()
+# for (n in 5) { 
+#   # par(mfrow=c(1,2))
+#   Nmap <- error_counts
+#   Nmap[Nmap < n] <- NA
+#   # Nmap[Nmap >= n] <- 1
+#   
+#   pwms <- PW_mean_geq5 <- error_sum/Nmap
+#   
+#   val <- max(abs(range(values(pwms), na.rm = T)))
+#   plot(pwms, main = paste0("PW mean when n >= ",n),
+#        col=cm.colors(10),
+#        zlim=c(-val,val),
+#        xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4], cex.axis=2); US(add=T, col="gray75")
+#   
+#   vars <- S2_geq5 <- ((error_sum_sq - (error_sum*error_sum)/Nmap)/(Nmap-1))*mask.regrid
+#   plot(S2_geq5, main=paste0("Pointwise Variance when n >= ", n),
+#        xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4], cex.axis=2);US(add=T, col="gray49")
+#   
+#   stds <- std_error_geq5 <- PW_mean_geq5/(sqrt(S2_geq5/Nmap))
+#   # png("stdgeq5.png",width = 1000, height = 1000) #cex.main = 2.5, cex.axis = 2
+#   val <- max(abs(range(values(stds), na.rm = T)))
+#   plot(stds, main = paste0("Std err when n >= ",n), legend=F,
+#        col=cm.colors(10),
+#        xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4],zlim=c(-val,val),
+#         cex.axis=2); US(add=T, col="gray75")
+#   plot(stds, legend.only=TRUE,
+#        legend.width=2, legend.shrink=1, col=cm.colors(10),
+#        axis.args=list(at=c(-val,val),
+#          #labels=seq(r.range[1]-1, r.range[2], 5), 
+#          cex.axis=1.45))#,
+#   # legend.args=list(text='Error counts', side=4, font=2, line=2.5, cex=1))
+# }
 
 
 
+# newer PWmean, PWvar, PWstandardizederror
+PW_post_new <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_newm.grd")
+PW_post_sds <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_sds.grd")
 
+png("~/NAM-Model-Validation/png/NMV_post_mean_sds_stdz.png", width = 1200*1.5, height = 400*1.5)
+par(mfrow=c(1,3),mar=c(6,6,4,11)+.1)
+lmag <- 2.5 #letter magnification
+val <- ceiling(max(abs(range(values(PW_post_new), na.rm = T))/0.1))*0.1
+plot(PW_post_new, 
+     col=c("blue",cm.colors(length(seq(-3,3,.5))-1),"red"),
+     breaks=c(-val,seq(-3,3,.5),val), xlab="longitude", 
+     ylab="latitude", cex.axis=lmag, cex.lab=lmag, legend=F)
+plot(PW_post_new, 
+     col=c("blue",cm.colors(length(seq(-3,3,.5))-1),"red"),
+     breaks=c(-val,seq(-3,3,.5),val),
+     legend.width=2, legend.shrink=1,
+     legend.only=T, axis.args=list(cex.axis=lmag))
+US(add=T, col="gray75")
 
+plot(PW_post_sds, xlab="longitude", ylab="latitude", cex.axis=lmag, cex.lab=lmag, legend=F)
+plot(PW_post_sds, legend.only=T, legend.width=2, legend.shrink=1, 
+     axis.args=list(cex.axis=lmag))
+US(add=T, col="gray75")
 
-
-
-#PWmean, PWvar, PWstandardizederror
-par(mfrow=c(1,3),mar=c(5,4,4,2)+.1)
-pwms <- vars <- stds <- list()
-for (n in 5) { 
-  # par(mfrow=c(1,2))
-  Nmap <- error_counts
-  Nmap[Nmap < n] <- NA
-  # Nmap[Nmap >= n] <- 1
-  
-  pwms <- PW_mean_geq5 <- error_sum/Nmap
-  
-  val <- max(abs(range(values(pwms), na.rm = T)))
-  plot(pwms, main = paste0("PW mean when n >= ",n),
-       col=cm.colors(10),
-       zlim=c(-val,val),
-       xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4], cex.axis=2); US(add=T, col="gray75")
-  
-  vars <- S2_geq5 <- ((error_sum_sq - (error_sum*error_sum)/Nmap)/(Nmap-1))*mask.regrid
-  plot(S2_geq5, main=paste0("Pointwise Variance when n >= ", n),
-       xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4], cex.axis=2);US(add=T, col="gray49")
-  
-  stds <- std_error_geq5 <- PW_mean_geq5/(sqrt(S2_geq5/Nmap))
-  # png("stdgeq5.png",width = 1000, height = 1000) #cex.main = 2.5, cex.axis = 2
-  val <- max(abs(range(values(stds), na.rm = T)))
-  plot(stds, main = paste0("Std err when n >= ",n), legend=F,
-       col=cm.colors(10),
-       xlim=extent(PW_mean)[1:2], ylim=extent(PW_mean)[3:4],zlim=c(-val,val),
-        cex.axis=2); US(add=T, col="gray75")
-  plot(stds, legend.only=TRUE,
-       legend.width=2, legend.shrink=1, col=cm.colors(10),
-       axis.args=list(at=c(-val,val),
-         #labels=seq(r.range[1]-1, r.range[2], 5), 
-         cex.axis=1.45))#,
-  # legend.args=list(text='Error counts', side=4, font=2, line=2.5, cex=1))
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+val_stdz <- ceiling(max(abs(range(values(PW_post_new/PW_post_sds), na.rm = T))/0.1))*0.1
+plot(PW_post_new/PW_post_sds, 
+     col=c("blue",cm.colors(length(seq(-3,3,.5))-1),"red"),
+     breaks=c(-val_stdz,seq(-3,3,.5),val_stdz), xlab="longitude", 
+     ylab="latitude", cex.axis=lmag, cex.lab=lmag, legend=F)
+plot(PW_post_new/PW_post_sds, legend.only=TRUE,
+     legend.width=2, legend.shrink=1,
+     axis.args=list(cex.axis=lmag),
+     col=c("blue",cm.colors(length(seq(-3,3,.5))-1),"red"),
+     breaks=c(-val_stdz,seq(-3,3,.5),val_stdz))
+US(add=T, col="gray75")
+dev.off()
 
 
 
