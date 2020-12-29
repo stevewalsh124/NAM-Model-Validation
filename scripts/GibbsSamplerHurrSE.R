@@ -65,16 +65,16 @@ sum_x_xt <- matrix(0, R, R)
 for(i in 1:dim(x)[1]){sum_x_xt <- sum_x_xt + x[i,]%*%t(x[i,])}
 V <- round(solve(sum_x_xt), rounder)
 
-sum_th_xt_true <- matrix(0, P, R)
-for(j in 1:N){sum_th_xt_true <- sum_th_xt_true+ matrix(theta_hat[j,],2,1)%*%t(x[j,])}
+sum_thhat_xt <- matrix(0, P, R)
+for(j in 1:N){sum_thhat_xt <- sum_thhat_xt+ matrix(theta_hat[j,],2,1)%*%t(x[j,])}
 
-true_M<- sum_th_xt_true %*% round(solve(sum_x_xt), rounder)
+hat_M<- sum_thhat_xt %*% round(solve(sum_x_xt), rounder)
 
 # # obtain mean vector by location
 theta_A <- lm(theta_hat ~ loc_int$loc)$coefficients[1,]
 theta_F <- lm(theta_hat ~ loc_int$loc)$coefficients[2,]
 theta_G <- lm(theta_hat ~ loc_int$loc)$coefficients[3,]
-# # cbind(theta_A, theta_F, theta_G) and true_M are approximately equal
+# # cbind(theta_A, theta_F, theta_G) and hat_M are approximately equal
 
 # obtain covariance matrix by location
 # can't use. not enough degrees of freedom
@@ -94,7 +94,7 @@ avgHess <- Reduce("+", hessians) / length(hessians)
 # colnames(theta_i_sim) <- colnames(theta_i_hat_sim) <- c("MLEsigma2","MLEphi","MLEkappa") 
 # for (i in 1:nsims) {
 #   # theta_i iid \sim N(\bar\mu_\theta, \Sigma_\theta) 
-#   theta_i_sim[i,] <- rmvn(1, t(true_M%*%x[i,]), true_Sigma_theta)
+#   theta_i_sim[i,] <- rmvn(1, t(hat_M%*%x[i,]), true_Sigma_theta)
 #   if(all_avgHess){
 #     theta_i_hat_sim[i,] <- rmvn(1, theta_i_sim[i,], round(solve(avgHess), rounder)) #all covmats the same
 #     hessians[[i]] <- avgHess
@@ -183,20 +183,20 @@ theta_cols <- c("sigma2","phi")
 
 # Histograms and trace plots for B
 par(mfrow=c(1,P))
-for(i in 1: P*R) {
+for(i in 1:(P*R)) {
   hist(B[(burn+1):iters,i], main = paste("B",i))
-  abline(v=as.vector(true_M)[i], lwd=2, col="blue")
+  abline(v=as.vector(hat_M)[i], lwd=2, col="blue")
   abline(v=apply(B[burn:iters,],2,mean)[i], lwd=2, col="green")
 }
-for(i in 1: P*R) {
+for(i in 1:(P*R)) {
   plot(B[(burn+1):iters,i], main = paste("B",i), type="l")
-  abline(h=as.vector(true_M)[i], lwd=2, col="blue")
+  abline(h=as.vector(hat_M)[i], lwd=2, col="blue")
   abline(h=apply(B[burn:iters,],2,mean)[i], lwd=2, col="green")
 }
 
 # Trace plots for inidividual storms' parameters
 for (j in 1:N){#c(1:5,(nsims-5):nsims)) {
-  for(i in 1: P) {
+  for(i in 1:P) {
     plot(theta[[j]][(burn+1):iters,i], main = paste("storm",j,loc_int$loc[j],theta_cols[i]), type="l")
     # ylim=c(apply(theta_hat, 2, min)[i] - 0.2, apply(theta_hat, 2, max)[i] + 0.2))
     # abline(h=theta_bar[i], lwd=2, col="red")
@@ -260,7 +260,7 @@ for (i in 1:N) {theta_burn[[i]] <- theta[[i]][(burn+1):iters,]}
 # "true" data for sim study
 # theta_i_sim
 # theta_i_hat_sim
-# true_M
+# hat_M
 # true_Sigma_theta
 
 # estimates from MCMC
@@ -276,6 +276,7 @@ for (i in 1:N) {
   emp_thetaUB[i,] <- apply(theta_burn[[i]], 2, function(x){quantile(x, 0.975)})
 }
 
+# This is expected to be 1; thetahat will be in the 95% credible interval
 apply(theta_hat < emp_thetaUB & theta_hat > emp_thetaLB, 2, sum)/N
 
 # Collect the "bad thetas": one of the true elements of theta_i 
@@ -283,9 +284,9 @@ apply(theta_hat < emp_thetaUB & theta_hat > emp_thetaLB, 2, sum)/N
 bad_thetas <- which(apply(theta_hat < emp_thetaUB & theta_hat > emp_thetaLB, 1, all)==F)
 # cbind(emp_thetaLB[bad_thetas,], theta_i_sim[bad_thetas,], emp_thetaUB[bad_thetas,])
 
-par(mfrow=c(1,3))
+par(mfrow=c(1,P))
 for (j in head(bad_thetas,3)) {
-  for(i in 1: P) {
+  for(i in 1:P) {
     plot(theta[[j]][(burn+1):iters,i], 
          main = paste("storm",j,loc_int$loc[j],theta_cols[i]), type="l")#,
     # ylim=c(apply(theta_hat, 2, min)[i] + 0.2, apply(theta_hat, 2, max)[i] - 0.2))
@@ -301,7 +302,7 @@ emp_B    <- apply(B_burn, 2, function(x){quantile(x,0.5)})
 emp_B_UB <- apply(B_burn, 2, function(x){quantile(x,0.975)})
 emp_B_LB <- apply(B_burn, 2, function(x){quantile(x,0.025)})
 
-true_M < emp_B_UB & true_M > emp_B_LB
+hat_M < emp_B_UB & hat_M > emp_B_LB
 
 emp_Sigma_theta    <- apply(Sigma_burn, 2, function(x){quantile(x,0.5)})
 emp_Sigma_theta_LB <- apply(Sigma_burn, 2, function(x){quantile(x,0.025)})
@@ -317,7 +318,7 @@ cov(theta_hat) < emp_Sigma_theta_UB & cov(theta_hat) > emp_Sigma_theta_LB
 apply(emp_thetaMED - theta_hat, 2, function(X)max(abs(X)))
 apply(emp_thetaMED - theta_hat, 2, mean)
 
-emp_B - true_M
+emp_B - hat_M
 emp_Sigma_theta - cov(theta_hat)
 
 for (i in 1:P) {
@@ -331,7 +332,7 @@ for (i in 1:P) {
 # pdf("NAM-Model-Validation/pdf/Gibbs/compare_postthetai_thetaihat_col.pdf")
 par(mfrow=c(1,P))
 # make it easier to see each of the densities in their corresponding plots
-smush <- c(.15,.15)
+smush <- c(.04,.15)
 for (i in 1:P) {
   plot(0, 0, col = "white", xlab = "", ylab = "", 
        xlim=c(min(theta_hat[,i], emp_thetaMED[,i]),
