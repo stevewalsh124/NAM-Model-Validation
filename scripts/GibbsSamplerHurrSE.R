@@ -377,23 +377,23 @@ for (i in 1:P) {
 }
 
 
-sig2var <- phivar <- matrix(NA,N,P)
+theta1sds <- theta2sds <- matrix(NA,N,P)
 for (i in 1:P) {
   for (j in 1:N) {
-    if(i==1) sig2var[j,] <- c(sqrt(solve(hessians[[j]])[i,i]),sd(theta_burn[[j]][,i]))
-    if(i==2) phivar[j,] <- c(sqrt(solve(hessians[[j]])[i,i]),sd(theta_burn[[j]][,i]))
+    if(i==1) theta1sds[j,] <- c(sqrt(solve(hessians[[j]])[i,i]),sd(theta_burn[[j]][,i]))
+    if(i==2) theta2sds[j,] <- c(sqrt(solve(hessians[[j]])[i,i]),sd(theta_burn[[j]][,i]))
   }
 }
 
 par(mfrow=c(1,P))
-plot(sig2var, main = bquote(paste("Variances for "~ hat(sigma)^2~" from "~ bar(H)^{-1},~" and "~sigma[MCMC]^2)),
-     xlab = expression(hat(sigma)^2), ylab = expression(sigma^2), col=as.factor(loc_int$loc),  pch=as.numeric(as.factor(loc_int$loc))-1,
-     xlim = range(sig2var), ylim = range(sig2var),
+plot(theta1sds, main = bquote(paste("SDs for "~ hat(theta)[1]~" from "~ bar(H)^{-1},~" and "~theta[1,MCMC])),
+     xlab = expression(hat(theta)[1]), ylab = expression(theta[1]), col=as.factor(loc_int$loc),  pch=as.numeric(as.factor(loc_int$loc))-1,
+     xlim = range(theta1sds), ylim = range(theta1sds),
      cex=2, cex.lab=2, cex.axis=2, cex.main=1.5, cex.sub=2)
 abline(0,1)
-plot(phivar, main = expression(paste("Variances for ",hat(phi)," from ", bar(H)^{-1}," and ", phi[MCMC])),
-     xlab = expression(hat(phi)), ylab = expression(phi), col=as.factor(loc_int$loc), pch=as.numeric(as.factor(loc_int$loc))-1,
-     xlim = range(phivar), ylim = range(phivar),
+plot(theta2sds, main = expression(paste("SDs for ",hat(theta)[2]," from ", bar(H)^{-1}," and ", theta[2,MCMC])),
+     xlab = expression(hat(theta)[2]), ylab = expression(theta[2]), col=as.factor(loc_int$loc), pch=as.numeric(as.factor(loc_int$loc))-1,
+     xlim = range(theta2sds), ylim = range(theta2sds),
      cex=2, cex.lab=2, cex.axis=2, cex.main=1.5, cex.sub=2)
 abline(0,1)
 
