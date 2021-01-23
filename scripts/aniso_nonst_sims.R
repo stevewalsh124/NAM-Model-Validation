@@ -1,7 +1,17 @@
 # By M.A.R. Ferreira, 2014. Updated by M.A.R. Ferreira, 2016.
 
-xaxis <- seq(0,1,0.025)
-yaxis <- seq(0,1,0.025)
+Nsims <- 10
+seed <- 3
+
+args <- commandArgs(TRUE)
+if(length(args) > 0)
+  for(i in 1:length(args))
+    eval(parse(text=args[[i]]))
+
+set.seed(seed)
+
+xaxis <- seq(0,2,length.out = 80)
+yaxis <- seq(0,2,length.out = 80)
 
 s <- matrix(NA,nrow=length(xaxis)*length(yaxis),ncol=2)
 for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] <- c(xaxis[i],yaxis[j])
@@ -18,17 +28,22 @@ covfunc.exponential <- function(t,phi,sigma2) {sigma2 * exp(-phi*t)}
 
 # With nugget effect
 
-tau2 <- 0
-sigma2 <- 1
-phi <- 1
-plot(seq(0,1,0.001),c(tau2,rep(0,length(seq(0,1,0.001))-1))+covfunc.exponential(seq(0,1,0.001),phi,sigma2))
+tau2 <- 0.01
+sigma2 <- 0.8
+phi <- 0.4
 
-covmatrix <- diag(tau2,nrow(t)) + covfunc.exponential(t,phi,sigma2)
-#image(covmatrix)
-x <- t(chol(covmatrix)) %*% rnorm(nrow(s))
-z <- matrix(x,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
-image(z)
-# persp(x=xaxis, y=yaxis, z=z)
+######################
+# Isotropic Modeling #
+######################
+
+# plot(seq(0,1,0.001),c(tau2,rep(0,length(seq(0,1,0.001))-1))+covfunc.exponential(seq(0,1,0.001),phi,sigma2))
+# 
+# covmatrix <- diag(tau2,nrow(t)) + covfunc.exponential(t,phi,sigma2)
+# #image(covmatrix)
+# x <- t(chol(covmatrix)) %*% rnorm(nrow(s))
+# z <- matrix(x,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
+# image(z)
+# # persp(x=xaxis, y=yaxis, z=z)
 
 ########################
 # Anisotropic Modeling #
@@ -41,7 +56,7 @@ image(z)
 # d transformed to r: r = diag(c(sigma1, sigma2)) %*% matrix(cos(theta), -sin(theta), sin(theta), cos(theta)) %*% t(d)
 
 sigvec <- c(1,3)
-theta <- pi/2
+theta <- pi/4
 
 tt <- matrix(NA, nrow = nrow(s), ncol = nrow(s))
 
@@ -55,38 +70,72 @@ for (i in 1:nrow(s)) {
 
 covmatrix_anisop <- diag(tau2,nrow(tt)) + covfunc.exponential(tt,phi,sigma2)
 #image(covmatrix)
-x <- t(chol(covmatrix_anisop)) %*% rnorm(nrow(s))
-z <- matrix(x,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
-image(z)
-
 
 ## Ergodicity assumed in next comment:
 ## C(h) = (lim u -> Inf gamma(u)) - gamma(h), gamma is the semivariogram
 
+# #########################
+# # Nonstationary example #
+# #########################
+#
+# yield <- function(xi1, xi2)  
+# {
+#   xi1 <- 7*xi1+1     ## these two
+#   xi2 <- 900*xi2+100 ## allow seq(0,1) below
+#   xi1 <- 3*xi1 - 15
+#   xi2 <- xi2/50 - 13
+#   xi1 <- cos(0.5)*xi1 - sin(0.5)*xi2
+#   xi2 <- sin(0.5)*xi1 + cos(0.5)*xi2
+#   y <- 1.15^(-xi1^2/80 - 0.5*(xi2 + 0.03*xi1^2 - 40*0.03)^2)
+#   return(100*y)
+# }
+# 
+# xi1 <- xi2 <- seq(0,1,length.out = 100)
+# g <- expand.grid(xi1, xi2)
+# y <- yield(g[,1], g[,2]) + rnorm(10000,0,8)
+# # persp(xi1, xi2, matrix(y, ncol=length(xi2)), theta=45, phi=45, 
+# #       lwd=0.5, xlab="xi1 : time", ylab="xi2 : temperature", 
+# #       zlab="yield", expand=0.4)
+# 
+# 
+# cols <- heat.colors(128)
+# image(xi1, xi2, matrix(y, ncol=length(xi2)), col=cols, 
+#       xlab="xi1 : time", ylab="xi2 : temperature")
+# # contour(xi1, xi2, matrix(y, ncol=length(xi2)), nlevels=4, add=TRUE)
 
-# Nonstationary example
 
-yield <- function(xi1, xi2)  
-{
-  xi1 <- 7*xi1+1     ## these two
-  xi2 <- 900*xi2+100 ## allow seq(0,1) below
-  xi1 <- 3*xi1 - 15
-  xi2 <- xi2/50 - 13
-  xi1 <- cos(0.5)*xi1 - sin(0.5)*xi2
-  xi2 <- sin(0.5)*xi1 + cos(0.5)*xi2
-  y <- 1.15^(-xi1^2/80 - 0.5*(xi2 + 0.03*xi1^2 - 40*0.03)^2)
-  return(100*y)
+##################################
+# MLEs for Anisotropy/Stationary #
+##################################
+
+myMLEs <- matrix(NA, Nsims, 6)
+times <- c()
+
+library(geoR)
+library(fields)
+
+for (i in 1:Nsims) {
+  x <- t(chol(covmatrix_anisop)) %*% rnorm(nrow(s))
+  z <- matrix(x,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
+  
+  image.plot(z)
+  
+  tic <- proc.time()[3]
+  myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(1,1), fix.psiA = F, fix.psiR = F)
+  myMLEs[i,] <-  c(myMLE$beta, myMLE$tausq, myMLE$sigmasq, myMLE$phi, myMLE$aniso.pars[1], myMLE$aniso.pars[2])
+  toc <- proc.time()[3]
+  print(toc - tic)
+  times[i] <- toc - tic
 }
 
-xi1 <- xi2 <- seq(0,1,length.out = 100)
-g <- expand.grid(xi1, xi2)
-y <- yield(g[,1], g[,2]) + rnorm(10000,0,8)
-# persp(xi1, xi2, matrix(y, ncol=length(xi2)), theta=45, phi=45, 
-#       lwd=0.5, xlab="xi1 : time", ylab="xi2 : temperature", 
-#       zlab="yield", expand=0.4)
+truths <- c(beta=0, tau2=tau2, sigma2=sigma2, phi=phi, theta=theta, maj.min=sigvec[2]/sigvec[1])
+colnames(myMLEs) <- names(truths)
 
+write.csv(cbind(myMLEs, times), 
+          file = paste0("~/NAM-Model-Validation/csv/aniso_sim_results_",Nsims,"_",nrow(x),"_",seed,".csv"))
 
-cols <- heat.colors(128)
-image(xi1, xi2, matrix(y, ncol=length(xi2)), col=cols, 
-      xlab="xi1 : time", ylab="xi2 : temperature")
-# contour(xi1, xi2, matrix(y, ncol=length(xi2)), nlevels=4, add=TRUE)
+par(mfrow=c(3,2))
+for (i in 1:6) {
+  hist(myMLEs[,i], main = names(truths)[i])
+  abline(v=truths[i], col="blue")
+}
