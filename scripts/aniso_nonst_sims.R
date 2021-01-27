@@ -1,7 +1,7 @@
 # By M.A.R. Ferreira, 2014. Updated by M.A.R. Ferreira, 2016.
 
 Nsims <- 10
-seed <- 3
+seed <- 6
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -10,8 +10,9 @@ if(length(args) > 0)
 
 set.seed(seed)
 
-xaxis <- seq(0,2,length.out = 80)
-yaxis <- seq(0,2,length.out = 80)
+box <- 4
+xaxis <- seq(0,box,length.out = 80)
+yaxis <- seq(0,box,length.out = 80)
 
 s <- matrix(NA,nrow=length(xaxis)*length(yaxis),ncol=2)
 for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] <- c(xaxis[i],yaxis[j])
@@ -132,7 +133,7 @@ truths <- c(beta=0, tau2=tau2, sigma2=sigma2, phi=phi, theta=theta, maj.min=sigv
 colnames(myMLEs) <- names(truths)
 
 write.csv(cbind(myMLEs, times), 
-          file = paste0("~/NAM-Model-Validation/csv/aniso_sim_results_",Nsims,"_",nrow(x),"_",seed,".csv"))
+          file = paste0("~/NAM-Model-Validation/csv/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,".csv"))
 
 par(mfrow=c(3,2))
 for (i in 1:6) {
