@@ -2,6 +2,7 @@
 
 Nsims <- 10
 seed <- 6
+set <- 2
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -10,7 +11,7 @@ if(length(args) > 0)
 
 set.seed(seed)
 
-box <- 4
+box <- 10
 xaxis <- seq(0,box,length.out = 80)
 yaxis <- seq(0,box,length.out = 80)
 
@@ -28,10 +29,14 @@ t <- as.matrix(dist(s))
 covfunc.exponential <- function(t,phi,sigma2) {sigma2 * exp(-phi*t)}
 
 # With nugget effect
+if(set == 1){truths <- c(beta=0, tau2=0.01, sigma2=0.8, phi=0.4, theta=pi/4, maj.min=3)}
+if(set == 2){truths <- c(beta=0, tau2=0.1, sigma2=6, phi=1, theta=pi/8, maj.min=2)}
 
-tau2 <- 0.01
-sigma2 <- 0.8
-phi <- 0.4
+tau2 <- truths["tau2"]
+sigma2 <- truths["sigma2"]
+phi <- truths["phi"]
+sigvec <- c(truths["maj.min"], 1)
+theta <- truths["theta"]
 
 ######################
 # Isotropic Modeling #
@@ -55,9 +60,6 @@ phi <- 0.4
 
 # Higdon Temperatures in the North Atlantic
 # d transformed to r: r = diag(c(sigma1, sigma2)) %*% matrix(cos(theta), -sin(theta), sin(theta), cos(theta)) %*% t(d)
-
-sigvec <- c(1,3)
-theta <- pi/4
 
 tt <- matrix(NA, nrow = nrow(s), ncol = nrow(s))
 
@@ -110,6 +112,8 @@ covmatrix_anisop <- diag(tau2,nrow(tt)) + covfunc.exponential(tt,phi,sigma2)
 ##################################
 
 myMLEs <- matrix(NA, Nsims, 6)
+colnames(myMLEs) <- names(truths)
+
 times <- c()
 
 library(geoR)
@@ -129,11 +133,13 @@ for (i in 1:Nsims) {
   times[i] <- toc - tic
 }
 
-truths <- c(beta=0, tau2=tau2, sigma2=sigma2, phi=phi, theta=theta, maj.min=sigvec[2]/sigvec[1])
-colnames(myMLEs) <- names(truths)
+if(!dir.exists(paste0("~/NAM-Model-Validation/csv/aniso/set"))){
+  dir.create(paste0("~/NAM-Model-Validation/csv/aniso/set",set))
+}
 
 write.csv(cbind(myMLEs, times), 
-          file = paste0("~/NAM-Model-Validation/csv/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,".csv"))
+          file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
+                        "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,".csv"))
 
 par(mfrow=c(3,2))
 for (i in 1:6) {
