@@ -2,7 +2,7 @@
 
 Nsims <- 10
 seed <- 1
-set <- 3
+set <- 4
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -32,6 +32,9 @@ covfunc.exponential <- function(t,phi,sigma2) {sigma2 * exp(-phi*t)}
 if(set == 1){truths <- c(beta=0, tau2=0.01, sigma2=0.8, phi=0.4, theta=pi/4, maj.min=3)}
 if(set == 2){truths <- c(beta=0, tau2=0.1, sigma2=6, phi=1, theta=pi/8, maj.min=2)}
 if(set == 3){truths <- c(beta=0, tau2=0.2, sigma2=3, phi=2, theta=pi/3, maj.min=1.3)}
+if(set == 4){truths <- c(beta=0, tau2=0.2, sigma2=3, phi=3, theta=pi/2, maj.min=2.5)}
+
+write.csv(truths, file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,"/set",set,"truths.csv"))
 
 tau2 <- truths["tau2"]
 sigma2 <- truths["sigma2"]
