@@ -2,7 +2,7 @@
 
 Nsims <- 10
 seed <- 11
-set <- 6
+set <- 7
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -35,6 +35,7 @@ if(set == 3){truths <- c(beta=0, tau2=0.2, sigma2=3, phi=2, theta=pi/3, maj.min=
 if(set == 4){truths <- c(beta=0, tau2=0.2, sigma2=3, phi=3, theta=pi/2, maj.min=2.5)}
 if(set == 5){truths <- c(beta=0, tau2=0.05, sigma2=1, phi=4, theta=pi/4, maj.min=2.5)}
 if(set == 6){truths <- c(beta=0, tau2=0.02, sigma2=4, phi=1, theta=pi/4, maj.min=2)}
+if(set == 7){truths <- c(beta=0, tau2=0.04, sigma2=5, phi=2, theta=pi/8, maj.min=2)}
 
 if(!exists("truths")){stop("True values have not been set")}
 
