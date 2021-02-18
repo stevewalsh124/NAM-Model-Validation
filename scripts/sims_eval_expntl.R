@@ -27,3 +27,4 @@ cor(pixels, rowMeans(theta1_evals))
 cor(pixels, rowMeans(theta2_evals))
 
 colMeans(sim_means)
+
