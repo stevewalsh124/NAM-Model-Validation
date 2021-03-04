@@ -365,8 +365,8 @@ for(i in 1:length(storm.dirs)){
     if(!dir.exists("~/NAM-Model-Validation/csv/st4_df_sqrt/")) {
       dir.create("~/NAM-Model-Validation/csv/st4_df_sqrt/", recursive = T)
     }
-    write.csv(NAM_df, paste0("~/NAM-Model-Validation/csv/nam_df_sqrt/namdf_", storm_name,storm_year,"_",radius,"km.csv"))
-    write.csv(ST4_df, paste0("~/NAM-Model-Validation/csv/st4_df_sqrt/st4df_",storm_name,storm_year,"_",radius,"km.csv"))
+    write.csv(NAM_df, paste0("~/NAM-Model-Validation/csv/nam_df_sqrt/namdf_",storm_year,storm_name,"_",radius,"km.csv"))
+    write.csv(ST4_df, paste0("~/NAM-Model-Validation/csv/st4_df_sqrt/st4df_",storm_year,storm_name,"_",radius,"km.csv"))
   }
   
   if(subtractPWmean){
