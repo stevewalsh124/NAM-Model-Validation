@@ -340,6 +340,30 @@ for(i in 1:length(storm.dirs)){
   ST4_plotter <- sqrt(ST4trythis+ST4trythis2)
   # values(ST4_plotter)[which(values(ST4_plotter<=0))] <- 0   
   
+  ## Find the extra points from the files and remove them
+  ## When NAM and ST4 have different amounts of pixels
+  ## if NAM has more rows...
+  if(nrow(rasterToPoints(NAM_plotter)) > nrow(rasterToPoints(ST4_plotter))){
+    ST40 <- ST4_plotter
+    values(ST40)[!is.na(values(ST40))] <- 0
+    # plot(ST40)
+    NAM_plotter <- NAM_plotter - ST40
+  }
+  
+  ## if ST4 has more rows
+  if(nrow(rasterToPoints(NAM_plotter)) < nrow(rasterToPoints(ST4_plotter))){
+    NAM0 <- NAM_plotter
+    values(NAM0)[!is.na(values(NAM0))] <- 0
+    # plot(NAM0)
+    ST4_plotter <- ST4_plotter - NAM0
+  }
+  
+  if(nrow(rasterToPoints(NAM_plotter)) > nrow(rasterToPoints(ST4_plotter))){
+    ST40 <- ST4_plotter
+    values(ST40)[!is.na(values(ST40))] <- 0
+    # plot(ST40)
+    NAM_plotter <- NAM_plotter - ST40
+  }
   
   # 24 HOUR PRECIP ANALYSIS
   # Convert the three rasters to data frames for ggplot
