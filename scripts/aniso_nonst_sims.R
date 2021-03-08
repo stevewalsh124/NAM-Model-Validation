@@ -3,7 +3,14 @@
 Nsims <- 10
 seed <- 11
 set <- 9
-lo <- 40
+lo <- 80
+
+## truestart:    the aniso params only are true starting values
+## alltruestart: aniso params as well as sigma2 and phi are at true starting values
+## neither:      sigma2, phi, maj.min = 1; theta = 0
+truestart <- F
+alltruestart <- T
+if(truestart & alltruestart){stop("truestart or alltruestart, not both")}
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -38,7 +45,7 @@ if(set == 5){truths <- c(beta=0, tau2=0.05, sigma2=1, phi=4, theta=pi/4, maj.min
 if(set == 6){truths <- c(beta=0, tau2=0.02, sigma2=4, phi=1, theta=pi/4, maj.min=2)}
 if(set == 7){truths <- c(beta=0, tau2=0.04, sigma2=5, phi=2, theta=pi/8, maj.min=2)}
 if(set == 8){truths <- c(beta=0, tau2=0.04, sigma2=5, phi=1.5, theta=pi/4, maj.min=1)}
-if(set == 9){truths <- c(beta=0, tau2=0.03, sigma2=4.5, phi=1.25, theta=pi/4, maj.min=1.5)}
+if(set == 9){truths <- c(beta=0, tau2=0.03, sigma2=4.5, phi=2, theta=pi/3, maj.min=3)}
 
 if(!exists("truths")){stop("True values have not been set")}
 
@@ -134,29 +141,42 @@ times <- c()
 library(geoR)
 library(fields)
 
+pdf(paste0("~/NAM-Model-Validation/pdf/aniso/set",set,
+           "_",Nsims,"_",nrow(s),"_box",box,"_seed",seed,".pdf"))
+
 for (i in 1:Nsims) {
   x <- t(chol(covmatrix_anisop)) %*% rnorm(nrow(s))
   z <- matrix(x,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
   
-  image.plot(z)
-  
+  image.plot(z, main=paste0("sigmasq",sigma2," phi",phi, " ratio",maj.min[1], " angle",round(180/pi*theta,3)))
+
   tic <- proc.time()[3]
-  myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(sigma2,phi), fix.psiA = F, 
-                  psiA = theta, fix.psiR = F, psiR = maj.min[1])
+  if(truestart){
+    myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(1,1), fix.psiA = F, 
+                    psiA = theta, fix.psiR = F, psiR = maj.min[1])} 
+  if(alltruestart){
+    myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(sigma2,phi), fix.psiA = F, 
+                    psiA = theta, fix.psiR = F, psiR = maj.min[1])}
+  if(!truestart & !alltruestart){
+    myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(1,1), fix.psiA = F, 
+                    psiA = 0, fix.psiR = F, psiR = 1)}
+  
   myMLEs[i,] <-  c(myMLE$beta, myMLE$tausq, myMLE$sigmasq, myMLE$phi, myMLE$aniso.pars[1], myMLE$aniso.pars[2])
   toc <- proc.time()[3]
   print(toc - tic)
   times[i] <- toc - tic
 }
 
-## truestart: the aniso params only are true starting values
-## alltruestart: aniso params as well as sigma2 and phi are at true starting values
+
 write.csv(cbind(myMLEs, times), 
           file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
-                        "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,"_alltruestart.csv"))
+                        "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
+                        if(truestart){"_truestart"}, if(alltruestart){"_alltruestart"},".csv"))
 
-par(mfrow=c(3,2))
+par(mfrow=c(2,2))
 for (i in 1:6) {
-  hist(myMLEs[,i], main = names(truths)[i])
+  hist(myMLEs[,i], main = paste(names(truths)[i], round(truths[i],3)))
   abline(v=truths[i], col="blue")
 }
+
+dev.off()

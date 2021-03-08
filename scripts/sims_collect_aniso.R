@@ -1,7 +1,7 @@
 # Collect anisotropic sim results
 
 set <- 4
-truths <- read.csv(paste0("~/NAM-Model-Validation/csv/aniso/set",set,"/set",set,"truths.csv"))
+truths <- read.csv(paste0("~/NAM-Model-Validation/csv/aniso/collect/set",set,"/set",set,"truths.csv"))
 box <- 20
 
 truestart <- T
@@ -16,7 +16,7 @@ if(truestart){
 
 tables <- lapply(csvs, read.csv, header = TRUE)
 MLEs <- do.call(rbind , tables)[,-1]
-pdf(paste0("~/NAM-Model-Validation/pdf/aniso_sim_results_box", box,"_set",set,if(truestart){"truestart"},".pdf"))
+pdf(paste0("~/NAM-Model-Validation/pdf/aniso/aniso_sim_results_box", box,"_set",set,if(truestart){"truestart"},".pdf"))
 
 par(mfrow=c(3,2))
 for (i in 1:6) {
