@@ -3,6 +3,7 @@
 Nsims <- 10
 seed <- 11
 set <- 8
+lo <- 40
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -12,8 +13,8 @@ if(length(args) > 0)
 set.seed(seed)
 
 box <- 20
-xaxis <- seq(0,box,length.out = 80)
-yaxis <- seq(0,box,length.out = 80)
+xaxis <- seq(0,box,length.out = lo)
+yaxis <- seq(0,box,length.out = lo)
 
 s <- matrix(NA,nrow=length(xaxis)*length(yaxis),ncol=2)
 for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] <- c(xaxis[i],yaxis[j])
@@ -145,10 +146,6 @@ for (i in 1:Nsims) {
   toc <- proc.time()[3]
   print(toc - tic)
   times[i] <- toc - tic
-}
-
-if(!dir.exists(paste0("~/NAM-Model-Validation/csv/aniso/set",set))){
-  dir.create(paste0("~/NAM-Model-Validation/csv/aniso/set",set))
 }
 
 ## truestart: the aniso params only are true starting values
