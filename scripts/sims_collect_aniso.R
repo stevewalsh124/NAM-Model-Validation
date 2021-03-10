@@ -1,6 +1,7 @@
 # Collect anisotropic sim results
-
-set <- 9
+for (i in 1:9) {
+  
+set <- i
 truths <- read.csv(paste0("~/NAM-Model-Validation/csv/aniso/set",set,"/set",set,"truths.csv"))
 box <- 20
 
@@ -27,7 +28,7 @@ for (i in 1:6) {
   abline(v=truths[i,2], lwd=2, col="blue")
 }
 
-hist(MLEs[,3]*MLEs[,4], main=expression(sigma2/phi))
+hist(MLEs[,3]*MLEs[,4], main=paste(expression(sigma2/phi),":", round(truths[3,2]/truths[4,2],3)))
 abline(v=truths[3,2]/truths[4,2],col="blue", lwd=2)
 
 # #which(MLEs$sigma2 > 2)
@@ -58,3 +59,4 @@ abline(v=truths[3,2]/truths[4,2],col="blue", lwd=2)
 # MLEs_F <- do.call(rbind , tables_F)
 
 dev.off()
+}
