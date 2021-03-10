@@ -27,6 +27,9 @@ for (i in 1:6) {
   abline(v=truths[i,2], lwd=2, col="blue")
 }
 
+hist(MLEs[,3]*MLEs[,4], main=expression(sigma2/phi))
+abline(v=truths[3,2]/truths[4,2],col="blue", lwd=2)
+
 # #which(MLEs$sigma2 > 2)
 # #which(MLEs$phi > 2)      # same set as above
 # #which(MLEs$maj.min < 2)  # disjoint as above two
