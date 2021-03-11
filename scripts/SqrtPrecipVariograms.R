@@ -20,15 +20,20 @@ library(fields) #US()
 addbothbuffers = T
 pred <- F
 
+# Do you want to write csvs and rasters, as well as make a pdf?
+write.pdf <- T
+
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
-subtractPWmean = T
+subtractPWmean = F
 makePWmean = F
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
+if(write.pdf){
 pdf(paste0("~/NAM-Model-Validation/pdf/sqrtbuffer_47_ngb_",
            if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},if(pred){"pred"},
            "_bothbuffers.pdf"))
+}
 
 if(pred){
   storm.dirs <- list.dirs("~/NAM-Model-Validation/prediction", recursive = F)
@@ -376,6 +381,7 @@ for(i in 1:length(storm.dirs)){
   colnames(ST4_df) <- c("value", "x", "y")
   
   # Use these to load into simulate_error_field.R, prediction, etc
+  if(write.pdf){
   if(pred){
     if(!dir.exists(paste0("~/NAM-Model-Validation/prediction_sqrt/",storm_yearname,"/"))) {
       dir.create(paste0("~/NAM-Model-Validation/prediction_sqrt/",storm_yearname,"/"), recursive = T)
@@ -392,6 +398,7 @@ for(i in 1:length(storm.dirs)){
     write.csv(NAM_df, paste0("~/NAM-Model-Validation/csv/nam_df_sqrt/namdf_",storm_year,storm_name,"_",radius,"km.csv"))
     write.csv(ST4_df, paste0("~/NAM-Model-Validation/csv/st4_df_sqrt/st4df_",storm_year,storm_name,"_",radius,"km.csv"))
   }
+  }
   
   if(subtractPWmean){
     error <- ST4_plotter - NAM_plotter - PW_mean_buff
@@ -400,6 +407,7 @@ for(i in 1:length(storm.dirs)){
     error <- ST4_plotter - NAM_plotter
   }
   
+
   if(makePWmean){
     if(!dir.exists("~/NAM-Model-Validation/error_rasters_sqrt/")) {
       dir.create("~/NAM-Model-Validation/error_rasters_sqrt/", recursive = T)
@@ -410,21 +418,25 @@ for(i in 1:length(storm.dirs)){
     if(!dir.exists("~/NAM-Model-Validation/error_rasters_counts_sqrt/")) {
       dir.create("~/NAM-Model-Validation/error_rasters_counts_sqrt/", recursive = T)
     }
+    if(write.pdf){
     #write rasters from the errors to combine all on common map
     writeRaster(error, paste0("~/NAM-Model-Validation/error_rasters_sqrt/",storm_year,storm_name), overwrite=T) 
     writeRaster(error*error, paste0("~/NAM-Model-Validation/error_rasters_squared_sqrt/",storm_year,storm_name), overwrite=T)
+    }
     # in the loop for I in the storms
     error_count <- error
     error_count[!is.na(error_count)] <- 1
     error_count[is.na(error_count)] <- 0
+    if(write.pdf){
     writeRaster(error_count, paste0("~/NAM-Model-Validation/error_rasters_counts_sqrt/",storm_year,storm_name), overwrite=T)
-    
+    }
   }
   
   error_spdf <- as((error), "SpatialPixelsDataFrame")
   error_df <- as.data.frame(error_spdf)
   colnames(error_df) <- c("value", "x", "y")
   
+  if(write.pdf){
   if(!pred){
     if(subtractPWmean){
       if(!dir.exists("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanT_flat/")) {
@@ -439,6 +451,7 @@ for(i in 1:length(storm.dirs)){
       write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF/errordf_",
                                  storm_year,storm_name,"_",radius,"deg.csv"))
     }
+  }
   }
   
   error.max <- max(abs(error_df$value))
@@ -533,6 +546,7 @@ for(i in 1:length(storm.dirs)){
 }
 
 svg.param.ests.error <- cbind(namevec, phivec, prRangevec, tau2vec, sig2vec)
+if(write.pdf){
 if(subtractPWmean) {
   write.csv(svg.param.ests.error, 
             paste0("~/NAM-Model-Validation/csv/svg.param.ests.error_deg_subtractPWmean_",
@@ -542,11 +556,13 @@ if(subtractPWmean) {
             paste0("~/NAM-Model-Validation/csv/svg.param.ests.error_deg_noPWmean_",
             if(pred){"pred_"},"sqrt.csv"))
 }
+}
 
 # save.image("LogPrecipVariograms.wks")
 
-dev.off()
-
+if(write.pdf){
+  dev.off()
+}
 
 # Make the new raster summary files for pointwise (PW) mean, variance, std errors
 if(makePWmean){
@@ -559,15 +575,19 @@ if(makePWmean){
   error_files <- list.files("~/NAM-Model-Validation/error_rasters_counts_sqrt/", pattern = ".grd", full.names = T)
   error_counts <- mosaicList(error_files)
   
+  if(write.pdf){
   if(!dir.exists("~/NAM-Model-Validation/error_rasters_summary_sqrt")) {
     dir.create("~/NAM-Model-Validation/error_rasters_summary_sqrt", recursive = T)
   }
   writeRaster(error_counts, "~/NAM-Model-Validation/error_rasters_summary_sqrt/error_counts", overwrite=T)
   writeRaster(error_sum, "~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum", overwrite=T)
   writeRaster(error_sum_sq, "~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum_sq", overwrite = T)
+  }
   
   PW_mean <- error_sum/error_counts
+  if(write.pdf){
   writeRaster(PW_mean, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean", overwrite=T)
+  }
   plot(PW_mean, main="Pointwise Mean")
   PW_mean_spdf <- as((PW_mean), "SpatialPixelsDataFrame")
   PW_mean_df <- as.data.frame(PW_mean_spdf)
@@ -585,7 +605,9 @@ if(makePWmean){
   plot(PW_mean, main="Pointwise Mean")
   plot(abs(PW_mean),main="Absolute Value of Pointwise Mean")
   S2 <- (error_sum_sq - (error_sum * error_sum)/error_counts)/(error_counts - 1)  
-  writeRaster(S2, "~/NAM-Model-Validation/error_rasters_summary_sqrt/S2", overwrite=T)
+  if(write.pdf){
+    writeRaster(S2, "~/NAM-Model-Validation/error_rasters_summary_sqrt/S2", overwrite=T)
+  }
   plot(S2, main="Pointwise Variance Map")
   
   plot(PW_mean/sqrt(S2))
