@@ -1,14 +1,146 @@
 library(raster) #raster, extent
 library(fields) #US()
 
-########################
-# Plot NAM, ST4, error #
-########################
+black <- rgb(c(0,0,0)/255,1)
+orange <- rgb(230/255,159/255,0,1)
+# skyblue <- rgb(86/255,180/255,233/255,1)
+# bluegreen <- rgb(0,158/255,115/255,1)
+yellow <- rgb(240/255,228/255,66/255,1)
+blue <- rgb(0,114/255,178/255,1)
+verm <- rgb(213/255, 94/255, 0,1)
+redpurp <- rgb(204/255, 121/255, 167/255, 1)
+plot(1:10, col=c(black,yellow,blue, redpurp,verm))
+###################################
+# Figure 1: landfalls by location #
+###################################
 
-# run LogPrecipVariograms with desired storm number for storm.dirs (45 for harvey, etc)
-# pick subtractPWmean T or F
+all_content = readLines("csv/US_20042017_landfalls_mod.csv")
+skip_second = all_content[-6] #6th storm had no significant landfall
+landfalls = read.csv(textConnection(skip_second), header = T, stringsAsFactors = FALSE)
+colnames(landfalls) <- c("Year","Storm","Landfall Time (UTC)","BT.Lat","BTLon","SSHWS")
+landfalls$inten <- factor(ifelse(landfalls$SSHWS%in%c("TS","1","2"),"TS,1,2","3,4,5"))
+landfalls$inten_alt <- factor(ifelse(landfalls$SSHWS%in%c("TS"),"TS",
+                                     ifelse(landfalls$SSHWS%in%c("1","2"),"1,2","3,4,5")))
+landfalls$loc   <- factor(ifelse(landfalls$BT.Lat>32,"ATL",
+                                 ifelse(landfalls$BTLon>-88,"FL","GULF")))
+landfalls$SSHWS=factor(landfalls$SSHWS, levels = levels(factor(landfalls$SSHWS))[c(5,1:4)])
+landfalls$inten=factor(landfalls$inten , levels=levels(landfalls$inten)[c(2,1)])
+landfalls$inten_alt=factor(landfalls$inten_alt , levels=levels(landfalls$inten_alt)[c(3,1,2)])
+
+
+levels(landfalls$SSHWS)
+stormsTS<- which(landfalls$SSHWS=="TS")
+storms1 <- which(landfalls$SSHWS==1)
+storms2 <- which(landfalls$SSHWS==2)
+storms3 <- which(landfalls$SSHWS==3)
+storms4 <- which(landfalls$SSHWS==4)
+storms5 <- which(landfalls$SSHWS==5)
+storms_TS_1_2 <- c(stormsTS,storms1,storms2)
+storms_3_4_5  <- c(storms3,storms4,storms5)
+
+stormsATL <- which(landfalls$BT.Lat>32)
+stormsFL  <- which(landfalls$BT.Lat<32&landfalls$BTLon> -88)
+stormsGULF<- which(landfalls$BT.Lat<32&landfalls$BTLon< -88)
+dim(landfalls[stormsATL,]);dim(landfalls[stormsFL,]);dim(landfalls[stormsGULF,])
+
+class(landfalls$BT.Lat) <- "numeric"
+class(landfalls$BTLon) <- "numeric"
+
+g_byint <- ggplot() + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  geom_point(data = landfalls[c(stormsTS),], aes(x=BTLon, y = BT.Lat, color=" TS"))+
+  geom_point(data = landfalls[c(storms1,storms2),], aes(x=BTLon, y = BT.Lat, color="1/2"))+
+  geom_point(data = landfalls[c(storms3,storms4,storms5),], aes(x=BTLon, y = BT.Lat, color="3/4/5"))+
+  labs(title ="Landfalls by Intensity", x = "Longitude", y="Latitude") + 
+  coord_fixed(xlim=c(-100, -68), ylim = c(24,45), ratio = 1)+
+  scale_colour_manual(name="Intensity", values = c("green","blue","red"))
+
+g_byint <- ggplot() + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  geom_point(data = landfalls[c(stormsTS),], 
+             aes(x=BTLon, y = BT.Lat, color=" TS"),size=4,shape=15,fill=skyblue)+
+  geom_point(data = landfalls[c(storms1,storms2),], 
+             aes(x=BTLon, y = BT.Lat, color="1/2"), size=4,shape=16,fill=yellow)+
+  geom_point(data = landfalls[c(storms3,storms4,storms5),], 
+             aes(x=BTLon, y = BT.Lat, color="3/4/5"),size=4,shape=18,fill=verm)+
+  labs(title ="Landfalls by Intensity", x = "Longitude", y="Latitude") + 
+  coord_fixed(xlim=c(-98, -70), ylim = c(24.5,42), ratio = 1)+
+  scale_colour_manual(name="Intensity", values = c(skyblue,yellow,verm),
+                      guide = guide_legend(override.aes = list(shape = c(15,16,18), 
+                                                               color = c(skyblue,yellow,verm))))
+  
+  # scale_shape_manual(values=c(16,17,18),color=c("green","blue","red"))+
+
+g_byint
+
+png(paste0("~/NAM-Model-Validation/png/g_byint.png"),width=4000, height=2400, res=700)
+g_byint
+dev.off()
+
+
+##################################
+# Figure 3: Plot NAM, ST4, error #
+##################################
+
+source("scripts/multiplot.R")
+
+# run SqrtPrecipVariograms.R with:
+# * write.pdf <- F
+# * line 40, chg to: storm.dirs <- list.dirs("~/NAMandST4", recursive = F)[47] eg for Nate
+# * pick subtractPWmean T or F
+g1= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) + 
+  labs(title =paste(paste0(str_to_title(storm_name),": Stage IV Data")),x = "Longitude", y="Latitude") + 
+  coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                     max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+              ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                     max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+
+g2= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) +
+  labs(title =paste0(str_to_title(storm_name),": NAM Forecast"), x = "Longitude", y="Latitude") + 
+  coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                     max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+              ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                     max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+
+g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
+  labs(title =paste(paste0(str_to_title(storm_name),": Stage IV - NAM")),
+       x = "Longitude", y="Latitude")+
+  coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                     max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+              ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                     max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+
+ggsave(
+  "png/NAM_ST4_error_gg.png",
+  multiplot(g1,g2,g3,cols=3),
+  width = 6.5,
+  height = 2.5,
+  dpi = 300
+)
+
 png(paste0("~/NAM-Model-Validation/png/NAM_ST4_error_", storm_year, storm_name,".png"),
-    width=760, height=260)
+    width=1800, height=525, res=175)
+multiplot(g1, g2, g3, cols=3)
+dev.off()
+
+png(paste0("~/NAM-Model-Validation/png/NAM_ST4_error_", storm_year, storm_name,"in.png"),
+    width=6.5, height=2.5, units = "in", res=100)
 multiplot(g1, g2, g3, cols=3)
 dev.off()
 
