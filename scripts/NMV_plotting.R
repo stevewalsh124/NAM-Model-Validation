@@ -1,15 +1,17 @@
 library(raster) #raster, extent
 library(fields) #US()
 
-black <- rgb(c(0,0,0)/255,1)
+black <- rgb(0,0,0,1)
 orange <- rgb(230/255,159/255,0,1)
-# skyblue <- rgb(86/255,180/255,233/255,1)
-# bluegreen <- rgb(0,158/255,115/255,1)
+skyblue <- rgb(86/255,180/255,233/255,1)
+bluegreen <- rgb(0,158/255,115/255,1)
 yellow <- rgb(240/255,228/255,66/255,1)
 blue <- rgb(0,114/255,178/255,1)
 verm <- rgb(213/255, 94/255, 0,1)
 redpurp <- rgb(204/255, 121/255, 167/255, 1)
 plot(1:10, col=c(black,yellow,blue, redpurp,verm))
+
+
 ###################################
 # Figure 1: landfalls by location #
 ###################################
@@ -50,36 +52,37 @@ g_byint <- ggplot() +
   geom_tile() + theme_classic() + 
   geom_polygon(data=subset(map_data("state"), region %in% regions), 
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  geom_point(data = landfalls[c(stormsTS),], aes(x=BTLon, y = BT.Lat, color=" TS"))+
-  geom_point(data = landfalls[c(storms1,storms2),], aes(x=BTLon, y = BT.Lat, color="1/2"))+
-  geom_point(data = landfalls[c(storms3,storms4,storms5),], aes(x=BTLon, y = BT.Lat, color="3/4/5"))+
-  labs(title ="Landfalls by Intensity", x = "Longitude", y="Latitude") + 
-  coord_fixed(xlim=c(-100, -68), ylim = c(24,45), ratio = 1)+
-  scale_colour_manual(name="Intensity", values = c("green","blue","red"))
-
-g_byint <- ggplot() + 
-  geom_tile() + theme_classic() + 
-  geom_polygon(data=subset(map_data("state"), region %in% regions), 
-               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   geom_point(data = landfalls[c(stormsTS),], 
              aes(x=BTLon, y = BT.Lat, color=" TS"),size=4,shape=15,fill=skyblue)+
   geom_point(data = landfalls[c(storms1,storms2),], 
              aes(x=BTLon, y = BT.Lat, color="1/2"), size=4,shape=16,fill=yellow)+
   geom_point(data = landfalls[c(storms3,storms4,storms5),], 
              aes(x=BTLon, y = BT.Lat, color="3/4/5"),size=4,shape=18,fill=verm)+
-  labs(title ="Landfalls by Intensity", x = "Longitude", y="Latitude") + 
+  labs(x = "Longitude", y="Latitude") + 
+  theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(-98, -70), ylim = c(24.5,42), ratio = 1)+
   scale_colour_manual(name="Intensity", values = c(skyblue,yellow,verm),
                       guide = guide_legend(override.aes = list(shape = c(15,16,18), 
                                                                color = c(skyblue,yellow,verm))))
   
-  # scale_shape_manual(values=c(16,17,18),color=c("green","blue","red"))+
-
 g_byint
 
-png(paste0("~/NAM-Model-Validation/png/g_byint.png"),width=4000, height=2400, res=700)
+png(paste0("~/NAM-Model-Validation/png/g_byint.png"),width=1775, height=1000, res=350)
 g_byint
 dev.off()
+
+ggsave(
+  "png/g_byint_gg.png",
+  g_byint,
+  width = 7.75,
+  height = 4.5,
+  dpi = 350
+)
+
+#################################
+# Figure 2: preprocessing steps #
+#################################
+
 
 
 ##################################
@@ -92,12 +95,69 @@ source("scripts/multiplot.R")
 # * write.pdf <- F
 # * line 40, chg to: storm.dirs <- list.dirs("~/NAMandST4", recursive = F)[47] eg for Nate
 # * pick subtractPWmean T or F
+
+# Removed some of the greener ones to get more yellow/red
+precipcolors <- c("#FFFFFF", "#E0F8E0", "#81F781",
+                  "#2EFE2E", "#C8FE2E", "#FFFF00",
+                  "#FACC2E", "#FFBF00", "#FF8000", "#FF4000","#FF0000")
+
 g1= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) + 
   geom_tile() + theme_classic() + 
   geom_polygon(data=subset(map_data("state"), region %in% regions), 
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) + 
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max),
+                       name = expression(sqrt(mm))) + 
   labs(title =paste(paste0(str_to_title(storm_name),": Stage IV Data")),x = "Longitude", y="Latitude") + 
+  coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                     max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+              ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                     max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+
+
+g2= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max),
+                       name = expression(sqrt(mm))) +
+  labs(title =paste0(str_to_title(storm_name),": NAM Forecast"), x = "Longitude", y="Latitude") + 
+  coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                     max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+              ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                     max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+
+
+g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white",
+                       name = expression(sqrt(mm))) +
+  labs(title =paste(paste0(str_to_title(storm_name),": Stage IV - NAM")),
+       x = "Longitude", y="Latitude")+
+  coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
+                     max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
+              ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
+                     max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
+
+
+png(paste0("~/NAM-Model-Validation/png/NAM_ST4_error_", storm_year, storm_name,".png"),
+    width=3600, height=1050, res=350)
+multiplot(g1, g2, g3, cols=3)
+dev.off()
+
+#######################
+# Figure 3: No titles #
+####################### 
+
+g1= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",
+                       limits=c(0,precip.max), name = expression(sqrt(mm))) + 
+  labs(x = "Longitude", y="Latitude") + 
+  theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
               ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
@@ -107,8 +167,10 @@ g2= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) +
   geom_tile() + theme_classic() + 
   geom_polygon(data=subset(map_data("state"), region %in% regions), 
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max)) +
-  labs(title =paste0(str_to_title(storm_name),": NAM Forecast"), x = "Longitude", y="Latitude") + 
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",
+                       limits=c(0,precip.max), name = expression(sqrt(mm))) +
+  labs(x = "Longitude", y="Latitude") + 
+  theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
               ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
@@ -118,9 +180,10 @@ g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) +
   geom_tile() + theme_classic() + 
   geom_polygon(data=subset(map_data("state"), region %in% regions), 
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white") +
-  labs(title =paste(paste0(str_to_title(storm_name),": Stage IV - NAM")),
-       x = "Longitude", y="Latitude")+
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",
+                       na.value = "white", name = expression(sqrt(mm))) +
+  labs(x = "Longitude", y="Latitude")+
+  theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
               ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
@@ -129,20 +192,21 @@ g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) +
 ggsave(
   "png/NAM_ST4_error_gg.png",
   multiplot(g1,g2,g3,cols=3),
-  width = 6.5,
-  height = 2.5,
-  dpi = 300
+  width = 12,
+  height = 3.25,
+  dpi = 350
 )
 
-png(paste0("~/NAM-Model-Validation/png/NAM_ST4_error_", storm_year, storm_name,".png"),
-    width=1800, height=525, res=175)
+png(paste0("~/NAM-Model-Validation/png/NAM_ST4_error_", storm_year, storm_name,"_notitle.png"),
+    width=3600, height=1000, res=350)
 multiplot(g1, g2, g3, cols=3)
 dev.off()
 
-png(paste0("~/NAM-Model-Validation/png/NAM_ST4_error_", storm_year, storm_name,"in.png"),
-    width=6.5, height=2.5, units = "in", res=100)
-multiplot(g1, g2, g3, cols=3)
-dev.off()
+
+
+########################
+# Figure: error counts #
+########################
 
 error_counts_plot <- error_counts*mask.regrid
 error_counts_plot[error_counts_plot <= 0] <- NA
@@ -269,6 +333,78 @@ dev.off()
 PW_post_new <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_newm.grd")
 PW_post_sds <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_sds.grd")
 
+plot(PW_mean, main="Pointwise Mean")
+PW_post_spdf <- as((PW_post_new), "SpatialPixelsDataFrame")
+PW_post_df <- as.data.frame(PW_post_spdf)
+colnames(PW_post_df) <- c("value", "x", "y")
+
+plot(PW_post_sds, main="Pointwise SDs")
+PW_sds_spdf <- as((PW_post_sds), "SpatialPixelsDataFrame")
+PW_sds_df <- as.data.frame(PW_sds_spdf)
+colnames(PW_sds_df) <- c("value", "x", "y")
+
+plot(PW_post_new/PW_post_sds, main="Standardized Pointwise Mean")
+PW_stdz_spdf <- as((PW_post_new/PW_post_sds), "SpatialPixelsDataFrame")
+PW_stdz_df <- as.data.frame(PW_stdz_spdf)
+colnames(PW_stdz_df) <- c("value", "x", "y")
+
+g5= ggplot(aes(x=x,y=y,fill=value),data=PW_post_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white",
+                       limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
+                       name = expression(sqrt(mm))) +
+  # labs(x = "Longitude", y="Latitude")+
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank())+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), 
+              ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
+
+g5
+
+g6= ggplot(aes(x=x,y=y,fill=value),data=PW_sds_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
+                       limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
+                       name = expression(sqrt(mm))) +
+  # labs(x = "Longitude", y="Latitude")+
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank())+  
+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
+
+g6
+
+g7= ggplot(aes(x=x,y=y,fill=value),data=PW_stdz_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
+                       limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
+                       name = expression(sqrt(mm))) +
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank())+
+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
+
+g7
+
+multiplot(g5,g6,g7,cols = 3)
+
+library(lemon)
+grid_arrange_shared_legend(g5,g6,g7,position = "right")
+
+ggsave(
+  "png/PWmean_sds_stdz_gg.png",
+  grid_arrange_shared_legend(g5,g6,g7,position = "right"),
+  width = 11,
+  height = 2.5,
+  dpi = 350
+)
+
 png("~/NAM-Model-Validation/png/NMV_post_mean_sds_stdz.png", width = 1200*1.5, height = 400*1.5)
 par(mfrow=c(1,3),mar=c(6,6,4,11)+.1)
 lmag <- 2.5 #letter magnification
@@ -308,19 +444,21 @@ dev.off()
 
 
 
-#####################
-# post vs MLE plots #
-#####################
+###############################
+# Figure 5: post vs MLE plots #
+###############################
 
 # from GibbsSamplerHurrRegrNA.R
-load("~/NAM-Model-Validation/RData/Gibbs_flatPW.RData")
+load("~/NAM-Model-Validation/RData/Gibbs_sqrt.RData")
+
+my_cols <- c(skyblue,yellow,verm)
 
 # Lower and upper bound extra space to see end of distbns
-up_b <- c(0.5,0.7,0.1); lw_b <- c(0.3,0.3,0.1)
-
+up_b <- c(0,0.7); lw_b <- c(0,0.3)
+smush <- c(0.02, 0.15)
 ## Plot MLE vs posterior estimates for the 47 storms
 png("~/NAM-Model-Validation/png/NMV_compareMLEpost.png", width = 1400, height = 700)
-par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
+par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,2))
 for (i in 1:P) {
   plot(0, 0, col = "white", ylab = "", 
        xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
@@ -335,9 +473,9 @@ for (i in 1:P) {
   segments(x0 = emp_thetaMED[,i],                            # Draw multiple lines
            y0 = 0,
            x1 = theta_hat[,i],
-           y1 = 1, col = loc_int$loc, lwd=3)
-  points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= loc_int$loc)
-  points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= loc_int$loc)
+           y1 = 1, col = my_cols[factor(loc_int$loc)], lwd=1)
+  points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= my_cols[factor(loc_int$loc)])
+  points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= my_cols[factor(loc_int$loc)])
   for (j in 1:N) {
     #top row, theta hats
     xseq <- seq(theta_hat[j,i]-3*sqrt(solve(hessians[[j]])[i,i]),
@@ -345,8 +483,8 @@ for (i in 1:P) {
                 length.out = 1000)
     lines(xseq,smush[i]*dnorm(xseq,
                               theta_hat[j,i],
-                              sqrt(solve(hessians[[j]])[i,i]))+1, col=loc_int$loc[j],
-          lty = as.integer(loc_int$loc)[j], lwd=3)
+                              sqrt(solve(hessians[[j]])[i,i]))+1, col=my_cols[factor(loc_int$loc)[j]],
+          lty = 1, lwd=3)
     
     #bottom row, thetas from MCMC
     xseq <- seq(min(theta_burn[[j]][,i]),
@@ -354,98 +492,241 @@ for (i in 1:P) {
                 length.out = 1000)
     lines(xseq, smush[i]*dnorm(xseq, 
                                mean(theta_burn[[j]][,i]), 
-                               sd(theta_burn[[j]][,i])), col=loc_int$loc[j],
-          lty = as.integer(loc_int$loc)[j], lwd=3)
+                               sd(theta_burn[[j]][,i])), col=my_cols[factor(loc_int$loc)[j]],
+          lty = 1, lwd=3)
   }
-  legend("topright", 
+  legend("topright",
          2, lwd=3,
-         legend=c(levels(loc_int$loc)[unique(as.integer(loc_int$loc))]),
-         col=unique(as.integer(loc_int$loc)), lty=unique(as.integer(loc_int$loc)), cex=2)
+         legend=levels(factor(loc_int$loc)),
+         col=my_cols, lty=1, cex=2)
 }
 dev.off()
 
-png("~/NAM-Model-Validation/png/NMV_compareMLEpost2.png", width = 1500, height = 500)
-par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
-for (i in 1:P) {
-  plot(0, 0, col = "white", ylab = "", 
-       xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
-              max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
-       ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2,
-       xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
-  # mult_seg <- data.frame(x0 = c(0.7, 0.2, - 0.9, 0.5, - 0.2),    # Create data frame with line-values
-  #                        y0 = c(0.5, 0.5, 0.6, - 0.3, 0.4),
-  #                        x1 = c(0, 0.2, 0.4, - 0.3, - 0.6),
-  #                        y1 = c(- 0.1, 0.3, - 0.6, - 0.8, 0.9))
-  
-  segments(x0 = emp_thetaMED[,i],                            # Draw multiple lines
-           y0 = 0,
-           x1 = theta_hat[,i],
-           y1 = 1, col = loc_int$loc)
-  points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= loc_int$loc)
-  points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= loc_int$loc)
-  for (j in 1:N) {
-    #top row, theta hats
-    xseq <- seq(theta_hat[j,i]-3*sqrt(solve(hessians[[j]])[i,i]),
-                theta_hat[j,i]+3*sqrt(solve(hessians[[j]])[i,i]),
-                length.out = 1000)
-    lines(xseq,smush[i]*dnorm(xseq,
-                              theta_hat[j,i],
-                              sqrt(solve(hessians[[j]])[i,i]))+1, col=loc_int$loc[j],
-          lty = as.integer(loc_int$loc)[j], lwd=3)
-    
-    #bottom row, thetas from MCMC
-    xseq <- seq(min(theta_burn[[j]][,i]),
-                max(theta_burn[[j]][,i]), 
-                length.out = 1000)
-    lines(xseq, smush[i]*dnorm(xseq, 
-                               mean(theta_burn[[j]][,i]), 
-                               sd(theta_burn[[j]][,i])), col=loc_int$loc[j],
-          lty = as.integer(loc_int$loc)[j], lwd=3)
-  }
-  legend("topright", 
-         2, lwd=3,
-         legend=c(levels(loc_int$loc)[unique(as.integer(loc_int$loc))]),
-         col=unique(as.integer(loc_int$loc)), lty=unique(as.integer(loc_int$loc)), cex=2)
-}
-dev.off()
+# png("~/NAM-Model-Validation/png/NMV_compareMLEpost2.png", width = 1500, height = 500)
+# par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
+# for (i in 1:P) {
+#   plot(0, 0, col = "white", ylab = "", 
+#        xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
+#               max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
+#        ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2,
+#        xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
+#   # mult_seg <- data.frame(x0 = c(0.7, 0.2, - 0.9, 0.5, - 0.2),    # Create data frame with line-values
+#   #                        y0 = c(0.5, 0.5, 0.6, - 0.3, 0.4),
+#   #                        x1 = c(0, 0.2, 0.4, - 0.3, - 0.6),
+#   #                        y1 = c(- 0.1, 0.3, - 0.6, - 0.8, 0.9))
+#   
+#   segments(x0 = emp_thetaMED[,i],                            # Draw multiple lines
+#            y0 = 0,
+#            x1 = theta_hat[,i],
+#            y1 = 1, col = my_cols[loc_int$loc])
+#   points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= loc_int$loc)
+#   points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= loc_int$loc)
+#   for (j in 1:N) {
+#     #top row, theta hats
+#     xseq <- seq(theta_hat[j,i]-3*sqrt(solve(hessians[[j]])[i,i]),
+#                 theta_hat[j,i]+3*sqrt(solve(hessians[[j]])[i,i]),
+#                 length.out = 1000)
+#     lines(xseq,smush[i]*dnorm(xseq,
+#                               theta_hat[j,i],
+#                               sqrt(solve(hessians[[j]])[i,i]))+1, col=loc_int$loc[j],
+#           lty = as.integer(loc_int$loc)[j], lwd=3)
+#     
+#     #bottom row, thetas from MCMC
+#     xseq <- seq(min(theta_burn[[j]][,i]),
+#                 max(theta_burn[[j]][,i]), 
+#                 length.out = 1000)
+#     lines(xseq, smush[i]*dnorm(xseq, 
+#                                mean(theta_burn[[j]][,i]), 
+#                                sd(theta_burn[[j]][,i])), col=loc_int$loc[j],
+#           lty = as.integer(loc_int$loc)[j], lwd=3)
+#   }
+#   legend("topright", 
+#          2, lwd=3,
+#          legend=c(levels(loc_int$loc)[unique(as.integer(loc_int$loc))]),
+#          col=unique(as.integer(loc_int$loc)), lty=unique(as.integer(loc_int$loc)), cex=2)
+# }
+# dev.off()
+# 
+# png("~/NAM-Model-Validation/png/NMV_compareMLEpost3.png", width = 1400, height = 700)
+# par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
+# for (i in 1:P) {
+#   plot(0, 0, col = "white", ylab = "", 
+#        xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
+#               max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
+#        ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2,
+#        xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
+#   
+#   segments(x0 = emp_thetaMED[,i],                            # Draw multiple lines
+#            y0 = 0,
+#            x1 = theta_hat[,i],
+#            y1 = 1, col = loc_int$loc, lwd=3)
+#   points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= loc_int$loc)
+#   points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= loc_int$loc)
+#   for (j in 1:N) {
+#     #top row, theta hats
+#     xseq <- seq(theta_hat[j,i]-3*sqrt(solve(hessians[[j]])[i,i]),
+#                 theta_hat[j,i]+3*sqrt(solve(hessians[[j]])[i,i]),
+#                 length.out = 1000)
+#     lines(xseq,smush[i]*dnorm(xseq,
+#                               theta_hat[j,i],
+#                               sqrt(solve(hessians[[j]])[i,i]))+1, col=loc_int$loc[j],
+#           lwd=3) #lty = as.integer(loc_int$loc)[j], 
+#     
+#     #bottom row, thetas from MCMC
+#     xseq <- seq(min(theta_burn[[j]][,i]),
+#                 max(theta_burn[[j]][,i]), 
+#                 length.out = 1000)
+#     lines(xseq, smush[i]*dnorm(xseq, 
+#                                mean(theta_burn[[j]][,i]), 
+#                                sd(theta_burn[[j]][,i])), col=loc_int$loc[j],
+#           lwd=3) #lty = as.integer(loc_int$loc)[j], 
+#   }
+#   legend("topright", 
+#          2, lwd=3,
+#          legend=c(levels(loc_int$loc)[unique(as.integer(loc_int$loc))]),
+#          col=unique(as.integer(loc_int$loc)), lty=unique(as.integer(loc_int$loc)), cex=2)
+# }
+# dev.off()
 
-png("~/NAM-Model-Validation/png/NMV_compareMLEpost3.png", width = 1400, height = 700)
-par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
-for (i in 1:P) {
-  plot(0, 0, col = "white", ylab = "", 
-       xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
-              max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
-       ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2,
-       xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
-  
-  segments(x0 = emp_thetaMED[,i],                            # Draw multiple lines
-           y0 = 0,
-           x1 = theta_hat[,i],
-           y1 = 1, col = loc_int$loc, lwd=3)
-  points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= loc_int$loc)
-  points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= loc_int$loc)
-  for (j in 1:N) {
-    #top row, theta hats
-    xseq <- seq(theta_hat[j,i]-3*sqrt(solve(hessians[[j]])[i,i]),
-                theta_hat[j,i]+3*sqrt(solve(hessians[[j]])[i,i]),
-                length.out = 1000)
-    lines(xseq,smush[i]*dnorm(xseq,
-                              theta_hat[j,i],
-                              sqrt(solve(hessians[[j]])[i,i]))+1, col=loc_int$loc[j],
-          lwd=3) #lty = as.integer(loc_int$loc)[j], 
-    
-    #bottom row, thetas from MCMC
-    xseq <- seq(min(theta_burn[[j]][,i]),
-                max(theta_burn[[j]][,i]), 
-                length.out = 1000)
-    lines(xseq, smush[i]*dnorm(xseq, 
-                               mean(theta_burn[[j]][,i]), 
-                               sd(theta_burn[[j]][,i])), col=loc_int$loc[j],
-          lwd=3) #lty = as.integer(loc_int$loc)[j], 
-  }
-  legend("topright", 
-         2, lwd=3,
-         legend=c(levels(loc_int$loc)[unique(as.integer(loc_int$loc))]),
-         col=unique(as.integer(loc_int$loc)), lty=unique(as.integer(loc_int$loc)), cex=2)
-}
+#####################################
+# Figure 6: Real vs Sim Error Field #
+#####################################
+
+# Run predictionNA_2018_SE.R with s <- 4 for Michael
+# produces the NAM_r and ST4_r below, also needed for Figures 7 & 8
+
+plot(NAM_r-ST4_r, main="Actual Error Field"); US(add=T, col="gray")
+plot(sim_r, main="Simulated Error Field"); US(add=T, col="gray")
+
+error_r_spdf <- as((NAM_r - ST4_r), "SpatialPixelsDataFrame")
+error_r_df <- as.data.frame(error_r_spdf)
+colnames(error_r_df) <- c("value", "x", "y")
+
+sim_r_spdf <- as((sim_r), "SpatialPixelsDataFrame")
+sim_r_df <- as.data.frame(sim_r_spdf)
+colnames(sim_r_df) <- c("value", "x", "y")
+
+
+g8= ggplot(aes(x=x,y=y,fill=value),data=error_r_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
+                       limit = range(c(sim_r_df$value, error_r_df$value)), 
+                       name = expression(sqrt(mm))) +
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank())+
+  coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
+
+g9= ggplot(aes(x=x,y=y,fill=value),data=sim_r_df) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
+                       limit = range(c(sim_r_df$value, error_r_df$value)),
+                       name = expression(sqrt(mm))) +
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank())+
+  coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
+
+
+multiplot(g8,g9,cols = 2)
+
+library(lemon)
+grid_arrange_shared_legend(g8,g9,position = "right")
+
+ggsave(
+  "png/real_vs_sim_errors.png",
+  grid_arrange_shared_legend(g8,g9,position = "right"),
+  width = 6,
+  height = 2.5,
+  dpi = 350
+)
+
+#############################
+# Figure 7: 2" and prob map #
+#############################
+
+par(mfrow=c(1,3))
+plot(rasterFromXYZ(cbind(coords, two_in_rain_f)), main="rain > 2\" in forecast", cex.main=1.5, legend=F, cex.axis=1.5)
+plot(rasterFromXYZ(cbind(coords,prob_map_vals)), main = "prob map of rain > 2\"",
+     cex.main=1.5, zlim=c(0,1), cex.axis=1.5)
+# addRasterLegend(rasterFromXYZ(cbind(coords, prob_map_vals)),zlim=c(0,1),cex.axis = 1.4)
+plot(rasterFromXYZ(cbind(coords, two_in_rain_o)), main="rain > 2\" in observed", cex.main=1.5, legend=F, cex.axis=1.5)
+
+g10= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=two_in_rain_f))) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
+                       limit = 0:1, name = "P(rain > 50.8mm)") +
+  scale_color_hue(direction = -1) +
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank())+
+  coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
+
+g11= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=prob_map_vals))) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
+                       limit = 0:1, name = "P(rain > 50.8mm)") +
+  scale_color_hue(direction = -1, h.start=90) +
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank())+
+  coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
+
+g12= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=two_in_rain_o))) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
+                       limit = 0:1, name = "P(rain > 50.8mm)") +
+  theme(text = element_text(size=11),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank())+
+  coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
+
+g12
+
+lemon::grid_arrange_shared_legend(g10,g12,g11,position = "right")
+
+ggsave(
+  "png/prob_map_precip.png",
+  lemon::grid_arrange_shared_legend(g10,g12,g11,position = "right"),
+  width = 10,
+  height = 2.5,
+  dpi = 350
+)
+
+
+###################################
+# Figure 8: split up precip probs #
+###################################
+# par(mfrow=c(1,2))
+# plot(rasterFromXYZ(cbind(coords, prob_map_vals)), main="all rain probs")
+# hist(prob_map_vals, main="all rain probs")
+png("png/prob_map_split.png", res = 350, width = 1400, height = 1400)
+par(mfrow=c(2,2))
+plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_oNA)))#, main="rain > 2\" in observed\n plotted by prob of > 2\"")
+hist(prob_map_vals*two_in_rain_oNA, main=NULL, xlab=NULL)#, main="prob of > 2\" associated with pts \nthat actually were over 2\"")
+
+plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_less2)))#, main="rain < 2\" in observed\n plotted by prob of < 2\"")
+hist(prob_map_vals*two_in_rain_less2, main=NULL,xlab=NULL)#, main="prob of < 2\" associated with pts \nthat actually were under 2\"")
 dev.off()
