@@ -461,8 +461,8 @@ for(i in 1:length(storm.dirs)){
   brk=seq(-1*ceiling(error.max),ceiling(error.max),ceiling(error.max/5))
   my.limits = c(-1*ceiling(error.max),ceiling(error.max))
   plot.edge <-7.2  #this is approx the number of degrees (100km) from the storm's eye
-  precipcolors <- c("#FFFFFF", "#EFFBEF", "#E0F8E0", "#BCF5A9", "#81F781",
-                    "#2EFE2E", "#9AFE2E", "#C8FE2E", "#FFFF00",
+  precipcolors <- c("#FFFFFF", "#E0F8E0", "#81F781",
+                    "#2EFE2E", "#C8FE2E", "#FFFF00",
                     "#FACC2E", "#FFBF00", "#FF8000", "#FF4000","#FF0000")
   regions<- c("alabama", "alaska", "arizona", "arkansas", "california", "colorado", 
               "connecticut", "delaware", "district of columbia", "florida", "georgia", 

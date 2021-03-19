@@ -58,6 +58,8 @@ g_byint <- ggplot() +
              aes(x=BTLon, y = BT.Lat, color="1/2"), size=4,shape=16,fill=yellow)+
   geom_point(data = landfalls[c(storms3,storms4,storms5),], 
              aes(x=BTLon, y = BT.Lat, color="3/4/5"),size=4,shape=18,fill=verm)+
+  geom_segment(aes(x = -88, y = 26, xend = -88, yend = 32), color="red")+
+  geom_segment(aes(x = -78, y = 32, xend = -88, yend = 32), color="red")+
   labs(x = "Longitude", y="Latitude") + 
   theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(-98, -70), ylim = c(24.5,42), ratio = 1)+
@@ -67,12 +69,12 @@ g_byint <- ggplot() +
   
 g_byint
 
-png(paste0("~/NAM-Model-Validation/png/g_byint.png"),width=1775, height=1000, res=350)
+png(paste0("~/NAM-Model-Validation/png/g_byint_part.png"),width=1775, height=1000, res=350)
 g_byint
 dev.off()
 
 ggsave(
-  "png/g_byint_gg.png",
+  "png/g_byint_gg_part.png",
   g_byint,
   width = 7.75,
   height = 4.5,
@@ -156,7 +158,7 @@ g1= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradientn(colors = precipcolors ,na.value = "white",
                        limits=c(0,precip.max), name = expression(sqrt(mm))) + 
-  labs(x = "Longitude", y="Latitude") + 
+  labs(x = "(a)", y="") + 
   theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
@@ -169,7 +171,7 @@ g2= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradientn(colors = precipcolors ,na.value = "white",
                        limits=c(0,precip.max), name = expression(sqrt(mm))) +
-  labs(x = "Longitude", y="Latitude") + 
+  labs(x = "(b)", y="") + 
   theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
@@ -182,7 +184,7 @@ g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",
                        na.value = "white", name = expression(sqrt(mm))) +
-  labs(x = "Longitude", y="Latitude")+
+  labs(x = "(c)", y="")+
   theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
@@ -233,9 +235,9 @@ US(add=T, col="darkgray")
 dev.off()
 
 
-################
-# Plot PWmeans #
-################
+##########################
+# Figure 4: Plot PWmeans #
+##########################
 
 # these generated from LogPrecipVariograms and PWmean_post, respectively
 dataPWmean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean.grd")
@@ -355,10 +357,8 @@ g5= ggplot(aes(x=x,y=y,fill=value),data=PW_post_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white",
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-  # labs(x = "Longitude", y="Latitude")+
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank())+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), 
+  labs(x = "(a)", y="")+
+  theme(text = element_text(size=11))+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), 
               ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
 g5
@@ -370,10 +370,8 @@ g6= ggplot(aes(x=x,y=y,fill=value),data=PW_sds_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-  # labs(x = "Longitude", y="Latitude")+
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank())+  
+  labs(x = "(b)", y="")+
+  theme(text = element_text(size=11))+  
   coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
 g6
@@ -385,9 +383,8 @@ g7= ggplot(aes(x=x,y=y,fill=value),data=PW_stdz_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank())+
+  labs(x = "(c)", y="")+
+  theme(text = element_text(size=11))+
   coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
 g7
@@ -502,6 +499,64 @@ for (i in 1:P) {
 }
 dev.off()
 
+
+
+my_cols <- c(skyblue,yellow,verm)
+
+# Lower and upper bound extra space to see end of distbns
+up_b <- c(0,0.7); lw_b <- c(0,0.3)
+smush <- c(0.02, 0.15)
+## Plot MLE vs posterior estimates for the 47 storms
+png("~/NAM-Model-Validation/png/NMV_compareMLEpost_newcap.png", width = 1400, height = 700)
+par(mar=c(5.5,1.5,1.5,1.5), mfrow=c(1,2))
+for (i in 1:P) {
+  plot(0, 0, col = "white", ylab = "", 
+       xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
+              max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
+       ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2, xlab="")
+  if(i==1){  mtext(expression(paste("(a): ",hat(theta)[1], " top and ", theta[1], " bottom")), side=1, line=4.5, cex=2)} 
+  if(i==2){  mtext(expression(paste("(b): ",hat(theta)[2], " top and ", theta[2], " bottom")), side=1, line=4.5, cex=2)}
+       # xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
+  # mult_seg <- data.frame(x0 = c(0.7, 0.2, - 0.9, 0.5, - 0.2),    # Create data frame with line-values
+  #                        y0 = c(0.5, 0.5, 0.6, - 0.3, 0.4),
+  #                        x1 = c(0, 0.2, 0.4, - 0.3, - 0.6),
+  #                        y1 = c(- 0.1, 0.3, - 0.6, - 0.8, 0.9))
+  
+  segments(x0 = emp_thetaMED[,i],                            # Draw multiple lines
+           y0 = 0,
+           x1 = theta_hat[,i],
+           y1 = 1, col = my_cols[factor(loc_int$loc)], lwd=1)
+  points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= my_cols[factor(loc_int$loc)])
+  points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= my_cols[factor(loc_int$loc)])
+  for (j in 1:N) {
+    #top row, theta hats
+    xseq <- seq(theta_hat[j,i]-3*sqrt(solve(hessians[[j]])[i,i]),
+                theta_hat[j,i]+3*sqrt(solve(hessians[[j]])[i,i]),
+                length.out = 1000)
+    lines(xseq,smush[i]*dnorm(xseq,
+                              theta_hat[j,i],
+                              sqrt(solve(hessians[[j]])[i,i]))+1, col=my_cols[factor(loc_int$loc)[j]],
+          lty = 1, lwd=3)
+    
+    #bottom row, thetas from MCMC
+    xseq <- seq(min(theta_burn[[j]][,i]),
+                max(theta_burn[[j]][,i]), 
+                length.out = 1000)
+    lines(xseq, smush[i]*dnorm(xseq, 
+                               mean(theta_burn[[j]][,i]), 
+                               sd(theta_burn[[j]][,i])), col=my_cols[factor(loc_int$loc)[j]],
+          lty = 1, lwd=3)
+  }
+  legend("topright",
+         2, lwd=3,
+         legend=levels(factor(loc_int$loc)),
+         col=my_cols, lty=1, cex=2)
+}
+dev.off()
+
+
+
+
 # png("~/NAM-Model-Validation/png/NMV_compareMLEpost2.png", width = 1500, height = 500)
 # par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
 # for (i in 1:P) {
@@ -614,9 +669,8 @@ g8= ggplot(aes(x=x,y=y,fill=value),data=error_r_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(sim_r_df$value, error_r_df$value)), 
                        name = expression(sqrt(mm))) +
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank())+
+  labs(x = "(a)", y="")+
+  theme(text = element_text(size=11))+
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
 g9= ggplot(aes(x=x,y=y,fill=value),data=sim_r_df) + 
@@ -626,13 +680,10 @@ g9= ggplot(aes(x=x,y=y,fill=value),data=sim_r_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(sim_r_df$value, error_r_df$value)),
                        name = expression(sqrt(mm))) +
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank())+
+  labs(x = "(b)", y="")+
+  theme(text = element_text(size=11))+
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
-
-multiplot(g8,g9,cols = 2)
 
 library(lemon)
 grid_arrange_shared_legend(g8,g9,position = "right")
@@ -663,53 +714,38 @@ g10= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[
   scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
                        limit = 0:1, name = "P(rain > 50.8mm)") +
   scale_color_hue(direction = -1) +
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank())+
+  theme(text = element_text(size=11))+
+  labs(x = "(a)", y="")+
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
-g11= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=prob_map_vals))) + 
+g11= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=two_in_rain_o))) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
+                       limit = 0:1, name = "P(rain > 50.8mm)") +
+  theme(text = element_text(size=11))+
+  labs(x = "(b)", y="")+
+  coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
+
+g12= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=prob_map_vals))) + 
   geom_tile() + theme_classic() + 
   geom_polygon(data=subset(map_data("state"), region %in% regions), 
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
                        limit = 0:1, name = "P(rain > 50.8mm)") +
   scale_color_hue(direction = -1, h.start=90) +
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank())+
-  coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
-
-g12= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=two_in_rain_o))) + 
-  geom_tile() + theme_classic() + 
-  geom_polygon(data=subset(map_data("state"), region %in% regions), 
-               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
-                       limit = 0:1, name = "P(rain > 50.8mm)") +
-  theme(text = element_text(size=11),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank())+
+  theme(text = element_text(size=11))+
+  labs(x = "(c)", y="")+
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
 g12
 
-lemon::grid_arrange_shared_legend(g10,g12,g11,position = "right")
+lemon::grid_arrange_shared_legend(g10,g11,g12,position = "right")
 
 ggsave(
   "png/prob_map_precip.png",
-  lemon::grid_arrange_shared_legend(g10,g12,g11,position = "right"),
+  lemon::grid_arrange_shared_legend(g10,g11,g12,position = "right"),
   width = 10,
   height = 2.5,
   dpi = 350
@@ -719,14 +755,109 @@ ggsave(
 ###################################
 # Figure 8: split up precip probs #
 ###################################
+
 # par(mfrow=c(1,2))
 # plot(rasterFromXYZ(cbind(coords, prob_map_vals)), main="all rain probs")
 # hist(prob_map_vals, main="all rain probs")
-png("png/prob_map_split.png", res = 350, width = 1400, height = 1400)
-par(mfrow=c(2,2))
-plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_oNA)))#, main="rain > 2\" in observed\n plotted by prob of > 2\"")
-hist(prob_map_vals*two_in_rain_oNA, main=NULL, xlab=NULL)#, main="prob of > 2\" associated with pts \nthat actually were over 2\"")
-
-plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_less2)))#, main="rain < 2\" in observed\n plotted by prob of < 2\"")
-hist(prob_map_vals*two_in_rain_less2, main=NULL,xlab=NULL)#, main="prob of < 2\" associated with pts \nthat actually were under 2\"")
+png("png/prob_map_split_1x4.png", res = 350, width = 2400, height = 600)
+par(mfrow=c(1,4), mar = c(3.5,2,1,0))
+#, main="rain > 2\" in observed\n plotted by prob of > 2\"")
+plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_oNA)), cex.axis=0.7, cex.lab=0.7)
+par(mar=c(3.5,4,1,1))
+#, main="prob of > 2\" associated with pts \nthat actually were over 2\"")
+hist(prob_map_vals*two_in_rain_oNA, main=NULL, xlab="",ylab="", prob=T, cex.axis=0.7, cex.lab=0.7)
+mtext("Density", side=2, line=2, cex=0.5)
+mtext("P(rain > 50.8 mm)", side=1, line=2, cex=0.5)
+par(mar=c(3.5,2,1,1))
+#, main="rain < 2\" in observed\n plotted by prob of < 2\"")
+plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_less2)), cex.axis=0.7, cex.lab=0.7)
+par(mar=c(3.5,4,1,1))
+#, main="prob of < 2\" associated with pts \nthat actually were under 2\"")
+hist(prob_map_vals*two_in_rain_less2, main=NULL,xlab="",ylab="", prob=T, cex.axis=0.7, cex.lab=0.7)
+mtext("Density", side=2, line=2, cex=0.5)
+mtext("P(rain > 50.8 mm)", side=1, line=2, cex=0.5)
 dev.off()
+
+# 2x2 plot
+
+png("png/prob_map_split.png", res = 350, width = 1600, height = 1600)
+par(mfrow=c(2,2), mar = c(3,2,1,0))
+plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_oNA)), cex.axis=0.7, cex.lab=0.7)
+par(mar=c(3,4,1,1))
+hist(prob_map_vals*two_in_rain_oNA, main=NULL, xlab="",ylab="", prob=T, cex.axis=0.7, cex.lab=0.7)
+mtext("Density", side=2, line=2, cex=0.66)
+mtext("P(rain > 50.8 mm)", side=1, line=2, cex=0.66)
+par(mar = c(3,2,1,0))
+plot(rasterFromXYZ(cbind(coords, prob_map_vals*two_in_rain_less2)), cex.axis=0.7, cex.lab=0.7)
+par(mar=c(3,4,1,1))
+hist(prob_map_vals*two_in_rain_less2, main=NULL,xlab="",ylab="", prob=T, cex.axis=0.7, cex.lab=0.7)
+mtext("Density", side=2, line=2, cex=0.66)
+mtext("P(rain > 50.8 mm)", side=1, line=2, cex=0.66)
+dev.off()
+
+nlon <- length(unique(coords[,1]))
+nlat <- length(unique(coords[,2]))
+
+r <- rasterFromXYZ(cbind(coords, two_in_rain_o))
+m <- matrix(data = values(r), nrow = nlon, ncol = nlat)
+image(m[,nrow(m):1])
+
+count <- 0
+border <- matrix(0, nlon, nlat)
+for (i in 2:(nlon-1)) {
+  for (j in 2:(nlat-1)) {
+    if(is.na(m[i,j]) | m[i,j] == 0){next}
+    if(sum(m[i+1,j] == 0, m[i,j+1] == 0, 
+           m[i-1,j] == 0, m[i,j-1] == 0,
+           m[i+1,j+1] == 0, m[i-1,j+1] == 0, 
+           m[i-1,j-1] == 0, m[i+1,j-1] == 0,
+           na.rm = T) > 1){
+      count <- count + 1
+      border[i,j] <- 2
+    }
+  }
+}
+
+image(m[,nrow(m):1])
+image(border[,nrow(border):1])
+
+precip.max <- max(ST4_pred$value)
+storm
+
+g13= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
+                       name = expression(sqrt(mm))) + 
+  labs(x = "(a)", y="") +#title =paste(paste0(str_to_title(name),": NAM Forecast")),
+  coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
+
+g14= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred+cbind(0,0,ub_rain)) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
+                       name = expression(sqrt(mm))) + 
+  labs(x = "(b)", y="") +#title =paste(paste0(str_to_title(name),": NAM + 95% UB")),
+  coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
+
+g15= ggplot(aes(x=x,y=y,fill=value),data=ST4_pred) + 
+  geom_tile() + theme_classic() + 
+  geom_polygon(data=subset(map_data("state"), region %in% regions), 
+               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
+                       name = expression(sqrt(mm))) + 
+  labs(x = "(c)", y="") +#title =paste(paste0(str_to_title(name),": Stage IV")),
+  coord_fixed(xlim=range(ST4_pred$x), ylim=range(ST4_pred$y), ratio = 1)
+
+grid_arrange_shared_legend(g13,g14,g15,position = "right")
+
+
+ggsave(
+  "png/pred_NAM_us_ST4.png",
+  grid_arrange_shared_legend(g13,g14,g15,position = "right"),
+  width = 10,
+  height = 2.5,
+  dpi = 350
+)
