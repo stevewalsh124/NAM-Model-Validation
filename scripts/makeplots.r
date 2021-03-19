@@ -110,7 +110,7 @@ for(ii in 1:6){
   i = igulf[ii]
   image(longitude,latitude,tcdata[i,1,,],zlim=range(tcdata[1:5,1:2,,],na.rm=T),axes=F,col=imcols)
   box(); #text(-97,42,lf[i])
-  if(ii<=2) mtext('obseration',side=3,line=.3,cex=.7)
+  if(ii<=2) mtext('observation',side=3,line=.3,cex=.7)
   map('usa',add=T)
   image(longitude,latitude,tcdata[i,2,,],zlim=range(tcdata[1:5,1:2,,],na.rm=T),axes=F,col=imcols)
   box(); #text(-97,42,lf[i])
