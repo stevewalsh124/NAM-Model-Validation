@@ -2,15 +2,15 @@
 # we can jam alot of them on a single plot.
 
  # storm type
-landfall = read.table('landfall_locns.csv',sep=',',header=T,stringsAsFactors=FALSE)$x
+landfall = read.table('csv/landfall_locns.csv',sep=',',header=T,stringsAsFactors=FALSE)$x
 lf = paste(1:47,substr(landfall,1,1))
 
  # read in data
-load('TC_array.RData')
+load('RData/TC_array.RData')
 dim(TC_array)
 
  # read in the coordinate data
-load('coords.RData')
+load('RData/coords.RData')
 
  # get the uniqe coordinates for lat and lon
 longitude = sort(unique(coords[,1]))
@@ -65,7 +65,7 @@ yellowRedCols2 = colorRampPalette(c('yellow','red'))(16)
 imcolsDiff = c(blueYellowCols2,yellowRedCols2[-1])
 
  # make a plot of the 42 observations
-pdf('allStorms.pdf',width=8,height=6)
+pdf('pdf/allStorms.pdf',width=8,height=6)
 par(mfrow=c(13,12),oma=c(4,4,1,1),mar=c(0,0,0,0))
 for(i in 1:47){
   image(longitude,latitude,tcdata[i,1,,],zlim=range(tcdata[1:5,1:2,,],na.rm=T),axes=F,col=imcols)
@@ -104,7 +104,7 @@ ifla = c(1,2,14,19,29,46)
 iatl = c(4,27,31,36,38,43)
 
  # make the plots
-pdf('someStorms.pdf',width=6,height=6.5)
+pdf('pdf/someStorms.pdf',width=6,height=6.5)
 par(mfrow=c(10,6),oma=c(1.5,2,1.5,1),mar=c(0,0,0,0))
 for(ii in 1:6){
   i = igulf[ii]
