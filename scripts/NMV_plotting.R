@@ -158,7 +158,7 @@ g1= ggplot(aes(x=x,y=y,fill=value),data=ST4_df) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradientn(colors = precipcolors ,na.value = "white",
                        limits=c(0,precip.max), name = expression(sqrt(mm))) + 
-  labs(x = "(a)", y="") + 
+  labs(x = "Longitude\n(a)", y="Latitude") + 
   theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
@@ -171,7 +171,7 @@ g2= ggplot(aes(x=x,y=y,fill=value),data=NAM_df) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradientn(colors = precipcolors ,na.value = "white",
                        limits=c(0,precip.max), name = expression(sqrt(mm))) +
-  labs(x = "(b)", y="") + 
+  labs(x = "Longitude\n(b)", y="Latitude") + 
   theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
@@ -184,18 +184,20 @@ g3= ggplot(aes(x=x,y=y,fill=value),data=error_df) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",
                        na.value = "white", name = expression(sqrt(mm))) +
-  labs(x = "(c)", y="")+
+  labs(x = "Longitude\n(c)", y="Latitude")+
   theme(text = element_text(size=11)) +
   coord_fixed(xlim=c(min(eye1_latlon[2],eye2_latlon[2])-plot.edge, 
                      max(eye1_latlon[2],eye2_latlon[2])+plot.edge),
               ylim=c(min(eye1_latlon[1],eye2_latlon[1])-plot.edge, 
                      max(eye1_latlon[1],eye2_latlon[1])+plot.edge), ratio = 1)
 
+# grid.arrange(g3, bottom = textGrob("(a)", vjust = 0))
+
 ggsave(
   "png/NAM_ST4_error_gg.png",
   multiplot(g1,g2,g3,cols=3),
   width = 12,
-  height = 3.25,
+  height = 3.5,
   dpi = 350
 )
 
@@ -357,7 +359,7 @@ g5= ggplot(aes(x=x,y=y,fill=value),data=PW_post_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white",
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-  labs(x = "(a)", y="")+
+    labs(x = "Longitude\n(a)", y="Latitude") + 
   theme(text = element_text(size=11))+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), 
               ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
@@ -370,7 +372,7 @@ g6= ggplot(aes(x=x,y=y,fill=value),data=PW_sds_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-  labs(x = "(b)", y="")+
+    labs(x = "Longitude\n(b)", y="Latitude") + 
   theme(text = element_text(size=11))+  
   coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
@@ -383,7 +385,7 @@ g7= ggplot(aes(x=x,y=y,fill=value),data=PW_stdz_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-  labs(x = "(c)", y="")+
+    labs(x = "Longitude\n(c)", y="Latitude") + 
   theme(text = element_text(size=11))+
   coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
@@ -397,8 +399,8 @@ grid_arrange_shared_legend(g5,g6,g7,position = "right")
 ggsave(
   "png/PWmean_sds_stdz_gg.png",
   grid_arrange_shared_legend(g5,g6,g7,position = "right"),
-  width = 11,
-  height = 2.5,
+  width = 10*1.5,
+  height = 2.5*1.5,
   dpi = 350
 )
 
@@ -514,8 +516,10 @@ for (i in 1:P) {
        xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
               max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
        ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2, xlab="")
-  if(i==1){  mtext(expression(paste("(a): ",hat(theta)[1], " top and ", theta[1], " bottom")), side=1, line=4.5, cex=2)} 
-  if(i==2){  mtext(expression(paste("(b): ",hat(theta)[2], " top and ", theta[2], " bottom")), side=1, line=4.5, cex=2)}
+  if(i==1){  mtext("(a)", side=1, line=3, cex=2)} 
+  if(i==2){  mtext("(b)", side=1, line=3, cex=2)} 
+  # if(i==1){  mtext(expression(paste("(a): ",hat(theta)[1], " top and ", theta[1], " bottom")), side=1, line=4.5, cex=2)} 
+  # if(i==2){  mtext(expression(paste("(b): ",hat(theta)[2], " top and ", theta[2], " bottom")), side=1, line=4.5, cex=2)}
        # xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
   # mult_seg <- data.frame(x0 = c(0.7, 0.2, - 0.9, 0.5, - 0.2),    # Create data frame with line-values
   #                        y0 = c(0.5, 0.5, 0.6, - 0.3, 0.4),
@@ -669,7 +673,7 @@ g8= ggplot(aes(x=x,y=y,fill=value),data=error_r_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(sim_r_df$value, error_r_df$value)), 
                        name = expression(sqrt(mm))) +
-  labs(x = "(a)", y="")+
+    labs(x = "Longitude\n(a)", y="Latitude") + 
   theme(text = element_text(size=11))+
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
@@ -680,7 +684,7 @@ g9= ggplot(aes(x=x,y=y,fill=value),data=sim_r_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(sim_r_df$value, error_r_df$value)),
                        name = expression(sqrt(mm))) +
-  labs(x = "(b)", y="")+
+    labs(x = "Longitude\n(b)", y="Latitude") + 
   theme(text = element_text(size=11))+
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
@@ -691,8 +695,8 @@ grid_arrange_shared_legend(g8,g9,position = "right")
 ggsave(
   "png/real_vs_sim_errors.png",
   grid_arrange_shared_legend(g8,g9,position = "right"),
-  width = 6,
-  height = 2.5,
+  width = 6*1.5,
+  height = 2.5*1.5,
   dpi = 350
 )
 
@@ -715,7 +719,7 @@ g10= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[
                        limit = 0:1, name = "P(rain > 50.8mm)") +
   scale_color_hue(direction = -1) +
   theme(text = element_text(size=11))+
-  labs(x = "(a)", y="")+
+    labs(x = "Longitude\n(a)", y="Latitude") + 
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
 g11= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=two_in_rain_o))) + 
@@ -725,7 +729,7 @@ g11= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[
   scale_fill_gradient2(low = "white", high = "blue",na.value = "white",
                        limit = 0:1, name = "P(rain > 50.8mm)") +
   theme(text = element_text(size=11))+
-  labs(x = "(b)", y="")+
+    labs(x = "Longitude\n(b)", y="Latitude") + 
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
 g12= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[,2], value=prob_map_vals))) + 
@@ -736,7 +740,7 @@ g12= ggplot(aes(x=x,y=y,fill=value),data=data.frame(cbind(x=coords[,1],y=coords[
                        limit = 0:1, name = "P(rain > 50.8mm)") +
   scale_color_hue(direction = -1, h.start=90) +
   theme(text = element_text(size=11))+
-  labs(x = "(c)", y="")+
+    labs(x = "Longitude\n(c)", y="Latitude") + 
   coord_fixed(xlim=extent(sim_r)[1:2], ylim = extent(sim_r)[3:4], ratio = 1)
 
 g12
@@ -746,8 +750,8 @@ lemon::grid_arrange_shared_legend(g10,g11,g12,position = "right")
 ggsave(
   "png/prob_map_precip.png",
   lemon::grid_arrange_shared_legend(g10,g11,g12,position = "right"),
-  width = 10,
-  height = 2.5,
+  width = 9*1.5,
+  height = 2.5*1.5,
   dpi = 350
 )
 
@@ -830,7 +834,7 @@ g13= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
                        name = expression(sqrt(mm))) + 
-  labs(x = "(a)", y="") +#title =paste(paste0(str_to_title(name),": NAM Forecast")),
+  labs(x = "Longitude\n(a)", y="Latitude") + #title =paste(paste0(str_to_title(name),": NAM Forecast")),
   coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
 
 g14= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred+cbind(0,0,ub_rain)) + 
@@ -839,7 +843,7 @@ g14= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred+cbind(0,0,ub_rain)) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
                        name = expression(sqrt(mm))) + 
-  labs(x = "(b)", y="") +#title =paste(paste0(str_to_title(name),": NAM + 95% UB")),
+  labs(x = "Longitude\n(b)", y="Latitude") + #title =paste(paste0(str_to_title(name),": NAM + 95% UB")),
   coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
 
 g15= ggplot(aes(x=x,y=y,fill=value),data=ST4_pred) + 
@@ -848,7 +852,7 @@ g15= ggplot(aes(x=x,y=y,fill=value),data=ST4_pred) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
                        name = expression(sqrt(mm))) + 
-  labs(x = "(c)", y="") +#title =paste(paste0(str_to_title(name),": Stage IV")),
+  labs(x = "Longitude\n(c)", y="Latitude") +#title =paste(paste0(str_to_title(name),": Stage IV")),
   coord_fixed(xlim=range(ST4_pred$x), ylim=range(ST4_pred$y), ratio = 1)
 
 grid_arrange_shared_legend(g13,g14,g15,position = "right")
@@ -857,7 +861,7 @@ grid_arrange_shared_legend(g13,g14,g15,position = "right")
 ggsave(
   "png/pred_NAM_us_ST4.png",
   grid_arrange_shared_legend(g13,g14,g15,position = "right"),
-  width = 10,
-  height = 2.5,
+  width = 8.5*1.5,
+  height = 2.5*1.5,
   dpi = 350
 )

@@ -1,9 +1,32 @@
 # some code to make some image plots in R with minimal whitespace so
 # we can jam alot of them on a single plot.
 
- # storm type
+source("scripts/mosaicList.R")
+raster_files <- list.files("~/NAM-Model-Validation/error_rasters_sqrt/", pattern = ".grd", full.names = T)
+
+# storm type
 landfall = read.table('csv/landfall_locns.csv',sep=',',header=T,stringsAsFactors=FALSE)$x
 lf = paste(1:47,substr(landfall,1,1))
+
+par(mfrow=c(1,3))
+ATL_ext <- mosaicList(raster_files[which(landfall=="ATL")])
+values(ATL_ext)[which(values(ATL_ext) == 0)] <- NA
+plot(rasterFromXYZ(rasterToPoints(ATL_ext)))
+extent(rasterFromXYZ(rasterToPoints(ATL_ext)))
+
+FL_ext <- mosaicList(raster_files[which(landfall=="FL")])
+values(FL_ext)[which(values(FL_ext) == 0)] <- NA
+plot(rasterFromXYZ(rasterToPoints(FL_ext)))
+extent(rasterFromXYZ(rasterToPoints(FL_ext)))
+
+GULF_ext <- mosaicList(raster_files[which(landfall=="GULF")])
+values(GULF_ext)[which(values(GULF_ext) == 0)] <- NA
+plot(rasterFromXYZ(rasterToPoints(GULF_ext)))
+extent(rasterFromXYZ(rasterToPoints(GULF_ext)))
+
+length(values(rasterFromXYZ(rasterToPoints(ATL_ext))))
+length(values(rasterFromXYZ(rasterToPoints(FL_ext))))
+length(values(rasterFromXYZ(rasterToPoints(GULF_ext))))
 
  # read in data
 load('RData/TC_array.RData')

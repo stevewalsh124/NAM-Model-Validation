@@ -19,7 +19,7 @@ if(sim_dom & !sim_vals) stop("if sim_vals=F, then you must have sim_dom=F")
 
 trial <- F
 hess_calc <- T
-writefiles <- F
+writefiles <- T
 
 get_prec_mtx <- F
 
@@ -28,7 +28,7 @@ lo <- 15#21 #length.out for lkhd grid (do odd so MLE in middle)
 
 
 if(sim_vals){ 
-  seed <- 4
+  seed <- 23
   set.seed(seed) 
 }
 
@@ -367,8 +367,8 @@ if(length(storms_to_eval)==1){
     thetas_sds  <- sqrt(diag(-solve(matrix(pkgthetahessvecs, 2, 2))))
 } else {
   for (k in 1:length(storms_to_eval)) {
-    sig_phi_sds[k,] <- sqrt(diag(-solve(matrix(pkghessvecs[storms_to_eval[k],], 2, 2))))
-    thetas_sds[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs[storms_to_eval[k],], 2, 2))))
+    sig_phi_sds[k,] <- sqrt(diag(-solve(matrix(pkghessvecs[k,], 2, 2))))
+    thetas_sds[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs[k,], 2, 2))))
   }
 }
 
@@ -408,7 +408,7 @@ if(writefiles){
     #                                 if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                                 if(sim_vals){paste0("seed",seed,"_")},
     #                                 if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    write.csv(pkghessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/pkghessvecs/",
+    write.csv(pkghessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkghessvecs/",
                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                   if(sim_vals){paste0("seed",seed,"_")},
                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},
@@ -417,7 +417,7 @@ if(writefiles){
     #                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                                   if(sim_vals){paste0("seed",seed,"_")},
     #                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    write.csv(pkgthetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs/",
+    write.csv(pkgthetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkgthetahessvecs/",
                                        if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                        if(sim_vals){paste0("seed",seed,"_")},
                                        if(trial){"trial_"},if(sim_vals){"sim_vals"},
@@ -453,7 +453,21 @@ if(sim_vals){
     dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers")
   }
   
+  if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas")){
+    dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas")
+  }
+  
+  if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds")){
+    dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds")
+  }
+  
   write.csv(cbind(thet1x + 1.96*thetas_sds[,1] > trueTheta1 & thet1x - 1.96*thetas_sds[,1] < trueTheta1,
                   thet2x + 1.96*thetas_sds[,2] > trueTheta2 & thet2x - 1.96*thetas_sds[,2] < trueTheta2), 
             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/seed", if(seed<10){"0"}, seed, ".csv"))
+  
+  write.csv(cbind(thet1x,thet2x), 
+            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", if(seed<10){"0"}, seed, ".csv"))
+  
+  write.csv(thetas_sds, 
+            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", if(seed<10){"0"}, seed, ".csv"))
 }
