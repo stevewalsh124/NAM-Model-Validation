@@ -8,6 +8,7 @@
 
 library(pracma)
 library(raster)
+library(LaplacesDemon)
 
 sim_vals <- T
 sim_dom <- F
@@ -28,7 +29,7 @@ lo <- 15#21 #length.out for lkhd grid (do odd so MLE in middle)
 
 
 if(sim_vals){ 
-  seed <- 23
+  seed <- 51
   set.seed(seed) 
 }
 
@@ -135,6 +136,17 @@ ll_theta <- function(thetavec, D=t, Y=x)
   return(ll)
 }
 
+loc_int <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv", row.names = 1)#[avail,]#[-43,]
+colnames(loc_int) <- c("int","loc")
+
+# Model matrix for locations
+x_loc <- with(loc_int, model.matrix(~ loc))
+
+# True param values for B and Sigma_theta
+trueB <- matrix(c(1.037, 1.001, 0.258, 0.244, 0.013, 0.252), 2, 3)
+trueST<- matrix(c(0.238, 0.054, 0.054, 0.220), 2, 2)
+truethetas <- matrix(data = NA, nrow = length(storms_to_eval), ncol = 2)
+
 for (i in 1:length(storms_to_eval)) {
   
   print(i) # i <- 1
@@ -157,8 +169,11 @@ for (i in 1:length(storms_to_eval)) {
   
   if(sim_vals){
     # Without nugget effect
-    trueSigma2 <- 4
-    truePhi <- 1.5
+
+    truethetai <- rmvn(n = 1, mu = t(trueB%*%x_loc[i,]), Sigma = trueST)
+    truethetas[i,] <- truethetai
+    trueSigma2 <- exp(truethetai[2]) #4
+    truePhi <- exp(truethetai[2] - truethetai[1]) #1.5
     # plot(seq(0,1,0.001),covfunc.exponential(seq(0,1,0.001),phi,sigma2),type="l")
     
     true_cov <- covfunc.exponential(t,truePhi,trueSigma2)
@@ -332,6 +347,9 @@ for (i in 1:length(storms_to_eval)) {
   
 }
 
+write.csv(truethetas, file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/true_values/seed",
+                                    if(seed < 10){"0"}, seed, ".csv"))
+
 # nowtime <- function(){gsub(gsub(gsub(Sys.time(),pattern = " ", replacement = ""),
 #                                 pattern="-", replacement=""),pattern=":", replacement="")}
 
@@ -410,7 +428,8 @@ if(writefiles){
     #                                 if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
     write.csv(pkghessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkghessvecs/",
                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
-                                  if(sim_vals){paste0("seed",seed,"_")},
+                                  if(sim_vals){paste0("seed",
+                                                      if(seed < 10){"0"},seed,"_")},
                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},
                                   if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
     # write.csv(mythetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/mythetahessvecs_",
@@ -419,7 +438,8 @@ if(writefiles){
     #                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
     write.csv(pkgthetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkgthetahessvecs/",
                                        if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
-                                       if(sim_vals){paste0("seed",seed,"_")},
+                                       if(sim_vals){paste0("seed",
+                                                           if(seed < 10){"0"},seed,"_")},
                                        if(trial){"trial_"},if(sim_vals){"sim_vals"},
                                        if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
   }
