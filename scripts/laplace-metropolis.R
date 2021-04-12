@@ -1,6 +1,7 @@
 # Laplace-Metropolis estimator
 
 library(MCMCpack)
+library(LaplacesDemon)
 
 # need theta_hat and hessians from GibbsSamplerHurrSE.R
 load("RData/Gibbs_sqrt.RData")
@@ -68,8 +69,8 @@ Sigma_tilde <- matrix(c(exp(my_modes1[7]),my_modes1[c(8,8)],exp(my_modes1[9])),2
 # get Laplace-Metropolis estimator
 # f(theta^*) is the prior, B is propto 1 so I ignore this and only do IW part
 LM_c <- P/2*log(2*pi) + 0.5*log(det(H_star1)) + 
-  log(diwish(W = Sigma_tilde, v = v0, S = v0*cov(theta_hat))) + log(Sigma_tilde[1,1]) + log(Sigma_tilde[2,2])  + 
-  sum(Li)
+  log(diwish(W = Sigma_tilde, v = v0, S = v0*cov(theta_hat))) + 
+  log(Sigma_tilde[1,1]) + log(Sigma_tilde[2,2]) + sum(Li)
 LM_c
 
 
@@ -132,8 +133,9 @@ all.equal(Sigma_tilde2, Sigma_tilde)
 
 # get Laplace-Metropolis estimator
 # f(theta^*) is the prior, B is propto 1 so I ignore this and only do IW part
-LM_c2 <- P/2*log(2*pi) + 0.5*log(det(H_star2)) + log(diwish(Sigma_tilde, v = v0, v0*cov(theta_hat))) + 
-  log(Sigma_tilde[1,1]) + log(Sigma_tilde[2,2])   + sum(Li2)
+LM_c2 <- P/2*log(2*pi) + 0.5*log(det(H_star2)) + 
+  log(diwish(Sigma_tilde, v = v0, v0*cov(theta_hat))) + 
+  log(Sigma_tilde[1,1]) + log(Sigma_tilde[2,2]) + sum(Li2)
 LM_c2
 
 # Approximate Bayes Factor; this is about 98, showing evidence for a common mean mu_theta
