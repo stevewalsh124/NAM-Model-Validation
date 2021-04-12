@@ -1,14 +1,17 @@
 ## look at sim results to check approx 95% coverage for theta1 and theta2
 
+# sims 1-50 had these values fixed, with no variation
+# sims 51-100 used emp_B and emp_Sigma_theta to vary the true values (still pretty close to true tho)
 tru_sigma2 <- 4
 tru_phi <- 1.5
 
 tru_theta1 <- log(tru_sigma2/tru_phi)
 tru_theta2 <- log(tru_sigma2)
 
-cover_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers", pattern = "seed", full.names = T)
-theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/", full.names = T)
-sd_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/", full.names = T)
+# note the [51-100] at the end of these
+cover_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers", pattern = "seed", full.names = T)[51:100]
+theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/", full.names = T)[51:100]
+sd_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/", full.names = T)[51:100]
 
 
 m <- length(cover_files)

@@ -141,12 +141,12 @@ for (j in 1:N) {
 }
 
 # Initial values for Markov chains
-# mu_theta[1,]    <- c(50,50,50)            #theta_bar#EMPIRICAL BAYES
-Sigma_theta[1,] <- diag(rep(100, P))      #cov(theta_hat)#
+# mu_theta[1,] <- rep(100, P)
+Sigma_theta[1,] <- diag(rep(100, P))
 B[1,]           <- matrix(100, P, R)
 #IW hyperparameters
-v0 <- 4                                   #increase for EMP BAYES/debugging
-S0 <- v0*cov(theta_hat)#diag(c(.01,.01,.01))                #EMPIRICAL BAYES
+v0 <- P + 1
+S0 <- v0*cov(theta_hat) #EMPIRICAL BAYES
 
 for (i in 2:iters) {
   #i <- 2; j <- 1
