@@ -18,7 +18,7 @@ sim_dom <- F
 if(sim_dom){lo_sim <- 32}  
 if(sim_dom & !sim_vals) stop("if sim_vals=F, then you must have sim_dom=F")
 
-trial <- F
+trial <- T
 hess_calc <- T
 writefiles <- T
 
@@ -29,7 +29,7 @@ lo <- 15#21 #length.out for lkhd grid (do odd so MLE in middle)
 
 
 if(sim_vals){ 
-  seed <- 51
+  seed <- 101
   set.seed(seed) 
 }
 
@@ -458,8 +458,8 @@ end.time - start.time
 if(writefiles & plot.it){ dev.off() }
 
 if(sim_vals){
-  trueTheta1 <- log(trueSigma2/truePhi)
-  trueTheta2 <- log(trueSigma2)
+  trueTheta1 <- truethetas[,1]
+  trueTheta2 <- truethetas[,2]
   
   phix <- phis[complete.cases(phis)]
   sigx <- sigs[complete.cases(sigs)]
@@ -481,13 +481,14 @@ if(sim_vals){
     dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds")
   }
   
-  write.csv(cbind(thet1x + 1.96*thetas_sds[,1] > trueTheta1 & thet1x - 1.96*thetas_sds[,1] < trueTheta1,
-                  thet2x + 1.96*thetas_sds[,2] > trueTheta2 & thet2x - 1.96*thetas_sds[,2] < trueTheta2), 
-            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/seed", if(seed<10){"0"}, seed, ".csv"))
+  write.csv(cbind(thet1x + 1.96*thetas_sds[,1] > truethetas[,1] & thet1x - 1.96*thetas_sds[,1] < truethetas[,1],
+                  thet2x + 1.96*thetas_sds[,2] > truethetas[,2] & thet2x - 1.96*thetas_sds[,2] < truethetas[,2]), 
+            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/seed", 
+                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))
   
   write.csv(cbind(thet1x,thet2x), 
-            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", if(seed<10){"0"}, seed, ".csv"))
-  
+            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", 
+                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))  
   write.csv(thetas_sds, 
-            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", if(seed<10){"0"}, seed, ".csv"))
-}
+            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", 
+                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))}
