@@ -18,7 +18,7 @@ sim_dom <- F
 if(sim_dom){lo_sim <- 32}  
 if(sim_dom & !sim_vals) stop("if sim_vals=F, then you must have sim_dom=F")
 
-trial <- T
+trial <- F
 hess_calc <- T
 writefiles <- T
 
@@ -473,6 +473,10 @@ if(sim_vals){
     dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers")
   }
   
+  if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers")){
+    dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers")
+  }
+  
   if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas")){
     dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas")
   }
@@ -483,7 +487,7 @@ if(sim_vals){
   
   write.csv(cbind(thet1x + 1.96*thetas_sds[,1] > truethetas[,1] & thet1x - 1.96*thetas_sds[,1] < truethetas[,1],
                   thet2x + 1.96*thetas_sds[,2] > truethetas[,2] & thet2x - 1.96*thetas_sds[,2] < truethetas[,2]), 
-            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/seed", 
+            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers/seed", 
                           if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))
   
   write.csv(cbind(thet1x,thet2x), 
