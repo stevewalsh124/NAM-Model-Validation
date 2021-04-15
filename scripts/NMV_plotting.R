@@ -346,8 +346,10 @@ dev.off()
 # newer PWmean, PWvar, PWstandardizederror
 PW_post_new <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_newm.grd")
 PW_post_sds <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_sds.grd")
+PW_stdz <- PW_post_new/PW_post_sds
 
-plot(PW_mean, main="Pointwise Mean")
+plot(PW_post_new, main="Pointwise Mean")
+values(PW_post_new)[which(abs(values(PW_post_new))>3)] <- 3
 PW_post_spdf <- as((PW_post_new), "SpatialPixelsDataFrame")
 PW_post_df <- as.data.frame(PW_post_spdf)
 colnames(PW_post_df) <- c("value", "x", "y")
@@ -358,6 +360,7 @@ PW_sds_df <- as.data.frame(PW_sds_spdf)
 colnames(PW_sds_df) <- c("value", "x", "y")
 
 plot(PW_post_new/PW_post_sds, main="Standardized Pointwise Mean")
+plot(PW_stdz, main="Standardized Pointwise Mean")
 PW_stdz_spdf <- as((PW_post_new/PW_post_sds), "SpatialPixelsDataFrame")
 PW_stdz_df <- as.data.frame(PW_stdz_spdf)
 colnames(PW_stdz_df) <- c("value", "x", "y")
@@ -369,8 +372,8 @@ g5= ggplot(aes(x=x,y=y,fill=value),data=PW_post_df) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white",
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-    labs(x = "Longitude\n(a)", y="Latitude") + 
-  theme(text = element_text(size=11))+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), 
+    labs(x = "Longitude", y="Latitude") + 
+  theme(text = element_text(size=11), legend.position="bottom")+  coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), 
               ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
 g5
@@ -380,10 +383,10 @@ g6= ggplot(aes(x=x,y=y,fill=value),data=PW_sds_df) +
   geom_polygon(data=subset(map_data("state"), region %in% regions), 
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
-                       limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
+                       # limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
                        name = expression(sqrt(mm))) +
-    labs(x = "Longitude\n(b)", y="Latitude") + 
-  theme(text = element_text(size=11))+  
+    labs(x = "Longitude", y="Latitude") + 
+  theme(text = element_text(size=11),legend.position="bottom")+  
   coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
 g6
@@ -394,14 +397,23 @@ g7= ggplot(aes(x=x,y=y,fill=value),data=PW_stdz_df) +
                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
   scale_fill_gradient2(low = "blue",mid = "white", high = "red",na.value = "white", 
                        limit = range(c(PW_post_df$value, PW_sds_df$value, PW_stdz_df$value)),
-                       name = expression(sqrt(mm))) +
-    labs(x = "Longitude\n(c)", y="Latitude") + 
-  theme(text = element_text(size=11))+
+                       name = "") +
+    labs(x = "Longitude", y="Latitude") + 
+  theme(text = element_text(size=11), legend.position="bottom")+
   coord_fixed(xlim=extent(PW_post_new)[1:2]+c(1,-1), ylim = extent(PW_post_new)[3:4]+c(1,-1), ratio = 1.33)
 
 g7
 
+grid.arrange(g5, bottom = textGrob("(a)", vjust = -6, hjust = -.5))
+
+library(gridExtra)
+png("png/PWmean_sds_stdz_thresh.png", width = 7000, height = 2300, res = 700)
 multiplot(g5,g6,g7,cols = 3)
+grid.text("(a)",x=unit(0.185,"npc"),y=unit(0.225,"npc"))
+# grid.text("(a)",x=unit(0.2,"npc"),y=unit(0.27,"npc"))
+grid.text("(b)",x=unit(0.52,"npc"),y=unit(0.225,"npc"))
+grid.text("(c)",x=unit(0.855,"npc"),y=unit(0.225,"npc"))
+dev.off()
 
 library(lemon)
 grid_arrange_shared_legend(g5,g6,g7,position = "right")
