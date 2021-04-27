@@ -9,16 +9,27 @@
 # layer="name of the file without .shp extention"
 
 require(rgdal)
-shape <- readOGR(dsn = "FL_basin", layer = "Florida_Drainage_Basins_1997")
-
-plot(shape)
-
 require(sf)
-# shape2 <- read_sf(dsn = ".", layer = "SHAPEFILE")
-shape2 <- st_read("FL_basin/Florida_Drainage_Basins_1997.shp")
-plot(shape2)
+require(raster)
+library(fields)
+shape <- readOGR(dsn = "Florida_Drainage_Basins_1997", layer = "Florida_Drainage_Basins_1997")
+# plot(shape)
+apala = subset(shape, HUC %in% c("03120001","03120002","03120003","03120004"))
 
-apala = subset(shape2, BASIN=="APALACHICOLA RIVER")
+ext <- extent(apala)
+r <- raster(ext, res=.01)  
+r <- rasterize(apala, r, field=1)
+plot(1:5,ylim=c(27,32), xlim=c(-87,-82),type="n", asp=1)
+plot(r,add=T)
+US(add=T)
 
-fields::US()
-plot(apala, max.plot=1, add=T)
+writeRaster(r, "FLmask")
+
+# # shape2 <- read_sf(dsn = ".", layer = "SHAPEFILE")
+# shape2 <- st_read("Florida_Drainage_Basins_1997/Florida_Drainage_Basins_1997.shp")
+# plot(shape2)
+#
+# gch <- gConvexHull(methods::as( object = apala, Class = "Spatial" ))
+# gb <- gBuffer(methods::as( object = apala, Class = "Spatial" )) 
+#
+# rss <- readShapeSpatial("Florida_Drainage_Basins_1997/Florida_Drainage_Basins_1997.shp")
