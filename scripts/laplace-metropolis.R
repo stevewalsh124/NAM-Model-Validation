@@ -51,14 +51,19 @@ for (s in 1:nrow(theta_hat)) {
 int_mcmc1 <- cbind(B_burn, log(Sigma_burn[,1]),Sigma_burn[,2],log(Sigma_burn[,4]))
 my_modes1 <- c()
 
+
 par(mfrow=c(3,3))
 for(i in 1:ncol(int_mcmc1)){
+  if(plot.it){
   hist(int_mcmc1[,i], main = paste("model 1, col #", i), prob = T)
+  }
   dens <- density(int_mcmc1[,i])
-  lines(dens)
+  if(plot.it){lines(dens)}
   my_modes1[i] <- dens$x[which(dens$y == max(dens$y))]
 }
 # dev.off()
+
+
 
 my_modes1
 H_star1 <- cov(int_mcmc1)
@@ -77,13 +82,12 @@ LM_c
 
 
 
-###############
-#  Model two  #
-###############
+#####################################
+#  Model two  (Walsh approximation) #
+#####################################
 
 # Gather the L_i's in equation 7 from Lewis/Raftery 1997
 Li2 <- c()
-mu_theta <- theta_bar
 
 # integrating out the random effects, theta_i, i = 1:47
 # still a bivariate normal
@@ -93,17 +97,17 @@ par(mfrow = c(3,2))
 for (s in 1:nrow(theta_hat)) {
   
   VV <- solve(hessians[[s]]) + St
-  EE <- mu_theta
+  EE <- theta_bar
   
   Li2[s] <- dmvn(x = theta_hat[s,], mu = t(EE), Sigma = VV, log=T)
   
   if(plot.it){
-  for (i in 1:length(x1seq)) {
-    for (j in 1:length(x2seq)) {
-      lkhds[i,j] <- dmvn(x = c(x1seq[i], x2seq[j]), mu = t(EE), Sigma = VV, log=T)
+    for (i in 1:length(x1seq)) {
+      for (j in 1:length(x2seq)) {
+        lkhds[i,j] <- dmvn(x = c(x1seq[i], x2seq[j]), mu = t(EE), Sigma = VV, log=T)
+      }
     }
-  }
-
+    
     image(x1seq, x2seq, lkhds, main = paste("storm #", s),
           xlab = expression(theta[1]), ylab = expression(theta[2]))
     points(theta_hat[s,1], theta_hat[s,2], col="green")
@@ -112,17 +116,88 @@ for (s in 1:nrow(theta_hat)) {
 
 # obtain posterior mode and covariance matrix for MCMC output
 # make common mean mu_theta output based on weighted average from B output
-emp_mu_theta <-  (9*(B_burn[,1:2])+21*(B_burn[,1:2]+B_burn[,3:4])+17*(B_burn[,1:2]+B_burn[,5:6]))/47
+emp_mu_theta <-  emp_mu_thetaWA <-
+  (9*(B_burn[,1:2])+21*(B_burn[,1:2]+B_burn[,3:4])+17*(B_burn[,1:2]+B_burn[,5:6]))/47
 int_mcmc2 <- cbind(emp_mu_theta, log(Sigma_burn[,1]),Sigma_burn[,2],log(Sigma_burn[,4]))
 my_modes2 <- c()
 
+
 par(mfrow=c(3,2))
 for(i in 1:ncol(int_mcmc2)){
-  hist(int_mcmc2[,i], main = paste("model 2, col #", i), prob = T)
+  if(plot.it){hist(int_mcmc2[,i], main = paste("model 2, col #", i), prob = T)}
   dens <- density(int_mcmc2[,i])
-  lines(dens)
+  if(plot.it){lines(dens)}
   my_modes2[i] <- dens$x[which(dens$y == max(dens$y))]
+}  
+
+
+my_modes2
+H_star2 <- cov(int_mcmc2)
+
+# Same Sigma_tilde as Model 1
+Sigma_tilde2 <- matrix(c(exp(my_modes2[3]),my_modes2[c(4,4)],exp(my_modes2[5])),2,2)
+all.equal(Sigma_tilde2, Sigma_tilde)
+
+# get Laplace-Metropolis estimator
+# f(theta^*) is the prior, B is propto 1 so I ignore this and only do IW part
+LM_c2WA <- P/2*log(2*pi) + 0.5*log(det(H_star2)) + 
+  log(diwish(Sigma_tilde, v = v0, v0*cov(theta_hat))) + 
+  log(Sigma_tilde[1,1]) + log(Sigma_tilde[2,2]) + sum(Li2)
+LM_c2WA
+
+# Approximate Bayes Factor; this is about 98, showing evidence for a common mean mu_theta
+exp(LM_c2WA - LM_c)
+
+
+###############
+#  Model two  #
+###############
+
+load("RData/Gibbs_sqrt_LM2.RData")
+
+# Gather the L_i's in equation 7 from Lewis/Raftery 1997
+Li2 <- c()
+
+# integrating out the random effects, theta_i, i = 1:47
+# still a bivariate normal
+# plots show the resulting density of f(theta hat | B, Sigma_theta)
+# the point on the image is the theta_hat
+par(mfrow = c(3,2))
+for (s in 1:nrow(theta_hat)) {
+  
+  VV <- solve(hessians[[s]]) + St
+  EE <- theta_bar
+  
+  Li2[s] <- dmvn(x = theta_hat[s,], mu = t(EE), Sigma = VV, log=T)
+  
+  if(plot.it){
+    for (i in 1:length(x1seq)) {
+      for (j in 1:length(x2seq)) {
+        lkhds[i,j] <- dmvn(x = c(x1seq[i], x2seq[j]), mu = t(EE), Sigma = VV, log=T)
+      }
+    }
+    
+    image(x1seq, x2seq, lkhds, main = paste("storm #", s),
+          xlab = expression(theta[1]), ylab = expression(theta[2]))
+    points(theta_hat[s,1], theta_hat[s,2], col="green")
+  }
 }
+
+# obtain posterior mode and covariance matrix for MCMC output
+# make common mean mu_theta output based on weighted average from B output
+emp_mu_theta <-  mu_burn
+int_mcmc2 <- cbind(emp_mu_theta, log(Sigma_burn[,1]),Sigma_burn[,2],log(Sigma_burn[,4]))
+my_modes2 <- c()
+
+
+par(mfrow=c(3,2))
+for(i in 1:ncol(int_mcmc2)){
+  if(plot.it){hist(int_mcmc2[,i], main = paste("model 2, col #", i), prob = T)}
+  dens <- density(int_mcmc2[,i])
+  if(plot.it){lines(dens)}
+  my_modes2[i] <- dens$x[which(dens$y == max(dens$y))]
+}  
+
 
 my_modes2
 H_star2 <- cov(int_mcmc2)
@@ -140,12 +215,25 @@ LM_c2
 
 # Approximate Bayes Factor; this is about 98, showing evidence for a common mean mu_theta
 exp(LM_c2 - LM_c)
+exp(LM_c2 - LM_c2WA)
 
+
+# Compare Walsh approximation (based on Gibbs from Model 1) 
+# with actual Gibbs sampler for Model 2
+if(plot.it){
+  par(mfrow=c(2,2))
+  hist(emp_mu_thetaWA[,1], xlim = range(c(emp_mu_thetaWA[,1], mu_burn[,1])))
+  hist(emp_mu_thetaWA[,2], xlim = range(c(emp_mu_thetaWA[,2], mu_burn[,2])))
+  hist(mu_burn[,1], xlim = range(c(emp_mu_thetaWA[,1], mu_burn[,1])))
+  hist(mu_burn[,2], xlim = range(c(emp_mu_thetaWA[,2], mu_burn[,2])))
+}
 
 
 #################
 #  Model three  #
 #################
+
+load("RData/Gibbs_sqrt_LM3.RData")
 
 # Gather the L_i's in equation 7 from Lewis/Raftery 1997
 Li3 <- c()
@@ -158,7 +246,7 @@ par(mfrow = c(3,2))
 for (s in 1:nrow(theta_hat)) {
 
   VV <- solve(hessians[[s]])
-  EE <- mu_theta
+  EE <- theta_bar
   
   Li3[s] <- dmvn(x = theta_hat[s,], mu = t(EE), Sigma = VV, log=T)
   
@@ -175,15 +263,16 @@ for (s in 1:nrow(theta_hat)) {
 }
 
 # obtain posterior mode and covariance matrix for MCMC output
-emp_mu_theta <-  (9*(B_burn[,1:2])+21*(B_burn[,1:2]+B_burn[,3:4])+17*(B_burn[,1:2]+B_burn[,5:6]))/47
+emp_mu_theta <- mu_burn
 int_mcmc3 <- cbind(emp_mu_theta)
 my_modes3 <- c()
 
+
 par(mfrow=c(1,2))
 for(i in 1:ncol(int_mcmc3)){
-  hist(int_mcmc3[,i], main = paste("model 3, col #", i), prob = T)
+  if(plot.it){hist(int_mcmc3[,i], main = paste("model 3, col #", i), prob = T)}
   dens <- density(int_mcmc3[,i])
-  lines(dens)
+  if(plot.it){lines(dens)}
   my_modes3[i] <- dens$x[which(dens$y == max(dens$y))]
 }
 
@@ -202,7 +291,7 @@ LM_c3
 (LM_c - LM_c3)
 exp(LM_c - LM_c3)
 
-LM_c; LM_c2; LM_c3
+LM_c; LM_c2; LM_c2WA; LM_c3
 exp(LM_c2 - LM_c)
 
 if(plot.it){dev.off()}
