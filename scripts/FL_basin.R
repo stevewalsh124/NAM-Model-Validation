@@ -13,25 +13,32 @@ require(sf)
 require(raster)
 library(fields)
 
+basin <- 1
+
 make_shp2raster <- F
 
 if(make_shp2raster){
   shape <- readOGR(dsn = "Florida_Drainage_Basins_1997", layer = "Florida_Drainage_Basins_1997")
   # plot(shape)
-  apala = subset(shape, HUC %in% c("03120001","03120002","03120003","03120004"))
-  ext <- extent(apala)
+  if(basin == 1) watershed = subset(shape, HUC %in% c("03120001","03120002","03120003","03120004"))
+  if(basin == 2) watershed = subset(shape, HUC %in% c("03130004","03130011","03130012","03130013","03130014"))
+  if(basin == 3) watershed = subset(shape, HUC %in% c("03140101","03140102","03140103","03140104",
+                                                      "03140105","03140106","03140107"))
+  if(basin == 4) watershed = subset(shape, HUC %in% c("03140101","03140102","03140103","03140104","03140105",
+                                                      "03140106","03140107","03140202","03140203","03140305"))
+  ext <- extent(watershed)
   r <- raster(ext, res=.01)  
-  r <- rasterize(apala, r, field=1)
+  r <- rasterize(watershed, r, field=1)
   plot(1:5,ylim=c(27,32), xlim=c(-87,-82),type="n", asp=1)
   plot(r,add=T)
   US(add=T)
-  writeRaster(r, "FLmask")
+  writeRaster(r, paste0("FLmask",basin), overwrite=T)
 }
 
 
-pdf("pdf/FL_basin.pdf")
-FL_mask <- raster("FLmask.grd")
-plot(NA, xlim = c(-87,-82), ylim = c(27,32), type="n", asp=1)
+pdf(paste0("pdf/FL_basin",basin,".pdf"))
+FL_mask <- raster(paste0("FLmask",basin,".grd"))
+plot(NA, xlim = extent(FL_mask)[1:2] + c(-1,1), ylim = extent(FL_mask)[3:4] + c(-1,1), type="n", asp=1)
 plot(FL_mask, add=T)
 US(add=T)
 load(paste0("RData/prediction4"))
