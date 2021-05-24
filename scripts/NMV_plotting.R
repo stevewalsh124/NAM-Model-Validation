@@ -887,3 +887,43 @@ ggsave(
   height = 2.5*1.5,
   dpi = 350
 )
+
+
+####################################
+# Figure for hydrology application #
+####################################
+
+# run  FL_basin_mm.R first, with storm k=4 and basin=1
+png("png/hydro_app_FL_Michael_basin1.png", res=350, height=1000, width=3000)
+par(mfrow=c(1,3))
+par(mar=c(4.5,5,1,2))
+plot(NA, xlim=c(-85.5,-83.5), ylim=c(29,32), asp=1,xlab= "Longitude", ylab="Latitude", cex.axis=1.3, cex.lab=1.3)
+plot(FL_mask, add=T, legend = F); US(add=T, res=1)
+par(mar=c(4.5,5,1,4))
+plot(NA, xlim=c(-85.5,-83.5), ylim=c(29,32), asp=1,xlab= "Longitude", ylab="Latitude", cex.axis=1.3,cex.lab=1.3)
+plot(rasterFromXYZ(rasterToPoints(mask_FL * NAM_r)),add=T, col=precipcolors, legend.width=1.5,
+     legend.args = list(text = expression(sqrt(mm)), side = 3, 
+                        font = 2, line = 1, cex = 0.8, width = 2))
+US(add=T, res=1)
+par(mar=c(4.5,5,1,2))
+m <- 2
+my_dens <- density(sum_sq_rains[,m], bw = bws[m], n = 2048)
+pred_val_dens <- my_dens$y[ which(abs(my_dens$x - ST4_l_sq) == min(abs(my_dens$x - ST4_l_sq)))]
+plot(my_dens$x, my_dens$y, type="l", xlab="mm", ylab="Density",
+     xlim = c(0, 25000), ylim = c(0, max(ylims)), cex.axis=1.3,cex.lab=1.3)
+abline(v=NAM_l_sq, col="green")
+abline(v=ST4_l_sq, col="blue")
+dev.off()
+
+# hyd_df <- data.frame(as(mask_FL * NAM_r, "SpatialPixelsDataFrame"))
+# precip.max <- max(values(mask_FL * NAM_r))
+# storm_name <- "Michael"
+# g16= ggplot(aes(x=x,y=y,fill=layer),data=hyd_df) + 
+#   geom_tile() + theme_classic() + 
+#   geom_polygon(data=subset(map_data("state"), region %in% regions), 
+#                aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+#   scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=range(precip.max),
+#                        name = "mm") +
+#   labs(x = "Longitude", y="Latitude") + 
+#   coord_fixed(xlim=c(-85.5,-83.5), ylim=c(29,32), ratio = 1)
+# g16

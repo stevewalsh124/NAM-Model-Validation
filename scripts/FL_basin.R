@@ -32,12 +32,12 @@ if(make_shp2raster){
   plot(1:5,ylim=c(27,32), xlim=c(-87,-82),type="n", asp=1)
   plot(r,add=T)
   US(add=T)
-  writeRaster(r, paste0("FLmask",basin), overwrite=T)
+  writeRaster(r, paste0("basin/FLmask",basin), overwrite=T)
 }
 
 
 pdf(paste0("pdf/FL_basin",basin,".pdf"))
-FL_mask <- raster(paste0("FLmask",basin,".grd"))
+FL_mask <- raster(paste0("basin/FLmask",basin,".grd"))
 plot(NA, xlim = extent(FL_mask)[1:2] + c(-1,1), ylim = extent(FL_mask)[3:4] + c(-1,1), type="n", asp=1)
 plot(FL_mask, add=T)
 US(add=T)
