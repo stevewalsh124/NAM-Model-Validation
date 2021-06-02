@@ -1,8 +1,8 @@
 # Gibbs sampler for Simulated Hurricane Error Fields
 # Steve Walsh Feb 2020
 
-# run storms_collect.R first
-source("~/NAM-Model-Validation/scripts/storms_collect_sqrt.R")
+# run storms_collect.R first for geoR MLEs, not myMLEs (see below)
+
 # pick data vs posterior pwmean; change pdf and save.image() names
 
 # pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_sqrt.pdf")
@@ -26,7 +26,13 @@ as.square <- function(mat){matrix(mat, nrow=sqrt(length(mat)),ncol=sqrt(length(m
 #testy <- matrix(rnorm(10000),100,100); all.equal(testy, as.square(as.vector(testy)))
 
 # These are the actual hurricane estimates
-lambda_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
+# lambda_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
+myMLEfiles <- grep(list.files("csv/myMLEresults/myMLEs/", full.names = T),
+                   pattern='sim_vals', invert=TRUE, value=TRUE)[1:47]
+myMLEs   <- do.call(rbind, lapply(myMLEfiles, read.csv))
+
+lambda_hat <- cbind(myMLEs$sigs,myMLEs$phis)
+
 N <- nrow(lambda_hat) # number of storms, 47
 P <- ncol(lambda_hat) # number of params, theta1 and theta2
 R <- 3 #number of landfall locations (ATL, FL, GULF)
@@ -37,7 +43,7 @@ R <- 3 #number of landfall locations (ATL, FL, GULF)
 theta_hat <- cbind(log(lambda_hat[,1]/lambda_hat[,2]), log(lambda_hat[,1]))
 
 hessians <- list()
-hess_theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs", full.names = T)
+hess_theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs", full.names = T)[1:47]
 if(length(hess_theta_files) != N){stop("number of MLEs != number of Hessians")}
 for (i in 1:N) {
   hess <- read.csv(hess_theta_files[i], row.names = 1)
