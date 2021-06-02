@@ -888,6 +888,23 @@ ggsave(
   dpi = 350
 )
 
+#################################
+# Table 1: Coverage percentages #
+#################################
+
+LM1_files <- grep(list.files(path="csv/prediction", full.names = T), pattern='LM', invert=TRUE, value=TRUE)
+pred_res <- do.call(rbind, lapply(LM1_files, read.csv))
+LM1_res <- 1-colMeans(pred_res)
+
+pred_files <- (list.files("csv/prediction", pattern = "LM2", full.names = T))
+pred_res <- do.call(rbind, lapply(pred_files, read.csv))
+LM2_res <- 1-colMeans(pred_res)
+
+pred_files <- (list.files("csv/prediction", pattern = "LM3", full.names = T))
+pred_res <- do.call(rbind, lapply(pred_files, read.csv))
+LM3_res <- 1-colMeans(pred_res)
+
+rbind(LM1_res, LM2_res, LM3_res)
 
 ####################################
 # Figure for hydrology application #
