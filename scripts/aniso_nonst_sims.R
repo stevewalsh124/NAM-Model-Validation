@@ -1,9 +1,9 @@
 # By M.A.R. Ferreira, 2014. Updated by M.A.R. Ferreira, 2016.
 
-Nsims <- 10
-seed <- 11
+Nsims <- 30
+seed <- 1
 set <- 9
-lo <- 80
+lo <- 60
 
 ## truestart:    the aniso params only are true starting values
 ## alltruestart: aniso params as well as sigma2 and phi are at true starting values
@@ -133,13 +133,15 @@ covmatrix_anisop <- diag(tau2,nrow(tt)) + covfunc.exponential(tt,phi,sigma2)
 # MLEs for Anisotropy/Stationary #
 ##################################
 
-myMLEs <- matrix(NA, Nsims, 6)
+myMLEs <- mySpats <- matrix(NA, Nsims, 6)
 colnames(myMLEs) <- names(truths)
+colnames(mySpats) <- c("beta", "tausq", "sigma2", "lam1", "lam2", "eta")
 
-times <- c()
+times <- times2 <- c()
 
 library(geoR)
 library(fields)
+library(convoSPAT)
 
 pdf(paste0("~/NAM-Model-Validation/pdf/aniso/set",set,
            "_",Nsims,"_",nrow(s),"_box",box,"_seed",seed,".pdf"))
@@ -165,7 +167,14 @@ for (i in 1:Nsims) {
   toc <- proc.time()[3]
   print(toc - tic)
   times[i] <- toc - tic
-}
+  
+  
+  tic <- proc.time()[3]
+  my_spat <- Aniso_fit(geodata = as.geodata(cbind(s,x)))
+  mySpats[i,] <-  c(my_spat$beta.GLS, my_spat$tausq.est, my_spat$sigmasq.est, my_spat$aniso.pars)
+  toc <- proc.time()[3]
+  print(toc - tic)
+  times2[i] <- toc - tic}
 
 
 write.csv(cbind(myMLEs, times), 
@@ -173,10 +182,22 @@ write.csv(cbind(myMLEs, times),
                         "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
                         if(truestart){"_truestart"}, if(alltruestart){"_alltruestart"},".csv"))
 
+write.csv(cbind(mySpats, times2), 
+          file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
+                        "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
+                        "_spat.csv"))
+
 par(mfrow=c(2,2))
 for (i in 1:6) {
   hist(myMLEs[,i], main = paste(names(truths)[i], round(truths[i],3)))
   abline(v=truths[i], col="blue")
+}
+
+truths_spat <- c(truths[1:3], 1/truths[4], truths[6], truths[5])
+par(mfrow=c(2,2))
+for (i in 1:6) {
+  hist(mySpats[,i], main = paste(names(truths_spat)[i], round(truths_spat[i],3)))
+  abline(v=truths_spat[i], col="blue")
 }
 
 dev.off()
