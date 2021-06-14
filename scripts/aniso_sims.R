@@ -80,7 +80,7 @@ theta <- truths["theta"]
 # C(s) = sigma2 * rho((s-s')^T %*% B %*% (s-s'))
 # Banerjee et al pg 31, B must be positive definite
 
-# Higdon Temperatures in the North Atlantic
+# Higdon Temperatures in the North Atlantic (1998)
 # d transformed to r: r = diag(c(sigma1, sigma2)) %*% matrix(cos(theta), -sin(theta), sin(theta), cos(theta)) %*% t(d)
 
 tt <- matrix(NA, nrow = nrow(s), ncol = nrow(s))
