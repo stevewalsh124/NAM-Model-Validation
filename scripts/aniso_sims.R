@@ -1,9 +1,9 @@
 # By M.A.R. Ferreira, 2014. Updated by M.A.R. Ferreira, 2016.
 
-Nsims <- 30
+Nsims <- 300
 seed <- 1
-set <- 9
-lo <- 60
+set <- 3
+lo <- 30
 
 ## truestart:    the aniso params only are true starting values
 ## alltruestart: aniso params as well as sigma2 and phi are at true starting values
@@ -20,6 +20,8 @@ if(length(args) > 0)
 set.seed(seed)
 
 box <- 20
+if(set==12){box <- 200}
+if(set==13){box <- 1}
 xaxis <- seq(0,box,length.out = lo)
 yaxis <- seq(0,box,length.out = lo)
 
@@ -46,6 +48,10 @@ if(set == 6){truths <- c(beta=0, tau2=0.02, sigma2=4, phi=1, theta=pi/4, maj.min
 if(set == 7){truths <- c(beta=0, tau2=0.04, sigma2=5, phi=2, theta=pi/8, maj.min=2)}
 if(set == 8){truths <- c(beta=0, tau2=0.04, sigma2=5, phi=1.5, theta=pi/4, maj.min=1)}
 if(set == 9){truths <- c(beta=0, tau2=0.03, sigma2=4.5, phi=2, theta=pi/3, maj.min=3)}
+if(set == 10){truths <- c(beta=0, tau2=0.03, sigma2=4.5, phi=5, theta=pi/3, maj.min=3)}
+if(set == 11){truths <- c(beta=0, tau2=0.03, sigma2=4.5, phi=0.9, theta=pi/3, maj.min=3)}
+if(set == 12){truths <- c(beta=0, tau2=0.03, sigma2=4.5, phi=30, theta=pi/3, maj.min=3)}
+if(set == 13){truths <- c(beta=0, tau2=0.03, sigma2=4.5, phi=0.2, theta=pi/3, maj.min=3)}
 
 if(!exists("truths")){stop("True values have not been set")}
 
@@ -147,10 +153,15 @@ pdf(paste0("~/NAM-Model-Validation/pdf/aniso/set",set,
            "_",Nsims,"_",nrow(s),"_box",box,"_seed",seed,".pdf"))
 
 for (i in 1:Nsims) {
+  print(paste0("sim #", i))
+  
   x <- t(chol(covmatrix_anisop)) %*% rnorm(nrow(s))
   z <- matrix(x,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
   
-  image.plot(z, main=paste0("sigmasq",sigma2," phi",phi, " ratio",maj.min[1], " angle",round(180/pi*theta,3)))
+  if(i < 10){
+    image.plot(z, main=paste0("sigmasq",sigma2," phi",phi, 
+                              " ratio",maj.min[1], " angle",round(180/pi*theta,3)))
+  }
 
   tic <- proc.time()[3]
   if(truestart){
@@ -174,15 +185,16 @@ for (i in 1:Nsims) {
   mySpats[i,] <-  c(my_spat$beta.GLS, my_spat$tausq.est, my_spat$sigmasq.est, my_spat$aniso.pars)
   toc <- proc.time()[3]
   print(toc - tic)
-  times2[i] <- toc - tic}
+  times2[i] <- toc - tic
+}
 
 
-write.csv(cbind(myMLEs, times), 
+write.csv(cbind(myMLEs, times),
           file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
                         "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
                         if(truestart){"_truestart"}, if(alltruestart){"_alltruestart"},".csv"))
 
-write.csv(cbind(mySpats, times2), 
+write.csv(cbind(mySpats, times2),
           file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
                         "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
                         "_spat.csv"))
@@ -193,10 +205,11 @@ for (i in 1:6) {
   abline(v=truths[i], col="blue")
 }
 
-truths_spat <- c(truths[1:3], 1/truths[4], truths[6], truths[5])
-par(mfrow=c(2,2))
+truths_spat <- c(truths[1:4], truths[6], truths[5])
+spats <- cbind(mySpats[,1:3], sqrt(mySpats[,5]), sqrt(mySpats[,5]/mySpats[,4]), mySpats[,6])
+par(mfrow=c(3,2))
 for (i in 1:6) {
-  hist(mySpats[,i], main = paste(names(truths_spat)[i], round(truths_spat[i],3)))
+  hist(spats[,i], main = paste(names(truths_spat)[i], round(truths_spat[i],3)))
   abline(v=truths_spat[i], col="blue")
 }
 

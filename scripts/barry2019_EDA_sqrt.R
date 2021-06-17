@@ -34,11 +34,11 @@ for (i in 1:4) {
   US(add=T, col="gray80")
 }
 
-expNAM <- cbind(NAM[1:2],(NAM[,3])^2)
-plot(rasterFromXYZ(expNAM), main = "NAM, orig scale (mm)")
+sqNAM <- cbind(NAM[1:2],(NAM[,3])^2)
+plot(rasterFromXYZ(sqNAM), main = "NAM, orig scale (mm)")
 
-expST4 <- cbind(ST4[1:2],(ST4[,3])^2)
-plot(rasterFromXYZ(expST4), main = "ST4, orig scale (mm)")
+sqST4 <- cbind(ST4[1:2],(ST4[,3])^2)
+plot(rasterFromXYZ(sqST4), main = "ST4, orig scale (mm)")
 
 
 # One way to visualize error fields on mm scale
@@ -49,7 +49,7 @@ for (i in 1:2) {plot(rasterFromXYZ(cbind(coords, exp_EFs[,i])), main= paste0("Sq
 par(mfrow=c(2,2))
 # # Bad
 # for (i in 1:4) {
-#   plot(rasterFromXYZ(expNAM) + rasterFromXYZ(cbind(coords, exp_EFs[,i])),
+#   plot(rasterFromXYZ(sqNAM) + rasterFromXYZ(cbind(coords, exp_EFs[,i])),
 #        main= paste0("exp NAM + exp Error field #", i))
 # }
 
@@ -66,3 +66,6 @@ max((ST4[,3])^2)
 maxes <- apply((NAM[,3] + simvals)^2, 2, max)
 par(mfrow=c(1,1))
 hist(maxes, breaks=40, main = paste("Maxes for storm", s))
+abline(v = max(ST4[,3])^2, col="blue", lwd=2)
+abline(v = max(NAM[,3])^2, col="green", lwd=2)
+legend(legend = c("NAM","ST4"), "topright", col=c("green","blue"), lty=1, lwd=2)
