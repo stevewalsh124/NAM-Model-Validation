@@ -1,4 +1,5 @@
-# By M.A.R. Ferreira, 2014. Updated by M.A.R. Ferreira, 2016.
+# Steve Walsh, June 2021, anisotropic random fields with MLEs
+# computed from geoR::likfit and convoSPAT::Aniso_fit
 
 Nsims <- 300
 seed <- 1
