@@ -1,16 +1,20 @@
 # Steve Walsh, June 2021, anisotropic random fields with MLEs
 # computed from geoR::likfit and convoSPAT::Aniso_fit
 
-Nsims <- 300
+# blas_set_num_threads(1)
+
+Nsims <- 30
 seed <- 1
-set <- 3
-lo <- 30
+set <- 1
+lo <- 80
+
+write.pdf <- F
 
 ## truestart:    the aniso params only are true starting values
 ## alltruestart: aniso params as well as sigma2 and phi are at true starting values
 ## neither:      sigma2, phi, maj.min = 1; theta = 0
-truestart <- F
-alltruestart <- T
+truestart <- T
+alltruestart <- F
 if(truestart & alltruestart){stop("truestart or alltruestart, not both")}
 
 args <- commandArgs(TRUE)
@@ -59,12 +63,12 @@ if(!exists("truths")){stop("True values have not been set")}
 if(!dir.exists(paste0("~/NAM-Model-Validation/csv/aniso/set",set))){
   dir.create(paste0("~/NAM-Model-Validation/csv/aniso/set",set))}
 
-write.csv(truths, file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,"/set",set,"truths.csv"))
+if(write.pdf) write.csv(truths, file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,"/set",set,"truths.csv"))
 
 tau2 <- truths["tau2"]
 sigma2 <- truths["sigma2"]
 phi <- truths["phi"]
-maj.min <- c(truths["maj.min"], 1)
+maj.min <- c(1, truths["maj.min"])
 theta <- truths["theta"]
 
 ######################
@@ -88,7 +92,8 @@ theta <- truths["theta"]
 # Banerjee et al pg 31, B must be positive definite
 
 # Higdon Temperatures in the North Atlantic (1998)
-# d transformed to r: r = diag(c(sigma1, sigma2)) %*% matrix(cos(theta), -sin(theta), sin(theta), cos(theta)) %*% t(d)
+# d transformed to r: 
+# r = diag(c(sigma1, sigma2)) %*% matrix(cos(theta), -sin(theta), sin(theta), cos(theta)) %*% t(d)
 
 tt <- matrix(NA, nrow = nrow(s), ncol = nrow(s))
 
@@ -150,8 +155,8 @@ library(geoR)
 library(fields)
 library(convoSPAT)
 
-pdf(paste0("~/NAM-Model-Validation/pdf/aniso/set",set,
-           "_",Nsims,"_",nrow(s),"_box",box,"_seed",seed,".pdf"))
+if(write.pdf) {pdf(paste0("~/NAM-Model-Validation/pdf/aniso/set",set,
+                          "_",Nsims,"_",nrow(s),"_box",box,"_seed",seed,".pdf"))}
 
 for (i in 1:Nsims) {
   print(paste0("sim #", i))
@@ -161,16 +166,16 @@ for (i in 1:Nsims) {
   
   if(i < 10){
     image.plot(z, main=paste0("sigmasq",sigma2," phi",phi, 
-                              " ratio",maj.min[1], " angle",round(180/pi*theta,3)))
+                              " ratio",maj.min[2], " angle",round(180/pi*theta,3)))
   }
 
   tic <- proc.time()[3]
   if(truestart){
     myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(1,1), fix.psiA = F, 
-                    psiA = theta, fix.psiR = F, psiR = maj.min[1])} 
+                    psiA = theta, fix.psiR = F, psiR = maj.min[2])} 
   if(alltruestart){
     myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(sigma2,phi), fix.psiA = F, 
-                    psiA = theta, fix.psiR = F, psiR = maj.min[1])}
+                    psiA = theta, fix.psiR = F, psiR = maj.min[2])}
   if(!truestart & !alltruestart){
     myMLE <- likfit(as.geodata(cbind(s,x)), ini.cov.pars = c(1,1), fix.psiA = F, 
                     psiA = 0, fix.psiR = F, psiR = 1)}
@@ -189,29 +194,36 @@ for (i in 1:Nsims) {
   times2[i] <- toc - tic
 }
 
+if(write.pdf){
+  write.csv(cbind(myMLEs, times),
+            file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
+                          "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
+                          if(truestart){"_truestart"}, if(alltruestart){"_alltruestart"},".csv"))
+  
+  write.csv(cbind(mySpats, times2),
+            file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
+                          "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
+                          "_spat.csv"))
+}
 
-write.csv(cbind(myMLEs, times),
-          file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
-                        "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
-                        if(truestart){"_truestart"}, if(alltruestart){"_alltruestart"},".csv"))
 
-write.csv(cbind(mySpats, times2),
-          file = paste0("~/NAM-Model-Validation/csv/aniso/set",set,
-                        "/aniso_sim_results_",Nsims,"_",nrow(x),"_box",box,"_seed",seed,
-                        "_spat.csv"))
-
-par(mfrow=c(2,2))
+par(mfrow=c(2,3))
 for (i in 1:6) {
   hist(myMLEs[,i], main = paste(names(truths)[i], round(truths[i],3)))
-  abline(v=truths[i], col="blue")
+  abline(v=truths[i], col="blue", lwd=2)
+  if(i==6)   abline(v=1/truths[i], col="red", lwd=2, lty=3)
+  if(i==5)   abline(v=pi/2 - truths[i], col="red", lwd=2, lty=3)
+  
 }
 
 truths_spat <- c(truths[1:4], truths[6], truths[5])
-spats <- cbind(mySpats[,1:3], sqrt(mySpats[,5]), sqrt(mySpats[,5]/mySpats[,4]), mySpats[,6])
-par(mfrow=c(3,2))
+spats <- cbind(mySpats[,1:3], sqrt(mySpats[,4]), sqrt(mySpats[,5]/mySpats[,4]), mySpats[,6])
+par(mfrow=c(2,3))
 for (i in 1:6) {
   hist(spats[,i], main = paste(names(truths_spat)[i], round(truths_spat[i],3)))
-  abline(v=truths_spat[i], col="blue")
+  if(i==6)   abline(v=pi/2 - truths_spat[i], col="red", lwd=2, lty=3)
+  if(i==5)   abline(v=1/truths_spat[i], col="red", lwd=2, lty=3)
+  abline(v=truths_spat[i], col="blue", lwd=2)
 }
 
-dev.off()
+if(write.pdf) dev.off()
