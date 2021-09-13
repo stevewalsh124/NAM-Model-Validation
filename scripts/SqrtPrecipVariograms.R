@@ -2,7 +2,6 @@
 # Steve Walsh
 
 library(sp)
-library(raster)
 library(ncdf4)
 library(sf)
 library(dplyr)
@@ -13,12 +12,13 @@ library(ggplot2)
 library(SpatialEpi) #latlong2grid()
 library(geoR) #as.geodata, variog, variofit
 library(fields) #US()
+library(raster)
 
 # Imagine that the two circular buffer areas create a Venn diagram shape.
 # Do you want it so that A\B and B\A have 12hr of precip while A intersect B has 24hr? (choose F)
 # Do you want the entire union of A and B to have 24 hrs of precip? (choose T)
 addbothbuffers = T
-pred <- F
+pred <- T
 
 # Do you want to write csvs and rasters, as well as make a pdf?
 write.pdf <- T
@@ -37,6 +37,8 @@ pdf(paste0("~/NAM-Model-Validation/pdf/sqrtbuffer_47_ngb_",
 
 if(pred){
   storm.dirs <- list.dirs("~/NAM-Model-Validation/prediction", recursive = F)
+  if(length(storm.dirs)==0){
+    storm.dirs <- list.dirs("/Volumes/LACIEHD/NAMandST4_prediction", recursive = F) }
 } else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F) }
 
 storms.out.of.hurdat <- c()
@@ -68,8 +70,8 @@ mask <- raster("~/NAM-Model-Validation/lsmask.nc")
 mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- resample(mask, projectRaster(raster(
-  "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
+mask.regrid <- raster::resample(mask, projectRaster(raster(
+  "~/NAM-Model-Validation/nam_218_20170826_0000_012.grb2"),
   crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
 
 # Multiple plot function
@@ -215,13 +217,14 @@ for(i in 1:length(storm.dirs)){
   if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else {
     if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} else {
       if(length(list.files(NAM_folder,full.names = T))==12&storm_name=="rita"){first24 <- c(5,6)} else {
-        print("Total NAM files for this storm not 15 or 18; skipping"); next}}} 
+        if(length(list.files(NAM_folder, full.names = T))==53){first24 <- c(13,25)} else {
+          print("Total NAM files for this storm not 15 or 18 or 53; skipping"); next}}}} 
   
   for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
     # k <-1
     ST4file <- list.files(ST4_folder,full.names = T)[k]
     ST4list[[i]][[k]] <- (raster(ST4file) %>% projectRaster(crs = "+proj=longlat +datum=WGS84", method = "ngb"))
-    ST4list[[i]][[k]] <- resample(ST4list[[i]][[k]], mask.regrid, method = "ngb")
+    ST4list[[i]][[k]] <- raster::resample(ST4list[[i]][[k]], mask.regrid, method = "ngb")
     
     print(min(values(ST4list[[i]][[k]]), na.rm=T))
     # values(ST4list[[i]][[k]])[which(values(ST4list[[i]][[k]]<=1))] <- 1 
@@ -383,11 +386,11 @@ for(i in 1:length(storm.dirs)){
   # Use these to load into simulate_error_field.R, prediction, etc
   if(write.pdf){
   if(pred){
-    if(!dir.exists(paste0("~/NAM-Model-Validation/prediction_sqrt/",storm_yearname,"/"))) {
-      dir.create(paste0("~/NAM-Model-Validation/prediction_sqrt/",storm_yearname,"/"), recursive = T)
+    if(!dir.exists(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/"))) {
+      dir.create(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/"), recursive = T)
     }
-    write.csv(NAM_df, paste0("~/NAM-Model-Validation/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_NAMdf.csv"))
-    write.csv(ST4_df, paste0("~/NAM-Model-Validation/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_ST4df.csv"))
+    write.csv(NAM_df, paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_NAMdf.csv"))
+    write.csv(ST4_df, paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_ST4df.csv"))
   } else {
     if(!dir.exists("~/NAM-Model-Validation/csv/nam_df_sqrt/")) {
       dir.create("~/NAM-Model-Validation/csv/nam_df_sqrt/", recursive = T)
