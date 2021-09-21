@@ -24,6 +24,18 @@ all.equal(-my_crps(x), crps_norm(x))
 # pkg is more robust than mine, of course:
 all.equal(-my_crps(x, sig=0), crps_norm(x, scale=0))
 
+# nonparametric version of CRPS
+# based on equation 2 of Jordan etal 2018; scoringRules paper
+my_np_crps <- function(y, scen){
+  m <- length(scen)
+  summin <- matrix(NA, m, m)
+  for (i in 1:m) {
+    summin[i,] <- abs(scen[i] - scen)
+  }
+  mean(abs(scen - y)) - 1/(2*m^2)*sum(summin)
+}
+
+
 load("~/NAM-Model-Validation/RData/prediction2")
 dim(simvals)
 
@@ -36,8 +48,8 @@ sds <- apply(scenarios, 1, sd)
 
 orig_NAM_crps <- crps_norm(y = ST4_pred$value, mean = NAM_pred$value, scale = 0)
 UQ_NAM_crps <- crps_norm(y = ST4_pred$value, mean = means, sd = sds)
-plot(orig_NAM_crps,type="l")
-plot(UQ_NAM_crps, type="l")
+# plot(orig_NAM_crps,type="l")
+# plot(UQ_NAM_crps, type="l")
 
 # CRPS is exactly the absolute error of the forecast when deterministic prediction
 zlim <- c(0, max(orig_NAM_crps, UQ_NAM_crps))
@@ -53,17 +65,6 @@ plot(rasterFromXYZ(cbind(coords, ifelse(orig_NAM_crps - UQ_NAM_crps > 0, 1, -1))
 
 plot(orig_NAM_crps, UQ_NAM_crps, main = "compare CRPSs: det vs UQ")
 abline(0,1, col="blue")
-
-
-# based on equation 2 of Jordan etal 2018; scoringRules paper
-my_np_crps <- function(y, scen){
-  m <- length(scen)
-  summin <- matrix(NA, m, m)
-  for (i in 1:m) {
-      summin[i,] <- abs(scen[i] - scen)
-  }
-  mean(abs(scen - y)) - 1/(2*m^2)*sum(summin)
-}
 
 np_CRPS <- c()
 for (i in 1:length(ST4_pred$value)) {
@@ -97,10 +98,10 @@ zlim2 = c(0, max(orig_NAM2_crps, UQ_NAM2_crps))
 
 par(mfrow=c(2,2))
 plot(ST4_r^2 - NAM_r^2, main="orig scale error field")
-plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps)))
+plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps)), main = "orig scale abs error")
 plot(rasterFromXYZ(cbind(coords, UQ_NAM2_crps)), main="CRPS for our UQ", zlim = zlim2)
 plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps - UQ_NAM2_crps)), 
-     main="diff of CRPSs\n negative is we win")
+     main="diff of CRPSs\n positive is we win")
 plot(rasterFromXYZ(cbind(coords, ifelse(orig_NAM2_crps - UQ_NAM2_crps > 0, 1, -1))), 
      main="diff of CRPSs\n positive is we win")
 
@@ -114,7 +115,7 @@ for (i in 1:length(ST4_pred$value)) {
 plot(UQ_NAM2_crps, np_CRPS2, main = "UQ: normal vs nonparametric", pch=".")
 abline(0,1,col="red")
 plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps - np_CRPS2)), 
-     main="diff of CRPSs\n negative is we win")
+     main="diff of CRPSs\n positive is we win")
 plot(rasterFromXYZ(cbind(coords, ifelse(orig_NAM2_crps - np_CRPS2 > 0, 1, -1))), 
      main="diff of CRPSs\n positive is we win")
 
@@ -131,5 +132,5 @@ mean(np_CRPS2[ST4_pred$value > 5] < orig_NAM2_crps[ST4_pred$value > 5])
 mean(np_CRPS2[ST4_pred$value > 10] < orig_NAM2_crps[ST4_pred$value > 10])
 
 # note the change in the 0+ bar
-hist(orig_NAM2_crps - UQ_NAM2_crps)
-hist(orig_NAM2_crps - np_CRPS2)
+hist(orig_NAM2_crps - UQ_NAM2_crps, main = "CRPS: determ - normal UQ")
+hist(orig_NAM2_crps - np_CRPS2, main = "CRPS: determ - nonparam UQ")
