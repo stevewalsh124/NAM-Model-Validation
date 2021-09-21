@@ -54,6 +54,8 @@ plot(rasterFromXYZ(cbind(coords, ifelse(orig_NAM_crps - UQ_NAM_crps > 0, 1, -1))
 plot(orig_NAM_crps, UQ_NAM_crps, main = "compare CRPSs: det vs UQ")
 abline(0,1, col="blue")
 
+
+# based on equation 2 of Jordan etal 2018; scoringRules paper
 my_np_crps <- function(y, scen){
   m <- length(scen)
   summin <- matrix(NA, m, m)
