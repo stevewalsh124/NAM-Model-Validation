@@ -16,6 +16,7 @@ library(raster)
 library(mvtnorm)
 library(LaplacesDemon)
 
+# storm to evaluate; 1-6for 2018 and 2019 storms
 ste <- 6
 
 args <- commandArgs(TRUE)
@@ -25,9 +26,11 @@ if(length(args) > 0)
 
 load(paste0("~/NAM-Model-Validation/RData/prediction",ste))
 
-dim(theta_pred)
+dim(theta_pred) # 1000 x 2
 G <- nrow(theta_pred)
 
+# error field = ST4 - NAM - mu has mean 0, so ST4 has mean NAM + mu
+# NAM_r already has PWmean subtracted, so add it twice to have NAM + mu
 NAM_plus_PW <- rasterToPoints(NAM_r + PW_mean + PW_mean)[,3]
 
 my_dist_mtx <- sqrt(plgp::distance(X1 = coords))
