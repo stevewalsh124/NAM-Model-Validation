@@ -48,8 +48,8 @@ for (s in 1:6) {
   means <- rowMeans(scenarios)
   sds <- apply(scenarios, 1, sd)
   
-  # PWmean involvement
-  NAM_pred_pw <- rasterToPoints(NAM_r - PW_mean)
+  # removing PWmean involvement by adding it back on
+  NAM_pred_pw <- rasterToPoints(NAM_r + PW_mean)
   scenarios_pw <- simvals+NAM_pred_pw[,3]
   scenarios_pw <-ifelse(scenarios_pw > 0, scenarios_pw, 0)
   means_pw <- rowMeans(scenarios_pw)
@@ -79,6 +79,7 @@ for (s in 1:6) {
   # np_CRPS <- c()
   # for (i in 1:length(ST4_pred$value)) {np_CRPS[i] <- my_np_crps(ST4_pred$value[i], scenarios[i,])} 
   np_CRPS <- crps_sample(ST4_pred$value, scenarios)
+  np_CRPS_pw <- crps_sample(ST4_pred$value, scenarios_pw)
   
   plot(UQ_NAM_crps, np_CRPS, main = "UQ: normal vs nonparametric", pch=".")
   abline(0,1,col="red")
@@ -119,6 +120,7 @@ for (s in 1:6) {
   # np_CRPS2 <- c()
   # for (i in 1:length(ST4_pred$value)) {np_CRPS2[i] <- my_np_crps(ST4_pred$value[i]^2, scenarios[i,]^2)} 
   np_CRPS2 <- crps_sample(ST4_pred$value^2, scenarios^2) 
+  np_CRPS2_pw <- crps_sample(ST4_pred$value^2, scenarios_pw^2) 
   
   plot(UQ_NAM2_crps, np_CRPS2, main = "UQ: normal vs nonparametric", pch=".")
   abline(0,1,col="red")
@@ -142,6 +144,12 @@ for (s in 1:6) {
   # note the change in the 0+ bar
   hist(orig_NAM2_crps - UQ_NAM2_crps, main = "CRPS: determ - normal UQ")
   hist(orig_NAM2_crps - np_CRPS2, main = "CRPS: determ - nonparam UQ")
+  
+  # compare including PWmean to not including PWmean
+  plot(np_CRPS, np_CRPS_pw, main = paste("PW worse than no PW:", round(mean(np_CRPS > np_CRPS_pw), 3)))
+  abline(0,1,col="blue")
+  plot(np_CRPS2, np_CRPS2_pw, main = paste("PW worse than no PW:", round(mean(np_CRPS2 > np_CRPS2_pw), 3)))
+  abline(0,1,col="blue")
   
 }
 
