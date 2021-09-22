@@ -48,7 +48,13 @@ for (s in 1:6) {
   means <- rowMeans(scenarios)
   sds <- apply(scenarios, 1, sd)
   
-  
+  # PWmean involvement
+  NAM_pred_pw <- rasterToPoints(NAM_r - PW_mean)
+  scenarios_pw <- simvals+NAM_pred_pw[,3]
+  scenarios_pw <-ifelse(scenarios_pw > 0, scenarios_pw, 0)
+  means_pw <- rowMeans(scenarios_pw)
+  sds_pw <- apply(scenarios_pw, 1, sd)
+    
   orig_NAM_crps <- crps_norm(y = ST4_pred$value, mean = NAM_pred$value, scale = 0)
   UQ_NAM_crps <- crps_norm(y = ST4_pred$value, mean = means, sd = sds)
   # plot(orig_NAM_crps,type="l")
@@ -69,11 +75,10 @@ for (s in 1:6) {
   plot(orig_NAM_crps, UQ_NAM_crps, main = "compare CRPSs: det vs UQ")
   abline(0,1, col="blue")
   
-  np_CRPS <- c()
-  for (i in 1:length(ST4_pred$value)) {
-    # if(i %% 1000 == 0) print(i)
-    np_CRPS[i] <- my_np_crps(ST4_pred$value[i], scenarios[i,])
-  } 
+  # my way is too slow, use package
+  # np_CRPS <- c()
+  # for (i in 1:length(ST4_pred$value)) {np_CRPS[i] <- my_np_crps(ST4_pred$value[i], scenarios[i,])} 
+  np_CRPS <- crps_sample(ST4_pred$value, scenarios)
   
   plot(UQ_NAM_crps, np_CRPS, main = "UQ: normal vs nonparametric", pch=".")
   abline(0,1,col="red")
@@ -110,12 +115,10 @@ for (s in 1:6) {
   plot(rasterFromXYZ(cbind(coords, ifelse(orig_NAM2_crps - UQ_NAM2_crps > 0, 1, -1))), 
        main="diff of CRPSs\n det vs Gaussian")
   
-  
-  np_CRPS2 <- c()
-  for (i in 1:length(ST4_pred$value)) {
-    # if(i %% 1000 == 0) print(i)
-    np_CRPS2[i] <- my_np_crps(ST4_pred$value[i]^2, scenarios[i,]^2)
-  } 
+  # my way too slow, use package
+  # np_CRPS2 <- c()
+  # for (i in 1:length(ST4_pred$value)) {np_CRPS2[i] <- my_np_crps(ST4_pred$value[i]^2, scenarios[i,]^2)} 
+  np_CRPS2 <- crps_sample(ST4_pred$value^2, scenarios^2) 
   
   plot(UQ_NAM2_crps, np_CRPS2, main = "UQ: normal vs nonparametric", pch=".")
   abline(0,1,col="red")
