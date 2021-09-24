@@ -62,14 +62,20 @@ log_pred_straw
 write.csv(log_pred_dens, file=paste0("~/NAM-Model-Validation/csv/log_score_",s))
 write.csv(log_pred_straw, file=paste0("~/NAM-Model-Validation/csv/log_straw_",s))
 
-# pdf("~/NAM-Model-Validation/pdf/logScoring_hierarchical_vs_thetabar.pdf")
-# for (ste in 1:6) {
-#   log_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/log_score_",ste))[,2]
-#   log_straw <- as.numeric(read.csv(paste0("~/NAM-Model-Validation/csv/log_straw_",ste))[2])
-#   
-#   hist(log_pred, main = paste(ste,"mean of hierarch. is blue"))
-#   abline(v=log_straw)
-#   abline(v=mean(log_pred), col="blue")
-#   
-# }
-# dev.off()
+pdf("~/NAM-Model-Validation/pdf/logScoring_hierarchical_vs_thetabar.pdf")
+for (ste in 1:6) {
+  log_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/log_score_",ste))[,2]
+  log_straw <- as.numeric(read.csv(paste0("~/NAM-Model-Validation/csv/log_straw_",ste))[2])
+  
+  # hist(log_pred, main = paste(ste,"mean of hierarch. is blue"))
+  # abline(v=log_straw)
+  # abline(v=mean(log_pred), col="blue")
+  
+  log_pred_s <- log_pred - max(log_pred)
+  log_straw_s <- log_straw - max(log_pred)
+  
+  hist(log_pred_s, main = paste(ste,"mean of hierarch. is blue"))
+  abline(v=log(mean(exp(log_pred_s)))+max(log_pred), col="blue",lty=1)
+  abline(v=log_straw,  lty=2)
+}
+dev.off()
