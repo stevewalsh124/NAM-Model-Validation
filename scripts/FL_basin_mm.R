@@ -27,9 +27,10 @@ plot(NA, xlim = extent(FL_mask)[1:2] + c(-1,1), ylim = extent(FL_mask)[3:4] + c(
 plot(FL_mask, add=T)
 US(add=T)
 load(paste0("RData/prediction4"))
-mask_FL <- resample(FL_mask, rasterFromXYZ(cbind(coords, simvals[,1])), method="ngb")
+mask_FL <- raster::resample(FL_mask, rasterFromXYZ(cbind(coords, simvals[,1])), method="ngb")
 
 sum_sq_rains <- matrix(NA, Ngen, nM)
+sum_sq_straw <- c()
 
 for (k in 4) {
   for (m in 1:nM) {
@@ -47,9 +48,21 @@ for (k in 4) {
     sum(unique(values(sim1)),na.rm = T)
     
     for (i in 1:Ngen) {
+      # spatially correlated errors
       sim1 <- rasterFromXYZ(cbind(coords, NAM_pred[,3]+simvals[,i])) * mask_FL
       values(sim1)[which(values(sim1) < 0 )] <- 0
       sum_sq_rains[i,m] <- sum(values(sim1)^2,na.rm = T)
+    }
+    
+    if(m==1){
+      #strawman: white noise errors; no spatial correlation
+      for(i in 1:Ngen){
+        sim1 <- rasterFromXYZ(cbind(coords, NAM_pred[,3] + 
+                                      rnorm(n = nrow(NAM_pred), mean = 0, 
+                                            sd = sqrt(mean(exp(theta_pred[,2])))))) * mask_FL
+        values(sim1)[which(values(sim1) < 0 )] <- 0
+        sum_sq_straw[i] <- sum(values(sim1)^2,na.rm = T)
+      }  
     }
     
     NAM_l <- sum(values(rasterFromXYZ(NAM_pred) * mask_FL),na.rm = T)
@@ -78,6 +91,21 @@ for (k in 4) {
     probs_s[m] <- mean(sum_sq_rains[,m] <= ST4_l_sq)
   }
   
+  # (nM + 1)st is for the straw man; no spatial correlation in errors 
+  bws[m+1] <- (4*sd(sum_sq_straw)^5/(3*Ngen))^0.2
+  ylims[m+1] <-  max(density(sum_sq_straw, bw = bws[m+1])$y)
+  
+  xx <- density(sum_sq_straw, bw = bws[m+1])$x
+  yy <- density(sum_sq_straw, bw = bws[m+1])$y
+  f <- approxfun(xx, yy)
+  C <- integrate(f, min(xx), max(xx))$value
+  if(min(xx) - bws[m+1] < ST4_l_sq){
+    p.unscaled <- integrate(f, min(xx), ST4_l_sq)$value
+  } else { p.unscaled <- 0 }
+  probs_i[m] <- round(p.unscaled / C, 4)
+  
+  probs_s[m] <- mean(sum_sq_rains[,m] <= ST4_l_sq)
+  
   # plot the histograms
   for (m in 1:nM) {
     hist(sum_sq_rains[,m], main=paste0("total mm precip,\n model ",m," storm ", k, ": ", name,
@@ -93,14 +121,24 @@ for (k in 4) {
     my_dens <- density(sum_sq_rains[,m], bw = bws[m], n = 2048)
     pred_val_dens <- my_dens$y[ which(abs(my_dens$x - ST4_l_sq) == min(abs(my_dens$x - ST4_l_sq)))]
     plot(my_dens$x, my_dens$y, type="l", main=paste0("total mm precip,\n model ",m," storm ", k, ": ", name,
-                               "\n probs (int & sum): ", probs_i[m], ", ", probs_s[m],
-                               "\n pred dens val =", round(pred_val_dens,6)),
+                                                     "\n probs (int & sum): ", probs_i[m], ", ", probs_s[m],
+                                                     "\n pred dens val =", round(pred_val_dens,6)),
          xlim = range(sum_sq_rains, na.rm = T), ylim = c(0, max(ylims)))
     abline(v=NAM_l_sq, col="green")
     abline(v=ST4_l_sq, col="blue")
     points(x = c(ST4_l_sq), y= pred_val_dens, type = "p")
   }
-
+  m <- m + 1
+  my_dens <- density(sum_sq_straw, bw = bws[m], n = 2048)
+  pred_val_dens <- my_dens$y[ which(abs(my_dens$x - ST4_l_sq) == min(abs(my_dens$x - ST4_l_sq)))]
+  plot(my_dens$x, my_dens$y, type="l", main=paste0("total mm precip,\n model ",m," storm ", k, ": ", name,
+                                                   "\n probs (int & sum): ", probs_i[m], ", ", probs_s[m],
+                                                   "\n pred dens val =", round(pred_val_dens,6)),
+       xlim = range(sum_sq_rains, na.rm = T), ylim = c(0, max(ylims)))
+  abline(v=NAM_l_sq, col="green")
+  abline(v=ST4_l_sq, col="blue")
+  points(x = c(ST4_l_sq), y= pred_val_dens, type = "p")
+  
 }
 
 if(make.pdf) dev.off()
