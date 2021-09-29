@@ -15,6 +15,7 @@ library(plgp)
 library(raster)
 library(mvtnorm)
 library(LaplacesDemon)
+library(scoringRules)
 
 # storm to evaluate; 1-6for 2018 and 2019 storms
 ste <- 6
@@ -24,10 +25,11 @@ if(length(args) > 0)
   for(i in 1:length(args))
     eval(parse(text=args[[i]]))
 
+pdf(paste0("~/NAM-Model-Validation/pdf/logScoring_storm",ste,".pdf"))
 load(paste0("~/NAM-Model-Validation/RData/prediction",ste))
 
 dim(theta_pred) # 1000 x 2
-G <- nrow(theta_pred)
+G <- 100#nrow(theta_pred)
 
 # error field = ST4 - NAM - mu has mean 0, so ST4 has mean NAM + mu
 # NAM_r already has PWmean subtracted, so add it twice to have NAM + mu
@@ -35,47 +37,105 @@ NAM_plus_PW <- rasterToPoints(NAM_r + PW_mean + PW_mean)[,3]
 
 my_dist_mtx <- sqrt(plgp::distance(X1 = coords))
 
-log_pred_dens <- log_pred_straw <- c()
+# bootstrap samples
+B <- 1000
+theta_boot <- matrix(NA, B, 2)
+for (b in 1:B) { theta_boot[b,] <- theta_hat[sample(1:nrow(theta_hat),1),] }
 
-for(g in 1:G){
-  if(g %% 500 ==0) print(g)
-  sig2 = exp(theta_pred[g,2])
-  phi = exp(theta_pred[g,2]-theta_pred[g,1])
-  my_cov_mtx <- sig2 * exp(-0.5 * my_dist_mtx / phi)
-  log_pred_dens[g] <-  dmvnorm(x = ST4_pred$value, mean = NAM_plus_PW, 
-                               sigma = my_cov_mtx, checkSymmetry = F, log = T)
+# option 1: theta = theta bar, avg of 47 MLEs
+# option 2: theta ~ MVN(thetabar, solve(sum(H_i))) # sum of precision matrices
+# option 3: theta ~ MVN(Bx_i, Sigma_theta) # the hierarchical model we employ
+# option 4: theta ~ generate from bootstrap of 47 MLEs
+theta1 <- theta_bar
+theta2 <- rmvn(1000, theta_bar, solve(Reduce("+", hessians)))
+theta3 <- theta_pred
+theta4 <- theta_boot
+
+log_score <- function(thet, dist_mtx, obsvn, mean_fn, G=(length(thet)/2)){
+  thet <- matrix(thet, length(thet)/2, 2)
+  log_pred_dens <- c()
+  for(g in 1:G){
+    if(g %% 500 ==0) print(g)
+    sig2 = exp(thet[g,2])
+    phi = exp(thet[g,2]-thet[g,1])
+    my_cov_mtx <- sig2 * exp(-0.5 * my_dist_mtx / phi)
+    log_pred_dens[g] <-  dmvnorm(x = obsvn, mean = mean_fn, 
+                                 sigma = my_cov_mtx, checkSymmetry = F, log = T)
+    CRPSs[g] <- crps_norm(y = obsvn, mean = mean_fn, sd = chol(my_cov_mtx))
+    if(length(thet)==2) break
+  }
+  return(log_pred_dens)
 }
 
-sig2 <- exp(theta_bar[2])
-phi <- exp(theta_bar[2]-theta_bar[1])
-my_cov_mtx <- sig2 * exp(-0.5 * my_dist_mtx / phi)
-log_pred_straw <-  dmvnorm(x = ST4_pred$value, mean = NAM_plus_PW, 
-                           sigma = my_cov_mtx, checkSymmetry = F, log = T)
+# Obtain log score from each of the 4 sampling schemes for theta
+out1 <- log_score(theta1, my_dist_mtx, ST4_pred$value, NAM_plus_PW)
+out2 <- log_score(theta2, my_dist_mtx, ST4_pred$value, NAM_plus_PW)
+out3 <- log_score(theta3, my_dist_mtx, ST4_pred$value, NAM_plus_PW)
+out4 <- log_score(theta4, my_dist_mtx, ST4_pred$value, NAM_plus_PW)
 
-mean(log_pred_dens)
-log_pred_straw
+# write log scores (ie, log predictive densities) to csv's
+write.csv(out1, file=paste0("~/NAM-Model-Validation/csv/scores/logS_theta1_storm",ste,".csv"))
+write.csv(out2, file=paste0("~/NAM-Model-Validation/csv/scores/logS_theta2_storm",ste,".csv"))
+write.csv(out3, file=paste0("~/NAM-Model-Validation/csv/scores/logS_theta3_storm",ste,".csv"))
+write.csv(out4, file=paste0("~/NAM-Model-Validation/csv/scores/logS_theta4_storm",ste,".csv"))
 
-# hist(log_pred_dens)
-# abline(v=log_pred_straw)
-# abline(v=mean(log_pred_dens), col="blue")
+# plots
+par(mfrow=c(2,2))
+  p1 <- hist(out1, prob=T, main = paste0("storm ", ste, ": logS for theta1\n mean: ",
+                                         round(log(mean(exp(out1 - max(out1)))) + max(out1),4)))
+  p2 <- hist(out2, prob=T, main = paste0("storm ", ste, ": logS for theta2\n mean: ",
+                                         round(log(mean(exp(out2 - max(out2)))) + max(out2),4)))
+  p3 <- hist(out3, prob=T, main = paste0("storm ", ste, ": logS for theta3\n mean: ",
+                                         round(log(mean(exp(out3 - max(out3)))) + max(out3),4)))
+  p4 <- hist(out4, prob=T, main = paste0("storm ", ste, ": logS for theta4\n mean: ",
+                                         round(log(mean(exp(out4 - max(out4)))) + max(out4),4)))
 
-write.csv(log_pred_dens, file=paste0("~/NAM-Model-Validation/csv/log_score_",s))
-write.csv(log_pred_straw, file=paste0("~/NAM-Model-Validation/csv/log_straw_",s))
+par(mfrow=c(1,1))
+plot( p4, col=rgb(1,0,0,1/4), xlim=range(out1,out2,out3,out4),
+      main = paste0("Storm ", ste, ", Some of HM tail cut off")) # first histogram
+plot( p2, col=rgb(0,1,0,1/4), xlim=range(out1,out2,out3,out4), add=T)  # second
+plot( p1, col=rgb(0,0,1,1/4), xlim=range(out1,out2,out3,out4), add=T)  # second
+plot( p3, col=rgb(0,0,1,1/4), xlim=range(out1,out2,out3,out4), add=T)  # second
+legend("topleft",legend = c("thetabar (2 schemes)","HM","Boot"),
+       col=c("black", "blue","purple"), lty=1)
+abline(v=log(mean(exp(out1 - max(out1)))) + max(out1), col="black", lty=1, lwd=2)
+abline(v=log(mean(exp(out2 - max(out2)))) + max(out2), col="black", lty=2, lwd=2)
+abline(v=log(mean(exp(out3 - max(out3)))) + max(out3), col="blue", lty=1, lwd=5)
+abline(v=log(mean(exp(out4 - max(out4)))) + max(out4), col="purple", lty=4, lwd=5)
 
-pdf("~/NAM-Model-Validation/pdf/logScoring_hierarchical_vs_thetabar.pdf")
-for (ste in 1:6) {
-  log_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/log_score_",ste))[,2]
-  log_straw <- as.numeric(read.csv(paste0("~/NAM-Model-Validation/csv/log_straw_",ste))[2])
-  
-  # hist(log_pred, main = paste(ste,"mean of hierarch. is blue"))
-  # abline(v=log_straw)
-  # abline(v=mean(log_pred), col="blue")
-  
-  log_pred_s <- log_pred - max(log_pred)
-  log_straw_s <- log_straw - max(log_pred)
-  
-  hist(log_pred_s, main = paste(ste,"mean of hierarch. is blue"))
-  abline(v=log(mean(exp(log_pred_s)))+max(log_pred), col="blue",lty=1)
-  abline(v=log_straw,  lty=2)
-}
 dev.off()
+
+# # combine all of the storms into one pdf below
+# boot_better <- c()
+# pdf("~/NAM-Model-Validation/pdf/logScoring_allstorms.pdf")
+# for (s in 1:6) {
+#   out1 <- read.csv(paste0("~/NAM-Model-Validation/csv/scores/logS_theta1_storm",s,".csv"), row.names = 1)$x
+#   out2 <- read.csv(paste0("~/NAM-Model-Validation/csv/scores/logS_theta2_storm",s,".csv"), row.names = 1)$x
+#   out3 <- read.csv(paste0("~/NAM-Model-Validation/csv/scores/logS_theta3_storm",s,".csv"), row.names = 1)$x
+#   out4 <- read.csv(paste0("~/NAM-Model-Validation/csv/scores/logS_theta4_storm",s,".csv"), row.names = 1)$x
+# 
+#   par(mfrow=c(2,2))
+#   p1 <- hist(out1, prob=T, main = paste0("storm ", s, ": logS for theta1\n mean: ",
+#                                          round(log(mean(exp(out1 - max(out1)))) + max(out1),4)))
+#   p2 <- hist(out2, prob=T, main = paste0("storm ", s, ": logS for theta2\n mean: ",
+#                                          round(log(mean(exp(out2 - max(out2)))) + max(out2),4)))
+#   p3 <- hist(out3, prob=T, main = paste0("storm ", s, ": logS for theta3\n mean: ",
+#                                          round(log(mean(exp(out3 - max(out3)))) + max(out3),4)))
+#   p4 <- hist(out4, prob=T, main = paste0("storm ", s, ": logS for theta4\n mean: ",
+#                                          round(log(mean(exp(out4 - max(out4)))) + max(out4),4)))
+# 
+#   par(mfrow=c(1,1))
+#   plot( p4, col=rgb(1,0,0,1/4), xlim=range(out1,out2,out3,out4),
+#         main = paste0("Storm ", s)) # first histogram
+#   plot( p2, col=rgb(0,1,0,1/4), xlim=range(out1,out2,out3,out4), add=T)  # second
+#   plot( p1, col=rgb(0,0,1,1/4), xlim=range(out1,out2,out3,out4), add=T)  # second
+#   plot( p3, col=rgb(0,0,1,1/4), xlim=range(out1,out2,out3,out4), add=T)  # second
+#   legend("topleft",legend = c("thetabar (2 schemes)","HM","Boot"),
+#          col=c("black", "blue","purple"), lty=1)
+#   abline(v=log(mean(exp(out1 - max(out1)))) + max(out1), col="black", lty=1, lwd=2)
+#   abline(v=log(mean(exp(out2 - max(out2)))) + max(out2), col="black", lty=2, lwd=2)
+#   abline(v=log(mean(exp(out3 - max(out3)))) + max(out3), col="blue", lty=1, lwd=5)
+#   abline(v=log(mean(exp(out4 - max(out4)))) + max(out4), col="purple", lty=4, lwd=5)
+#   boot_better[s] <- log(mean(exp(out4 - max(out4)))) + max(out4) > log(mean(exp(out3 - max(out3)))) + max(out3)
+# }
+# dev.off()

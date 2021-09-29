@@ -944,3 +944,12 @@ dev.off()
 #   labs(x = "Longitude", y="Latitude") + 
 #   coord_fixed(xlim=c(-85.5,-83.5), ylim=c(29,32), ratio = 1)
 # g16
+
+############################
+# Sims histograms Appendix #
+############################
+
+# This code is found in sims_eval_expntl.R
+# Seeds 1-50 vs 51-100 will change which types of lines are plotted (fixed vs random truth)
+# There is another folder of files with fixedTruth for the values 
+# where sig2=4 andf phi=1.5 were fixed
