@@ -12,6 +12,7 @@ library(LaplacesDemon)
 
 sim_vals <- T
 sim_dom <- F
+subtract_mean <- T
 
 ## lo_sim = length.out for simulated precip error grid
 ## square grid will have lo_sim^2 pixels on [0, 10]^2
@@ -35,7 +36,8 @@ if(sim_vals){
 
 if(writefiles & plot.it){
   pdf(paste0("~/NAM-Model-Validation/pdf/MLE_storm_expntl_oneHess",
-             if(sim_vals){"_sim_vals"},if(trial){"_trial"},"_lo",lo,".pdf"))
+             if(sim_vals){"_sim_vals"},if(trial){"_trial"},
+             if(subtract_mean){"_submean"},"_lo",lo,".pdf"))
 }
 
 start.time <- Sys.time()
@@ -194,7 +196,9 @@ for (i in 1:length(storms_to_eval)) {
   
   tic <- proc.time()[3]
   
-  mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))
+  if(subtract_mean) {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))
+  } else {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x - mean(x))[[1]], interval = c(0,1000))}
+  
   phihat <- mle_new$minimum
   
   out <- nl_new(phihat, D = t, Y=x)
@@ -416,6 +420,7 @@ if(writefiles){
                         if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                         if(sim_vals){paste0("seed",seed,"_")},
                         if(trial){"trial_"},if(sim_vals){"sim_vals"},
+                        if(subtract_mean){"_submean"},
                         if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
   if(hess_calc){
     # write.csv(myhessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/myhessvecs_",
@@ -431,6 +436,7 @@ if(writefiles){
                                   if(sim_vals){paste0("seed",
                                                       if(seed < 10){"0"},seed,"_")},
                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},
+                                  if(subtract_mean){"_submean"},
                                   if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
     # write.csv(mythetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/mythetahessvecs_",
     #                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
@@ -441,6 +447,7 @@ if(writefiles){
                                        if(sim_vals){paste0("seed",
                                                            if(seed < 10){"0"},seed,"_")},
                                        if(trial){"trial_"},if(sim_vals){"sim_vals"},
+                                       if(subtract_mean){"_submean"},
                                        if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
   }
 }
@@ -449,7 +456,8 @@ if(get_prec_mtx){
   prec_mtx <- solve(sigma2hat * cormatrix)
   save(prec_mtx, file=paste0("~/NAM-Model-Validation/RData/myMLE_precs/", 
                              if(storms_to_eval[1] < 10){"0"},
-                             storms_to_eval[1],".RData"))
+                             storms_to_eval[1],
+                             if(subtract_mean){"_submean"},".RData"))
 }
 
 end.time <- Sys.time()
@@ -488,11 +496,15 @@ if(sim_vals){
   write.csv(cbind(thet1x + 1.96*thetas_sds[,1] > truethetas[,1] & thet1x - 1.96*thetas_sds[,1] < truethetas[,1],
                   thet2x + 1.96*thetas_sds[,2] > truethetas[,2] & thet2x - 1.96*thetas_sds[,2] < truethetas[,2]), 
             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers/seed", 
-                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))
+                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
+                          if(subtract_mean){"_submean"},".csv"))
   
   write.csv(cbind(thet1x,thet2x), 
             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", 
-                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))  
+                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
+                          if(subtract_mean){"_submean"},".csv"))  
   write.csv(thetas_sds, 
             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", 
-                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))}
+                          if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
+                          if(subtract_mean){"_submean"},".csv"))
+  }
