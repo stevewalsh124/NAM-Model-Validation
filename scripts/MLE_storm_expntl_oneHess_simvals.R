@@ -196,8 +196,8 @@ for (i in 1:length(storms_to_eval)) {
   
   tic <- proc.time()[3]
   
-  if(subtract_mean) {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))
-  } else {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x - mean(x))[[1]], interval = c(0,1000))}
+  if(subtract_mean) {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x - mean(x))[[1]], interval = c(0,1000))
+  } else {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))}
   
   phihat <- mle_new$minimum
   
