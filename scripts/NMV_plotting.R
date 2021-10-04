@@ -1,5 +1,6 @@
 library(raster) #raster, extent
 library(fields) #US()
+library(ggplot2)
 
 black <- rgb(0,0,0,1)
 orange <- rgb(230/255,159/255,0,1)
@@ -475,7 +476,7 @@ load("~/NAM-Model-Validation/RData/Gibbs_sqrt.RData")
 my_cols <- c(skyblue,yellow,verm)
 
 # Lower and upper bound extra space to see end of distbns
-up_b <- c(0,0.7); lw_b <- c(0,0.3)
+up_b <- c(0.07,1.45); lw_b <- c(0,0.25)
 smush <- c(0.02, 0.15)
 ## Plot MLE vs posterior estimates for the 47 storms
 png("~/NAM-Model-Validation/png/NMV_compareMLEpost.png", width = 1400, height = 700)
