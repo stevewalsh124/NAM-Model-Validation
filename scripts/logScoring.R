@@ -18,7 +18,7 @@ library(LaplacesDemon)
 library(scoringRules)
 
 # storm to evaluate; 1-6for 2018 and 2019 storms
-ste <- 6
+ste <- 5
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -42,18 +42,24 @@ B <- 1000
 theta_boot <- matrix(NA, B, 2)
 for (b in 1:B) { theta_boot[b,] <- theta_hat[sample(1:nrow(theta_hat),1),] }
 
+# weighted average of thetas based on Hessian info
+sum_wi_ti <- c(0,0)
+for (i in 1:nrow(theta_hat)) sum_wi_ti <- sum_wi_ti + hessians[[i]] %*% theta_hat[i,]
+sum_prec <- Reduce("+", hessians)
+theta_wgt <- solve(sum_prec) %*% sum_wi_ti
+  
 # option 1: theta = theta bar, avg of 47 MLEs
 # option 2: theta ~ MVN(thetabar, solve(sum(H_i))) # sum of precision matrices
 # option 3: theta ~ MVN(Bx_i, Sigma_theta) # the hierarchical model we employ
 # option 4: theta ~ generate from bootstrap of 47 MLEs
 theta1 <- theta_bar
-theta2 <- rmvn(1000, theta_bar, solve(Reduce("+", hessians)))
+theta2 <- rmvn(1000, theta_wgt, solve(sum_prec))
 theta3 <- theta_pred
 theta4 <- theta_boot
 
 log_score <- function(thet, dist_mtx, obsvn, mean_fn, G=(length(thet)/2)){
   thet <- matrix(thet, length(thet)/2, 2)
-  log_pred_dens <- c()
+  log_pred_dens <- CRPSs <- c()
   for(g in 1:G){
     if(g %% 500 ==0) print(g)
     sig2 = exp(thet[g,2])
@@ -61,7 +67,7 @@ log_score <- function(thet, dist_mtx, obsvn, mean_fn, G=(length(thet)/2)){
     my_cov_mtx <- sig2 * exp(-0.5 * my_dist_mtx / phi)
     log_pred_dens[g] <-  dmvnorm(x = obsvn, mean = mean_fn, 
                                  sigma = my_cov_mtx, checkSymmetry = F, log = T)
-    CRPSs[g] <- crps_norm(y = obsvn, mean = mean_fn, sd = chol(my_cov_mtx))
+    # CRPSs[g] <- crps_norm(y = obsvn, mean = mean_fn, sd = chol(my_cov_mtx))
     if(length(thet)==2) break
   }
   return(log_pred_dens)
