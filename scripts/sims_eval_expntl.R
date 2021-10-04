@@ -5,13 +5,21 @@ submean <- T
 fixedTruth <- F
 
 if(submean){
-  MLE_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", full.names = T, pattern = "submean")
-  Gibbs_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/Gibbscoverages", full.names = T, pattern = "submean")
-  
+  MLE_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", 
+                          full.names = T, pattern = "submean")
+  Gibbs_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/Gibbscoverages", 
+                            full.names = T, pattern = "submean")
 } else {
-  MLE_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", full.names = T)
-  MLE_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", full.names = T, pattern = "submean")
+  MLE_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", 
+                        full.names = T)
+  MLE_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", 
+                        full.names = T, pattern = "submean")
   MLE_files <- setdiff(MLE_all, MLE_sub)
+  Gibbs_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/Gibbscoverages", 
+                          full.names = T)
+  Gibbs_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/Gibbscoverages", 
+                          full.names = T, pattern = "submean")
+  Gibbs_files <- setdiff(Gibbs_all, Gibbs_sub)
 }
 
 
@@ -19,7 +27,7 @@ MLEcoverages <- Gibbscoverages <- c()
 
 for (i in 1:length(MLE_files)) {
   MLEcoverages <- rbind(MLEcoverages, read.csv(MLE_files[i])[,-1])
-  # Gibbscoverages <- rbind(Gibbscoverages, read.csv(Gibbs_files[i])$x)
+  Gibbscoverages <- rbind(Gibbscoverages, read.csv(Gibbs_files[i])$x)
 }
 
 colnames(MLEcoverages) <- c("trutheta1","trutheta2")
@@ -47,18 +55,27 @@ if(fixedTruth){
 }
 
 if(submean){
-  cover_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", pattern = "submean", full.names = T)
-  theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas", full.names = T, pattern = "submean")
-  sd_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds", full.names = T, pattern = "submean")
+  cover_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", 
+                            pattern = "submean", full.names = T)
+  theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas", 
+                            full.names = T, pattern = "submean")
+  sd_files <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds", 
+                         full.names = T, pattern = "submean")
 } else {
-  cover_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", full.names = T)
-  cover_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", pattern = "submean", full.names = T)
+  cover_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", 
+                          full.names = T)
+  cover_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers", 
+                          pattern = "submean", full.names = T)
   cover_files <- setdiff(cover_all, cover_sub)
-  theta_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas", full.names = T)
-  theta_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas", pattern = "submean", full.names = T)
+  theta_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas", 
+                          full.names = T)
+  theta_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas", 
+                          pattern = "submean", full.names = T)
   theta_files <- setdiff(theta_all, theta_sub)
-  sd_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds", full.names = T)
-  sd_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds", pattern = "submean", full.names = T)
+  sd_all <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds", 
+                       full.names = T)
+  sd_sub <- list.files("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds", 
+                       pattern = "submean", full.names = T)
   sd_files <- setdiff(sd_all, sd_sub)
 }
 
@@ -103,7 +120,8 @@ yellow <- rgb(240/255,228/255,66/255,1)
 verm <- rgb(213/255, 94/255, 0,1)
 my_cols <- c(skyblue,yellow,verm)
 
-png(paste0("~/NAM-Model-Validation/png/myMLEsim_results",if(submean){"_submean"},".png"), width = 3000, height = 2000, res=350)
+png(paste0("~/NAM-Model-Validation/png/myMLEsim_results",if(submean){"_submean"},".png"), 
+    width = 3000, height = 2000, res=350)
 par(mfrow=c(2,3))
 hist(theta1hats,
      main = expression(theta[1]), 
