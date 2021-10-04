@@ -33,8 +33,8 @@ for (i in 1:length(MLE_files)) {
 colnames(MLEcoverages) <- c("trutheta1","trutheta2")
 colMeans(MLEcoverages, na.rm = T)
 
-# colnames(Gibbscoverages) <- c("theta1hat","theta2hat","trutheta1","trutheta2","truBcomps","truSTcomps")
-# colMeans(Gibbscoverages, na.rm = T)
+colnames(Gibbscoverages) <- c("theta1hat","theta2hat","trutheta1","trutheta2","truBcomps","truSTcomps")
+colMeans(Gibbscoverages, na.rm = T)
 
 
 ## look at sim results to check approx 95% coverage for theta1 and theta2
