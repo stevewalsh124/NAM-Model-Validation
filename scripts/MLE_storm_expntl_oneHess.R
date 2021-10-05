@@ -11,6 +11,8 @@ library(raster)
 
 sim_vals <- F
 sim_dom <- F
+subtractPWmean <- T
+if(sim_vals & subtractPWmean) stop("if sim_vals=F, then subtractPWmean should be F")
 
 ## lo_sim = length.out for simulated precip error grid
 ## square grid will have lo_sim^2 pixels on [0, 10]^2
@@ -39,7 +41,11 @@ if(writefiles & plot.it){
 
 start.time <- Sys.time()
 
-storm_csvs <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF", full.names = T)
+if(subtractPWmean){
+  storm_csvs <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanT_flat", full.names = T)
+} else {
+  storm_csvs <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF", full.names = T)
+}
 small_locs <-  c(11, 18, 17)#,  3, 15, 25,  6, 46, 34, 23, 30, 41, 21, 33, 38, 45, 43, 19, 35, 31) #fastest 20
  #c(3,11,15,17,18,25) #storms less than 3000 pixels
   
@@ -394,6 +400,7 @@ if(writefiles){
   write.csv(cbind(phis, sigs, cnts, tims), 
             file=paste0("~/NAM-Model-Validation/csv/myMLEresults/myMLEs/",
                         if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
+                        if(subtractPWmean){"subtractPWmean"},
                         if(sim_vals){paste0("seed",seed,"_")},
                         if(trial){"trial_"},if(sim_vals){"sim_vals"},
                         if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
@@ -408,6 +415,7 @@ if(writefiles){
     #                                 if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
     write.csv(pkghessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/pkghessvecs/",
                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
+                                  if(subtractPWmean){"subtractPWmean"},
                                   if(sim_vals){paste0("seed",seed,"_")},
                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},
                                   if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
@@ -417,6 +425,7 @@ if(writefiles){
     #                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
     write.csv(pkgthetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs/",
                                        if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
+                                       if(subtractPWmean){"subtractPWmean"},
                                        if(sim_vals){paste0("seed",seed,"_")},
                                        if(trial){"trial_"},if(sim_vals){"sim_vals"},
                                        if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
@@ -427,7 +436,9 @@ if(get_prec_mtx){
   prec_mtx <- solve(sigma2hat * cormatrix)
   save(prec_mtx, file=paste0("~/NAM-Model-Validation/RData/myMLE_precs/", 
                              if(storms_to_eval[1] < 10){"0"},
-                             storms_to_eval[1],".RData"))
+                             storms_to_eval[1],
+                             if(subtractPWmean){"subtractPWmean"},
+                             ".RData"))
 }
 
 end.time <- Sys.time()
