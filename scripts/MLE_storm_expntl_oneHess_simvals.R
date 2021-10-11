@@ -12,40 +12,39 @@ library(LaplacesDemon)
 
 sim_vals <- T
 sim_dom <- F
-subtract_mean <- T
+general_mean <- T
 
 ## lo_sim = length.out for simulated precip error grid
 ## square grid will have lo_sim^2 pixels on [0, 10]^2
 if(sim_dom){lo_sim <- 32}  
 if(sim_dom & !sim_vals) stop("if sim_vals=F, then you must have sim_dom=F")
 
-trial <- F
+trial <- T
 hess_calc <- T
 writefiles <- T
 
-get_prec_mtx <- F
+get_prec_mtx <- T
 
 plot.it <- F
 lo <- 15#21 #length.out for lkhd grid (do odd so MLE in middle)
 
 
 if(sim_vals){ 
-  seed <- 101
-  set.seed(seed) 
+  seed <- 2
 }
 
 if(writefiles & plot.it){
   pdf(paste0("~/NAM-Model-Validation/pdf/MLE_storm_expntl_oneHess",
              if(sim_vals){"_sim_vals"},if(trial){"_trial"},
-             if(subtract_mean){"_submean"},"_lo",lo,".pdf"))
+             if(general_mean){"_genmean"},"_lo",lo,".pdf"))
 }
 
 start.time <- Sys.time()
 
 storm_csvs <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF", full.names = T)
-small_locs <-  c(11, 18, 17)#,  3, 15, 25,  6, 46, 34, 23, 30, 41, 21, 33, 38, 45, 43, 19, 35, 31) #fastest 20
- #c(3,11,15,17,18,25) #storms less than 3000 pixels
-  
+small_locs <-  c(11, 18, 17,  3, 15, 25)#,  6, 46, 34, 23, 30, 41, 21, 33, 38, 45, 43, 19, 35, 31) #fastest 20
+#c(3,11,15,17,18,25) #storms less than 3000 pixels
+
 
 if(trial){storms_to_eval <- small_locs} else {storms_to_eval <- 1:length(storm_csvs)}
 if(sim_dom){storms_to_eval <- 1:200}
@@ -61,9 +60,9 @@ set.seed(seed)
 ## as well as counts of evals of ll fn in optimize, times, and number of pixels
 ## Hessian calculations, compare three different methods 
 ## (2 analytical, 1 numerical from pracma package)
-phis <- sigs <- cnts <- tims <- pixs <- c()
-myhessvecs <- myhessvecsEXP <- pkghessvecs <- 
-  mythetahessvecs <- pkgthetahessvecs <- matrix(NA, length(storms_to_eval), 4)
+phis <- sigs <- phis_noPW <- sigs_noPW <- cnts <- tims <- pixs <- c()
+myhessvecs <- myhessvecsEXP <- pkghessvecs <- pkghessvecs_noPW <- 
+  mythetahessvecs <- pkgthetahessvecs <- pkgthetahessvecs_noPW <- matrix(NA, length(storms_to_eval), 4)
 all_grids <- theta1s <- theta2s <- list()
 
 ###################################
@@ -152,40 +151,42 @@ truethetas <- matrix(data = NA, nrow = length(storms_to_eval), ncol = 2)
 for (i in 1:length(storms_to_eval)) {
   
   print(i) # i <- 1
-  if(sim_dom){
-    xaxis <- seq(0,10,length.out = lo_sim)
-    yaxis <- seq(0,10,length.out = lo_sim)
-    s <- expand.grid(xaxis, yaxis)
-    # storm <- read.csv(storm_csvs[1], row.names = 1) ## quick hack to do N=50, 500... 
-    # s <- storm[,2:3]                                ## of a real location with sim_vals
-  } else {
-    storm <- read.csv(storm_csvs[storms_to_eval[i]], row.names = 1)
-    s <- storm[,2:3]
-  }
-  
-  pixs[i] <- nrow(s)
-  
-  # plot(s)
-  t <- as.matrix(dist(s))
-  n <- nrow(s)
-  
-  if(sim_vals){
-    # Without nugget effect
-
-    truethetai <- rmvn(n = 1, mu = t(trueB%*%x_loc[i,]), Sigma = trueST)
-    truethetas[i,] <- truethetai
-    trueSigma2 <- exp(truethetai[2]) #4
-    truePhi <- exp(truethetai[2] - truethetai[1]) #1.5
-    # plot(seq(0,1,0.001),covfunc.exponential(seq(0,1,0.001),phi,sigma2),type="l")
+  if(!general_mean){
+    if(sim_dom){
+      xaxis <- seq(0,10,length.out = lo_sim)
+      yaxis <- seq(0,10,length.out = lo_sim)
+      s <- expand.grid(xaxis, yaxis)
+      # storm <- read.csv(storm_csvs[1], row.names = 1) ## quick hack to do N=50, 500... 
+      # s <- storm[,2:3]                                ## of a real location with sim_vals
+    } else {
+      storm <- read.csv(storm_csvs[storms_to_eval[i]], row.names = 1)
+      s <- storm[,2:3]
+    }
     
-    true_cov <- covfunc.exponential(t,truePhi,trueSigma2)
-    # image(covmatrix)
-    x <- t(chol(true_cov)) %*% rnorm(nrow(s))
-  } else {
-    x <- storm[,1]
+    pixs[i] <- nrow(s)
+    
+    # plot(s)
+    t <- as.matrix(dist(s))
+    n <- nrow(s)
+    
+    if(sim_vals){
+      # Without nugget effect
+      
+      truethetai <- rmvn(n = 1, mu = t(trueB%*%x_loc[i,]), Sigma = trueST)
+      truethetas[i,] <- truethetai
+      trueSigma2 <- exp(truethetai[2]) #4
+      truePhi <- exp(truethetai[2] - truethetai[1]) #1.5
+      # plot(seq(0,1,0.001),covfunc.exponential(seq(0,1,0.001),phi,sigma2),type="l")
+      
+      true_cov <- covfunc.exponential(t,truePhi,trueSigma2)
+      # image(covmatrix)
+      x <- t(chol(true_cov)) %*% rnorm(nrow(s))
+    } else {
+      x <- storm[,1]
+    }
+    
+    # plot(rasterFromXYZ(cbind(s,x)))
   }
-  
-  # plot(rasterFromXYZ(cbind(s,x)))
   
   counter <- 0
   
@@ -196,14 +197,35 @@ for (i in 1:length(storms_to_eval)) {
   
   tic <- proc.time()[3]
   
-  if(subtract_mean) {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x - mean(x))[[1]], interval = c(0,1000))
+  if(general_mean) {
+    truethetas <- read.csv(paste0("~/NAM-Model-Validation/csv/raster_sim_truths/seed",
+                                  if(seed<100){"0"},if(seed<10){"0"},seed,".csv"),
+                           row.names = 1)[storms_to_eval,]
+    ras <- raster(paste0("~/NAM-Model-Validation/raster_sims/seed",
+                         if(seed<100){"0"},if(seed<10){"0"},seed,"/seed",
+                         if(seed<100){"0"},if(seed<10){"0"},seed,"_storm",
+                         storms_to_eval[i],".grd"))
+    PW_hat <- raster(paste0("~/NAM-Model-Validation/raster_sims/PWhats/seed",
+                            if(seed<100){"0"},if(seed<10){"0"},seed,".grd"))
+    t <- as.matrix(dist(rasterToPoints(ras - PW_hat)[,1:2]))
+    x <- rasterToPoints(ras - PW_hat)[,3]
+    x_noPW <- rasterToPoints(ras)[,3]
+    mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))
+    mle_noPW <- optimize(function(phi) nl_new(phi, D = t, Y = x_noPW)[[1]], interval = c(0,1000))
   } else {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))}
   
+  # subtract PWmean
   phihat <- mle_new$minimum
-  
   out <- nl_new(phihat, D = t, Y=x)
   sigma2hat <- out$sigma2hat
   cormatrix <- out$cormatrix
+  if(general_mean){
+    # do not subtractPWmean
+    phihat_noPW  <- mle_noPW$minimum
+    out_noPW <- nl_new(phihat_noPW, D = t, Y=x_noPW)
+    sigma2hat_noPW <- out_noPW$sigma2hat
+    cormatrix_noPW <- out_noPW$cormatrix
+  }
   
   if(hess_calc){
     # ## Hessian calculations (phi, sigma2hat, cormatrix all exported from nl_new)
@@ -234,13 +256,32 @@ for (i in 1:length(storms_to_eval)) {
     M <- matrix(c(1/sigma2hat, 1/sigma2hat,-1/phihat, 0), ncol = 2)
     covmtx <- solve(matrix(-pkgHess, 2, 2))
     pkgthetaHess <- -solve(M %*% covmtx %*% t(M))
-
+    
+    if(general_mean){
+      pkgHess_noPW <- pracma::hessian(f = ll_new, x0=c(sigma2hat_noPW, phihat_noPW), Y=x_noPW)
+      
+      M_noPW <- matrix(c(1/sigma2hat_noPW, 1/sigma2hat_noPW,-1/phihat_noPW, 0), ncol = 2)
+      covmtx_noPW <- solve(matrix(-pkgHess_noPW, 2, 2))
+      pkgthetaHess_noPW <- -solve(M_noPW %*% covmtx_noPW %*% t(M_noPW))
+    }
+    
     # ## evaluate Hessian numerically w/ theta parameterization
     # pkgthetaHess <- pracma::hessian(f = ll_theta, x0=c(log(sigma2hat/phihat),log(sigma2hat)))
-
+    
     # ## results are the same?
     # all.equal(round(solve(-pkgthetaHess),3),round(mythetaHess,3))
     
+    if(get_prec_mtx){
+      prec_mtx <- solve(sigma2hat * cormatrix)
+      save(prec_mtx, file=paste0("~/NAM-Model-Validation/RData/myMLE_precs/", 
+                                 if(storms_to_eval[i] < 10){"0"},
+                                 storms_to_eval[i],
+                                 if(sim_vals){paste0("_seed",
+                                                     if(seed<100){"0"},
+                                                     if(seed<10){"0"},
+                                                     seed)},
+                                 if(general_mean){"_genmean"},".RData"))
+    }
   }
   
   toc <- proc.time()[3]
@@ -272,6 +313,19 @@ for (i in 1:length(storms_to_eval)) {
     pkgthetahessvecs[i,] <- pkgthetaHess
   }
   
+  if(general_mean){
+    # mle_old$minimum
+    phis_noPW[i] <- phihat_noPW
+    sigs_noPW[i] <- sigma2hat_noPW
+    if(hess_calc){
+      # myhessvecs[i,] <- myHess
+      # myhessvecsEXP[i,] <- myHessEXP
+      pkghessvecs_noPW[i,] <- pkgHess_noPW
+      # mythetahessvecs[i,] <- mythetaHess
+      pkgthetahessvecs_noPW[i,] <- pkgthetaHess_noPW
+    }
+  }
+  
   if(plot.it){
     ## Plot the log-likelihood surface wrt to orig parameterization
     orig_sds <- sqrt(diag(-solve(pkgHess)))
@@ -288,7 +342,7 @@ for (i in 1:length(storms_to_eval)) {
       sigma2vec <- sigma2vec[-bad]
       phivec <- phivec[-bad]
     }
-
+    
     
     
     llgrid <- matrix(NA, nrow = length(phivec), ncol = length(sigma2vec))
@@ -341,18 +395,19 @@ for (i in 1:length(storms_to_eval)) {
     par(mfrow=c(1,2))
     ind <- which(theta1hat == theta1vec)
     if(!(all(exp(thetagrid[,ind]) == Inf) | all(exp(thetagrid[ind,]) == Inf))){
-    plot(theta1vec, exp(thetagrid[,ind]), type = "l", main="slice of likhd at theta_2_hat")
-    plot(theta2vec, exp(thetagrid[ind,]), type = "l", main="slice of likhd at theta_1_hat")
-    
-    plot(theta1vec, thetagrid[,ind], type = "l", main="slice of loglik at theta_2_hat")
-    plot(theta2vec, thetagrid[ind,], type = "l", main="slice of loglik at theta_1_hat")
+      plot(theta1vec, exp(thetagrid[,ind]), type = "l", main="slice of likhd at theta_2_hat")
+      plot(theta2vec, exp(thetagrid[ind,]), type = "l", main="slice of likhd at theta_1_hat")
+      
+      plot(theta1vec, thetagrid[,ind], type = "l", main="slice of loglik at theta_2_hat")
+      plot(theta2vec, thetagrid[ind,], type = "l", main="slice of loglik at theta_1_hat")
     }
   }
   
 }
 
-write.csv(truethetas, file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/true_values/seed",
-                                    if(seed < 10){"0"}, seed, ".csv"))
+if(!general_mean) {write.csv(truethetas, 
+                             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/true_values/seed",
+                                           if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))}
 
 # nowtime <- function(){gsub(gsub(gsub(Sys.time(),pattern = " ", replacement = ""),
 #                                 pattern="-", replacement=""),pattern=":", replacement="")}
@@ -383,14 +438,16 @@ if(plot.it){
   
 }
 
-sig_phi_sds <- thetas_sds <- matrix(NA, length(storms_to_eval), 2)
+sig_phi_sds <- thetas_sds <- thetas_sds_noPW <- matrix(NA, length(storms_to_eval), 2)
 if(length(storms_to_eval)==1){
-    sig_phi_sds <- sqrt(diag(-solve(matrix(pkghessvecs, 2, 2))))
-    thetas_sds  <- sqrt(diag(-solve(matrix(pkgthetahessvecs, 2, 2))))
+  sig_phi_sds <- sqrt(diag(-solve(matrix(pkghessvecs, 2, 2))))
+  thetas_sds  <- sqrt(diag(-solve(matrix(pkgthetahessvecs, 2, 2))))
+  thetas_sds_noPW  <- sqrt(diag(-solve(matrix(pkgthetahessvecs_noPW, 2, 2))))
 } else {
   for (k in 1:length(storms_to_eval)) {
     sig_phi_sds[k,] <- sqrt(diag(-solve(matrix(pkghessvecs[k,], 2, 2))))
     thetas_sds[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs[k,], 2, 2))))
+    thetas_sds_noPW[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs_noPW[k,], 2, 2))))
   }
 }
 
@@ -418,9 +475,10 @@ if(writefiles){
   write.csv(cbind(phis, sigs, cnts, tims), 
             file=paste0("~/NAM-Model-Validation/csv/myMLEresults/myMLEs/",
                         if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
-                        if(sim_vals){paste0("seed",seed,"_")},
+                        if(sim_vals){paste0("seed",
+                                            if(seed<100){"0"},if(seed<10){"0"},seed,"_")},
                         if(trial){"trial_"},if(sim_vals){"sim_vals"},
-                        if(subtract_mean){"_submean"},
+                        if(general_mean){"_genmean"},
                         if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
   if(hess_calc){
     # write.csv(myhessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/myhessvecs_",
@@ -434,9 +492,9 @@ if(writefiles){
     write.csv(pkghessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkghessvecs/",
                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                   if(sim_vals){paste0("seed",
-                                                      if(seed < 10){"0"},seed,"_")},
+                                                      if(seed<100){"0"},if(seed<10){"0"},seed,"_")},
                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},
-                                  if(subtract_mean){"_submean"},
+                                  if(general_mean){"_genmean"},
                                   if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
     # write.csv(mythetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/mythetahessvecs_",
     #                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
@@ -445,19 +503,11 @@ if(writefiles){
     write.csv(pkgthetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkgthetahessvecs/",
                                        if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                        if(sim_vals){paste0("seed",
-                                                           if(seed < 10){"0"},seed,"_")},
+                                                           if(seed<100){"0"},if(seed<10){"0"},seed,"_")},
                                        if(trial){"trial_"},if(sim_vals){"sim_vals"},
-                                       if(subtract_mean){"_submean"},
+                                       if(general_mean){"_genmean"},
                                        if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
   }
-}
-
-if(get_prec_mtx){
-  prec_mtx <- solve(sigma2hat * cormatrix)
-  save(prec_mtx, file=paste0("~/NAM-Model-Validation/RData/myMLE_precs/", 
-                             if(storms_to_eval[1] < 10){"0"},
-                             storms_to_eval[1],
-                             if(subtract_mean){"_submean"},".RData"))
 }
 
 end.time <- Sys.time()
@@ -474,8 +524,18 @@ if(sim_vals){
   thet1x <- log(sigx/phix)
   thet2x <- log(sigx)
   
+  phix_noPW <- phis_noPW[complete.cases(phis_noPW)]
+  sigx_noPW <- sigs_noPW[complete.cases(sigs_noPW)]
+  thet1x_noPW <- log(sigx_noPW/phix_noPW)
+  thet2x_noPW <- log(sigx_noPW)
+  
   mean(thet1x + 1.96*thetas_sds[,1] > trueTheta1 & thet1x - 1.96*thetas_sds[,1] < trueTheta1)
   mean(thet2x + 1.96*thetas_sds[,2] > trueTheta2 & thet2x - 1.96*thetas_sds[,2] < trueTheta2)
+  
+  mean(thet1x_noPW + 1.96*thetas_sds_noPW[,1] > trueTheta1 &
+         thet1x_noPW - 1.96*thetas_sds_noPW[,1] < trueTheta1)
+  mean(thet2x_noPW + 1.96*thetas_sds_noPW[,2] > trueTheta2 &
+         thet2x_noPW - 1.96*thetas_sds_noPW[,2] < trueTheta2)
   
   if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers")){
     dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers")
@@ -497,14 +557,33 @@ if(sim_vals){
                   thet2x + 1.96*thetas_sds[,2] > truethetas[,2] & thet2x - 1.96*thetas_sds[,2] < truethetas[,2]), 
             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers/seed", 
                           if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
-                          if(subtract_mean){"_submean"},".csv"))
+                          if(general_mean){"_genmean"},".csv"))
   
   write.csv(cbind(thet1x,thet2x), 
             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", 
                           if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
-                          if(subtract_mean){"_submean"},".csv"))  
+                          if(general_mean){"_genmean"},".csv"))  
   write.csv(thetas_sds, 
             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", 
                           if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
-                          if(subtract_mean){"_submean"},".csv"))
+                          if(general_mean){"_genmean"},".csv"))
+  
+  if(general_mean){
+    write.csv(cbind(thet1x_noPW + 1.96*thetas_sds_noPW[,1] > truethetas[,1] & 
+                      thet1x_noPW - 1.96*thetas_sds_noPW[,1] < truethetas[,1],
+                    thet2x_noPW + 1.96*thetas_sds_noPW[,2] > truethetas[,2] & 
+                      thet2x_noPW - 1.96*thetas_sds_noPW[,2] < truethetas[,2]), 
+              file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers/seed", 
+                            if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
+                            if(general_mean){"_noPW"},".csv"))
+    
+    write.csv(cbind(thet1x_noPW,thet2x_noPW), 
+              file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", 
+                            if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
+                            if(general_mean){"_noPW"},".csv"))  
+    write.csv(thetas_sds_noPW, 
+              file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", 
+                            if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
+                            if(general_mean){"_noPW"},".csv"))
   }
+}
