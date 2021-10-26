@@ -4,12 +4,15 @@ library(geoR)
 library(fields)
 library(raster)
 
-### Prior: mu ~ N(0, \Sigma_0)) 
-# Sigma_0 is from the PWmean where pixel counts are geq20 MLE params
-
-# load("~/NAM-Model-Validation/RData/PWmean_geq20_paramsMLE.RData") 
-
 source("~/NAM-Model-Validation/scripts/mosaicList.R")
+
+# CHANGE THIS FOR LOADING INFORMED VS FLAT PRIOR!
+# loads post_cov_mtx
+load("/work/dragonstooth/walsh124/post_cov_mtx_expntl_informedPrior.RData")
+
+# loads sum_prec_mtx
+load("~/NAM-Model-Validation/RData/sum_prec_mtx_expntl.RData")
+data.prec.mtx <- sum_prec_mtx#solve(sum_cov_mtx)
 
 # Convert PWmean raster to data frame for ggplot
 PWmean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean.grd")
@@ -17,33 +20,10 @@ PWmean1 <- as(PWmean, "SpatialPixelsDataFrame")
 PWM1_df <- as.data.frame(PWmean1)
 # write.csv(PWM1_df, file = "~/NAM-Model-Validation/csv/PWM1_df.csv")
 
-# ## Prior mean: 0
-# x0 <- rep(0,nrow(PWM1_df))
-
-# ## For the prior covariance structure using geq20 params (MLtemp)
-# s <- PWM1_df[,c(2,3)]
-# D <- as.matrix(dist(s))
-# sigma2 <- MLtemp$sigmasq
-# phi <- MLtemp$phi
-# nu <- MLtemp$kappa
-# # plot(seq(0,10,0.01),sigma2*matern(seq(0,10,0.01),phi=phi,kappa=nu),type="l") #(1/phi)
-# priorcovmatrix <- sigma2*matern(D,phi=phi,kappa=nu) # + diag(tau2,nrow(t))
-# prior.prec.mtx <- solve(priorcovmatrix)
-
-# loads post_cov_mtx
-load("~/NAM-Model-Validation/RData/post_cov_mtx_expntl.RData")
-
-# loads sum_prec_mtx
-load("~/NAM-Model-Validation/RData/sum_prec_mtx_expntl.RData")
-data.prec.mtx <- sum_prec_mtx#solve(sum_cov_mtx)
-
-
 ## Obtain the posterior mean, m
 
-## trialing
-
-all_prc_files <- list.files("~/NAM-Model-Validation/RData/myMLE_bigprecs", full.names = T)
-EF_files <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanT_flat", full.names = T)
+all_prc_files <- list.files("/work/dragonstooth/walsh124/myMLE_bigprecs", full.names = T)
+EF_files <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF", full.names = T)
 sum_all_prcXy <- rep(0, nrow(PWM1_df))
 
 for(i in 1:length(all_prc_files)){
@@ -58,29 +38,34 @@ for(i in 1:length(all_prc_files)){
   
   for (j in 1:nrow(EF_csv)) {
     k <- which(abs(PWM1_df$x - EF_csv$x[j]) < 1e-3 & abs(PWM1_df$y - EF_csv$y[j]) < 1e-3)
-    new_EF[k] <- PWM1_df$layer[k]
+    new_EF[k] <- PWM1_df$value[k]
   }
   sum_all_prcXy <- sum_all_prcXy + all_prc_mtx %*% new_EF
 }
 
-plot(rasterFromXYZ(cbind(PWM1_df$x, PWM1_df$y, sum_all_prcXy)))
+# plot(rasterFromXYZ(cbind(PWM1_df$x, PWM1_df$y, sum_all_prcXy)))
 new_m <- post_cov_mtx %*% sum_all_prcXy
 PW_post_new <- rasterFromXYZ(cbind(PWM1_df$x, PWM1_df$y, new_m))
-plot(PW_post_new, main = "new m")
-plot(PWmean, main = "old m")
-# writeRaster(PW_post_new, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_newm")
+writeRaster(PW_post_new, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_informPrior",
+            overwrite=T)
 
-## end trialing
+par(mfrow=c(1,2))
+z = range(values(PWmean), na.rm = T)
+plot(PW_post_new, main = "new m", zlim=c(-3,3))
+plot(PWmean, main = "old m", zlim=z)
 
+#equivalent, alternative way to get the posterior PWmean
 m = 0 + post_cov_mtx %*% data.prec.mtx %*% PWM1_df[,1]
 
 PW_post <- rasterFromXYZ(cbind(PWM1_df[,2:3],m))
+all.equal(values(PW_post), values(PW_post_new))
+
 PW_data <- rasterFromXYZ(PWM1_df[,c(2,3,1)])
-# writeRaster(PW_post, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post")
+writeRaster(PW_post, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_post_15")
 
 brks <- c(-5, -2, seq(-1,1,by=0.25), 2, 5)
 brks2 <- c(-10, -4, seq(-2,2,by=0.5), 4, 10)
-pdf("~/NAM-Model-Validation/pdf/data_vs_post_PWmean_expntl.pdf", pointsize = 8)
+pdf("~/NAM-Model-Validation/pdf/data_vs_post_PWmean_expntl_newer.pdf", pointsize = 8)
 
 par(mfrow=c(1,2), mar=c(5,4,4,6) + 0.1)
 

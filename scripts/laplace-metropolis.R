@@ -3,8 +3,10 @@
 library(MCMCpack)
 library(LaplacesDemon)
 
+subtractPWmean <- F
+
 # need theta_hat and hessians from GibbsSamplerHurrSE.R
-load("RData/Gibbs_sqrt.RData")
+load(paste0("RData/Gibbs_sqrt", if(subtractPWmean){"_subtractPWmean"}, ".RData"))
 
 plot.it <- F
 
@@ -24,7 +26,7 @@ VVs <- matrix(NA, nrow(theta_hat), ncol(theta_hat)*2)
 # still a bivariate normal
 # plots show the resulting density of f(theta hat | B, Sigma_theta)
 # the point on the image is the theta_hat
-if(plot.it) {pdf("pdf/Laplace-Metropolis.pdf")}
+if(plot.it) {pdf(paste0("pdf/Laplace-Metropolis",if(subtractPWmean){"_subtractPWmean"},".pdf"))}
 par(mfrow = c(3,2))
 for (s in 1:nrow(theta_hat)) {
   

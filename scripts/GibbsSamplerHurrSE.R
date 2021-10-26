@@ -1,4 +1,4 @@
-# Gibbs sampler for Simulated Hurricane Error Fields
+# Gibbs sampler for Hurricane Error Fields
 # Steve Walsh Feb 2020
 
 # run storms_collect.R first for geoR MLEs, not myMLEs (see below)
@@ -15,6 +15,7 @@
 suppressMessages(library(MCMCpack))    #riwish (inverse wishart draws)
 suppressMessages(library(LaplacesDemon)) #rmvn, rmatrixnorm (multivariate normal draws)
 
+subtractPWmean <- F
 rounder <- 9 #number of decimal places to round matrices so solve doesn't induce asymmetry
 # nsims <- 46 #number of theta_i, i \in 1:nsims; number of simulated storms
 
@@ -27,8 +28,14 @@ as.square <- function(mat){matrix(mat, nrow=sqrt(length(mat)),ncol=sqrt(length(m
 
 # These are the actual hurricane estimates
 # lambda_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
-myMLEfiles <- grep(list.files("csv/myMLEresults/myMLEs/", full.names = T),
-                   pattern='sim_vals', invert=TRUE, value=TRUE)[1:47]
+stormMLEfiles <- grep(list.files("csv/myMLEresults/myMLEs/", full.names = T, recursive = T),
+                      pattern='sim_vals', invert=TRUE, value=TRUE)
+ind <- grepl("subtractPWmean", stormMLEfiles)
+if(subtractPWmean){
+  myMLEfiles <- stormMLEfiles[ind]
+} else {
+  myMLEfiles <- stormMLEfiles[!ind][1:47]
+}
 myMLEs   <- do.call(rbind, lapply(myMLEfiles, read.csv))
 
 lambda_hat <- cbind(myMLEs$sigs,myMLEs$phis)
@@ -43,7 +50,13 @@ R <- 3 #number of landfall locations (ATL, FL, GULF)
 theta_hat <- cbind(log(lambda_hat[,1]/lambda_hat[,2]), log(lambda_hat[,1]))
 
 hessians <- list()
-hess_theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs", full.names = T)[1:47]
+all_hess_theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs", full.names = T)
+ind <- grepl("subtractPWmean", all_hess_theta_files)
+if(subtractPWmean){
+  hess_theta_files <- all_hess_theta_files[ind]
+} else {
+  hess_theta_files <- all_hess_theta_files[!ind][1:47]
+}
 if(length(hess_theta_files) != N){stop("number of MLEs != number of Hessians")}
 for (i in 1:N) {
   hess <- read.csv(hess_theta_files[i], row.names = 1)
@@ -450,4 +463,5 @@ rnorm(5)
 matrix(emp_B, P, R)
 matrix(emp_Sigma_theta, P, P)
 
-save.image(file = "~/NAM-Model-Validation/RData/Gibbs_sqrt.RData")
+save.image(file = paste0("~/NAM-Model-Validation/RData/Gibbs_sqrt",
+                         if(subtractPWmean){"_subtractPWmean"},".RData"))

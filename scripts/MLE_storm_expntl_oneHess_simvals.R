@@ -10,6 +10,8 @@ library(pracma)
 library(raster)
 library(LaplacesDemon)
 
+PWtrue <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/simPWtrue0.grd")
+
 sim_vals <- T
 sim_dom <- F
 general_mean <- T
@@ -19,11 +21,11 @@ general_mean <- T
 if(sim_dom){lo_sim <- 32}  
 if(sim_dom & !sim_vals) stop("if sim_vals=F, then you must have sim_dom=F")
 
-trial <- T
+trial <- F
 hess_calc <- T
 writefiles <- T
 
-get_prec_mtx <- T
+get_prec_mtx <- F
 
 plot.it <- F
 lo <- 15#21 #length.out for lkhd grid (do odd so MLE in middle)
@@ -60,9 +62,9 @@ set.seed(seed)
 ## as well as counts of evals of ll fn in optimize, times, and number of pixels
 ## Hessian calculations, compare three different methods 
 ## (2 analytical, 1 numerical from pracma package)
-phis <- sigs <- phis_noPW <- sigs_noPW <- cnts <- tims <- pixs <- c()
-myhessvecs <- myhessvecsEXP <- pkghessvecs <- pkghessvecs_noPW <- 
-  mythetahessvecs <- pkgthetahessvecs <- pkgthetahessvecs_noPW <- matrix(NA, length(storms_to_eval), 4)
+phis <- sigs <- phis_truePW <- sigs_truePW <- cnts <- tims <- pixs <- c()
+myhessvecs <- myhessvecsEXP <- pkghessvecs <- pkghessvecs_truePW <- 
+  mythetahessvecs <- pkgthetahessvecs <- pkgthetahessvecs_truePW <- matrix(NA, length(storms_to_eval), 4)
 all_grids <- theta1s <- theta2s <- list()
 
 ###################################
@@ -209,9 +211,9 @@ for (i in 1:length(storms_to_eval)) {
                             if(seed<100){"0"},if(seed<10){"0"},seed,".grd"))
     t <- as.matrix(dist(rasterToPoints(ras - PW_hat)[,1:2]))
     x <- rasterToPoints(ras - PW_hat)[,3]
-    x_noPW <- rasterToPoints(ras)[,3]
+    x_truePW <- rasterToPoints(ras - PWtrue)[,3]
     mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))
-    mle_noPW <- optimize(function(phi) nl_new(phi, D = t, Y = x_noPW)[[1]], interval = c(0,1000))
+    mle_truePW <- optimize(function(phi) nl_new(phi, D = t, Y = x_truePW)[[1]], interval = c(0,1000))
   } else {mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))}
   
   # subtract PWmean
@@ -221,10 +223,10 @@ for (i in 1:length(storms_to_eval)) {
   cormatrix <- out$cormatrix
   if(general_mean){
     # do not subtractPWmean
-    phihat_noPW  <- mle_noPW$minimum
-    out_noPW <- nl_new(phihat_noPW, D = t, Y=x_noPW)
-    sigma2hat_noPW <- out_noPW$sigma2hat
-    cormatrix_noPW <- out_noPW$cormatrix
+    phihat_truePW  <- mle_truePW$minimum
+    out_truePW <- nl_new(phihat_truePW, D = t, Y=x_truePW)
+    sigma2hat_truePW <- out_truePW$sigma2hat
+    cormatrix_truePW <- out_truePW$cormatrix
   }
   
   if(hess_calc){
@@ -258,11 +260,11 @@ for (i in 1:length(storms_to_eval)) {
     pkgthetaHess <- -solve(M %*% covmtx %*% t(M))
     
     if(general_mean){
-      pkgHess_noPW <- pracma::hessian(f = ll_new, x0=c(sigma2hat_noPW, phihat_noPW), Y=x_noPW)
+      pkgHess_truePW <- pracma::hessian(f = ll_new, x0=c(sigma2hat_truePW, phihat_truePW), Y=x_truePW)
       
-      M_noPW <- matrix(c(1/sigma2hat_noPW, 1/sigma2hat_noPW,-1/phihat_noPW, 0), ncol = 2)
-      covmtx_noPW <- solve(matrix(-pkgHess_noPW, 2, 2))
-      pkgthetaHess_noPW <- -solve(M_noPW %*% covmtx_noPW %*% t(M_noPW))
+      M_truePW <- matrix(c(1/sigma2hat_truePW, 1/sigma2hat_truePW,-1/phihat_truePW, 0), ncol = 2)
+      covmtx_truePW <- solve(matrix(-pkgHess_truePW, 2, 2))
+      pkgthetaHess_truePW <- -solve(M_truePW %*% covmtx_truePW %*% t(M_truePW))
     }
     
     # ## evaluate Hessian numerically w/ theta parameterization
@@ -315,14 +317,14 @@ for (i in 1:length(storms_to_eval)) {
   
   if(general_mean){
     # mle_old$minimum
-    phis_noPW[i] <- phihat_noPW
-    sigs_noPW[i] <- sigma2hat_noPW
+    phis_truePW[i] <- phihat_truePW
+    sigs_truePW[i] <- sigma2hat_truePW
     if(hess_calc){
       # myhessvecs[i,] <- myHess
       # myhessvecsEXP[i,] <- myHessEXP
-      pkghessvecs_noPW[i,] <- pkgHess_noPW
+      pkghessvecs_truePW[i,] <- pkgHess_truePW
       # mythetahessvecs[i,] <- mythetaHess
-      pkgthetahessvecs_noPW[i,] <- pkgthetaHess_noPW
+      pkgthetahessvecs_truePW[i,] <- pkgthetaHess_truePW
     }
   }
   
@@ -438,16 +440,16 @@ if(plot.it){
   
 }
 
-sig_phi_sds <- thetas_sds <- thetas_sds_noPW <- matrix(NA, length(storms_to_eval), 2)
+sig_phi_sds <- thetas_sds <- thetas_sds_truePW <- matrix(NA, length(storms_to_eval), 2)
 if(length(storms_to_eval)==1){
   sig_phi_sds <- sqrt(diag(-solve(matrix(pkghessvecs, 2, 2))))
   thetas_sds  <- sqrt(diag(-solve(matrix(pkgthetahessvecs, 2, 2))))
-  thetas_sds_noPW  <- sqrt(diag(-solve(matrix(pkgthetahessvecs_noPW, 2, 2))))
+  thetas_sds_truePW  <- sqrt(diag(-solve(matrix(pkgthetahessvecs_truePW, 2, 2))))
 } else {
   for (k in 1:length(storms_to_eval)) {
     sig_phi_sds[k,] <- sqrt(diag(-solve(matrix(pkghessvecs[k,], 2, 2))))
     thetas_sds[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs[k,], 2, 2))))
-    thetas_sds_noPW[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs_noPW[k,], 2, 2))))
+    thetas_sds_truePW[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs_truePW[k,], 2, 2))))
   }
 }
 
@@ -524,18 +526,18 @@ if(sim_vals){
   thet1x <- log(sigx/phix)
   thet2x <- log(sigx)
   
-  phix_noPW <- phis_noPW[complete.cases(phis_noPW)]
-  sigx_noPW <- sigs_noPW[complete.cases(sigs_noPW)]
-  thet1x_noPW <- log(sigx_noPW/phix_noPW)
-  thet2x_noPW <- log(sigx_noPW)
+  phix_truePW <- phis_truePW[complete.cases(phis_truePW)]
+  sigx_truePW <- sigs_truePW[complete.cases(sigs_truePW)]
+  thet1x_truePW <- log(sigx_truePW/phix_truePW)
+  thet2x_truePW <- log(sigx_truePW)
   
   mean(thet1x + 1.96*thetas_sds[,1] > trueTheta1 & thet1x - 1.96*thetas_sds[,1] < trueTheta1)
   mean(thet2x + 1.96*thetas_sds[,2] > trueTheta2 & thet2x - 1.96*thetas_sds[,2] < trueTheta2)
   
-  mean(thet1x_noPW + 1.96*thetas_sds_noPW[,1] > trueTheta1 &
-         thet1x_noPW - 1.96*thetas_sds_noPW[,1] < trueTheta1)
-  mean(thet2x_noPW + 1.96*thetas_sds_noPW[,2] > trueTheta2 &
-         thet2x_noPW - 1.96*thetas_sds_noPW[,2] < trueTheta2)
+  mean(thet1x_truePW + 1.96*thetas_sds_truePW[,1] > trueTheta1 &
+         thet1x_truePW - 1.96*thetas_sds_truePW[,1] < trueTheta1)
+  mean(thet2x_truePW + 1.96*thetas_sds_truePW[,2] > trueTheta2 &
+         thet2x_truePW - 1.96*thetas_sds_truePW[,2] < trueTheta2)
   
   if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers")){
     dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers")
@@ -569,21 +571,21 @@ if(sim_vals){
                           if(general_mean){"_genmean"},".csv"))
   
   if(general_mean){
-    write.csv(cbind(thet1x_noPW + 1.96*thetas_sds_noPW[,1] > truethetas[,1] & 
-                      thet1x_noPW - 1.96*thetas_sds_noPW[,1] < truethetas[,1],
-                    thet2x_noPW + 1.96*thetas_sds_noPW[,2] > truethetas[,2] & 
-                      thet2x_noPW - 1.96*thetas_sds_noPW[,2] < truethetas[,2]), 
+    write.csv(cbind(thet1x_truePW + 1.96*thetas_sds_truePW[,1] > truethetas[,1] & 
+                      thet1x_truePW - 1.96*thetas_sds_truePW[,1] < truethetas[,1],
+                    thet2x_truePW + 1.96*thetas_sds_truePW[,2] > truethetas[,2] & 
+                      thet2x_truePW - 1.96*thetas_sds_truePW[,2] < truethetas[,2]), 
               file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers/seed", 
                             if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
-                            if(general_mean){"_noPW"},".csv"))
+                            if(general_mean){"_truePW"},".csv"))
     
-    write.csv(cbind(thet1x_noPW,thet2x_noPW), 
+    write.csv(cbind(thet1x_truePW,thet2x_truePW), 
               file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", 
                             if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
-                            if(general_mean){"_noPW"},".csv"))  
-    write.csv(thetas_sds_noPW, 
+                            if(general_mean){"_truePW"},".csv"))  
+    write.csv(thetas_sds_truePW, 
               file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", 
                             if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
-                            if(general_mean){"_noPW"},".csv"))
+                            if(general_mean){"_truePW"},".csv"))
   }
 }
