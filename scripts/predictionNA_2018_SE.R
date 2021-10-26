@@ -12,13 +12,23 @@ suppressMessages(library(raster))
 suppressMessages(library(RandomFields))
 library(stringr)
 
-straw <- T
+# number of synthetic precipitation fields
+Ngen <- 1000
+
+# subtract the pointwise mean?
+subtractPWmean <- F
+PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
+
+# straw-man where theta ~ N(weighted avg of theta hats, solve(sum_prec_mtxs))
+# instead of hierarchical model with Sigma_theta
+straw <- F
 
 before <- Sys.time()
-s <- 4 #NAM_pred, ST4_pred, and x_pred, name of PDF change based on s
+ste <- 4 #NAM_pred, ST4_pred, and x_pred, name of PDF change based on s
 #change pwmean, sum(post)_cov_mtx, csv, load call below
 
-load("~/NAM-Model-Validation/RData/Gibbs_sqrt.RData")
+load(file = paste0("~/NAM-Model-Validation/RData/Gibbs_sqrt",
+                   if(subtractPWmean){"_subtractPWmean"},".RData"))
 
 path <- "~/NAM-Model-Validation/prediction_sqrt"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
@@ -30,7 +40,7 @@ if(length(args) > 0)
 
 # for (s in 1:length(pred_dirs)) {
   
-  pred_dir <- pred_dirs[s]
+  pred_dir <- pred_dirs[ste]
   
   year <- substr(pred_dir, 1, 4)
   name <- substr(pred_dir, 5, nchar(pred_dir))
@@ -64,10 +74,6 @@ if(length(args) > 0)
   if(name %in% c("alberto", "michael"))  x_pred <- c(1,1,0)
   if(name %in% c("florence", "dorian"))  x_pred <- c(1,0,0)
   if(name %in% c("gordon", "barry"))     x_pred <- c(1,0,1)
-  
-  Ngen <- 1000
-  subtractPWmean <- T
-  PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
   
   pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_sqrt_",name,
              year,"_GIS_GHiG_NA_flatPWmean_",PWstamp, Ngen,
@@ -212,7 +218,8 @@ if(length(args) > 0)
   # ests_PW<-cbind(mean(off_base), mean(off_est_PW), mean(off_est99_PW), mean(off_est100_PW))
   
   # write.csv(rbind(ests,ests_PW), paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt.csv"))
-  write.csv(ests, paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt.csv"))
+  write.csv(ests, paste0(file = paste0("~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt",
+                                       PWstamp,".csv")))
   
   #2in = 50.8mm
   sim_prob <- matrix(NA, nrow = nrow(simvals), ncol = Ngen)
@@ -287,7 +294,7 @@ if(length(args) > 0)
   }
   
   # rm(list=setdiff(ls(), c("simvals", "NAM_pred", "ST4_pred", "s")))
-  save.image(paste0("~/NAM-Model-Validation/RData/prediction",s,if(straw){"straw"}))
+  save.image(paste0("~/NAM-Model-Validation/RData/prediction",ste,if(straw){"straw"},PWstamp))
   dev.off()
   
 # }
