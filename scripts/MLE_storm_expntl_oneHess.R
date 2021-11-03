@@ -11,7 +11,7 @@ library(raster)
 
 sim_vals <- F
 sim_dom <- F
-subtractPWmean <- T
+subtractPWmean <- F
 if(sim_vals & subtractPWmean) stop("if sim_vals=F, then subtractPWmean should be F")
 
 ## lo_sim = length.out for simulated precip error grid

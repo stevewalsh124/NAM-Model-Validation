@@ -30,7 +30,7 @@ ste <- 4 #NAM_pred, ST4_pred, and x_pred, name of PDF change based on s
 load(file = paste0("~/NAM-Model-Validation/RData/Gibbs_sqrt",
                    if(subtractPWmean){"_subtractPWmean"},".RData"))
 
-path <- "~/NAM-Model-Validation/prediction_sqrt"
+path <- "~/NAM-Model-Validation/csv/prediction_sqrt"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
 
 args <- commandArgs(TRUE)
@@ -46,9 +46,9 @@ if(length(args) > 0)
   name <- substr(pred_dir, 5, nchar(pred_dir))
   print(paste0(year,name))
   
-  NAM_pred <- read.csv(paste0("~/NAM-Model-Validation/prediction_sqrt/",
+  NAM_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",
                               year, name, "/", year, name,"_NAMdf.csv"))
-  ST4_pred <- read.csv(paste0("~/NAM-Model-Validation/prediction_sqrt/",
+  ST4_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",
                               year, name, "/", year, name,"_ST4df.csv"))
   
   
@@ -97,7 +97,7 @@ if(length(args) > 0)
   theta_pred <- matrix(NA, Ngen, P)
   
   if(straw){
-    theta_pred <- rmvn(1000, mu = theta_bar, Sigma = solve(Reduce("+", hessians)))
+    theta_pred <- rmvn(1000, mu = theta_bar, Sigma = (solve(Reduce("+", hessians)+t(solve(Reduce("+", hessians)))))/2)
   } else {
     for (i in 1:Ngen) {
       theta_pred[i,] <- rmvn(1, t(matrix(B_burn[10*i,], P, R) %*% x_pred), as.square(Sigma_burn[10*i,]))
@@ -294,7 +294,7 @@ if(length(args) > 0)
   }
   
   # rm(list=setdiff(ls(), c("simvals", "NAM_pred", "ST4_pred", "s")))
-  save.image(paste0("~/NAM-Model-Validation/RData/prediction",ste,if(straw){"straw"},PWstamp))
+  save.image(paste0("~/NAM-Model-Validation/RData/prediction/prediction",ste,if(straw){"straw"},PWstamp))
   dev.off()
   
 # }
