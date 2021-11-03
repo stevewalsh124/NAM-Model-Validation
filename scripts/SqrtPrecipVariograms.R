@@ -18,7 +18,7 @@ library(raster)
 # Do you want it so that A\B and B\A have 12hr of precip while A intersect B has 24hr? (choose F)
 # Do you want the entire union of A and B to have 24 hrs of precip? (choose T)
 addbothbuffers = T
-pred <- T
+pred <- F
 
 # Do you want to write csvs and rasters, as well as make a pdf?
 write.pdf <- T
@@ -26,13 +26,13 @@ write.pdf <- T
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
 subtractPWmean = F
-makePWmean = F
+makePWmean = T
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
 if(write.pdf){
 pdf(paste0("~/NAM-Model-Validation/pdf/sqrtbuffer_47_ngb_",
            if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},if(pred){"pred"},
-           "_bothbuffers.pdf"))
+           ".pdf"))
 }
 
 if(pred){
@@ -213,12 +213,18 @@ for(i in 1:length(storm.dirs)){
   NAMlist[[i]] <- list()
   ST4list[[i]] <- list()
   
+  # figure out if hour started is 00/12, or 06/18
+  hr6 <- as.numeric(substr(list.files(ST4_folder)[4],13,14)) %% 12 == 6
+  # if(!hr6) next
   #Identifying where in the NAM folder the first 24 hours after landfall files are (latest timestep)
-  if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else {
-    if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} else {
-      if(length(list.files(NAM_folder,full.names = T))==12&storm_name=="rita"){first24 <- c(5,6)} else {
-        if(length(list.files(NAM_folder, full.names = T))==53){first24 <- c(13,25)} else {
-          print("Total NAM files for this storm not 15 or 18 or 53; skipping"); next}}}} 
+  if(length(list.files(NAM_folder, full.names = T))%in%c(21,29) & hr6){first24 <- 2:9} else {
+    if(length(list.files(NAM_folder, full.names = T))==53 & hr6){first24 <- c(4,7,10,13,16,19,22,25)} else { #2:25
+      if(length(list.files(NAM_folder, full.names = T))==21 & !hr6){first24 <- c(5,9)} else {
+        if(length(list.files(NAM_folder,full.names = T))==18){first24 <- c(7,8)} else {
+          if(length(list.files(NAM_folder,full.names = T))==15){first24 <- c(5,6)} else {
+            if(length(list.files(NAM_folder,full.names = T))==12&storm_name=="rita"){first24 <- c(5,6)} else {
+              if(length(list.files(NAM_folder, full.names = T))==53){first24 <- c(13,25)} else {
+                print("Total NAM files for this storm not 15 or 18 or 53; skipping"); next}}}}}}}
   
   for (k in 1:length(list.files(ST4_folder,full.names = T)[1:4])) {
     # k <-1
@@ -260,27 +266,12 @@ for(i in 1:length(storm.dirs)){
   
   
   ##############################################################################################################
-  ST4_first12  <- ST4list[[i]][[1]]+ST4list[[i]][[2]]
-  ST4_second12 <- ST4list[[i]][[3]]+ST4list[[i]][[4]]
-  
-  ST4_first12_logmask <- ((ST4_first12))*mask.regrid #removed log
-  values(ST4_first12_logmask)[which(values(ST4_first12_logmask<=0))] <- 0 #log precip scale is nonnegative
-  ST4_second12_logmask <- ((ST4_second12))*mask.regrid #removed log
-  values(ST4_second12_logmask)[which(values(ST4_second12_logmask<=0))] <- 0 
-  
-  ST4_df_first12 <- rasterToPoints(ST4_first12_logmask)
-  ST4_df_second12 <- rasterToPoints(ST4_second12_logmask)
-  
-  NAM_first12  <- NAMlist[[i]][[1]]
-  NAM_second12 <- NAMlist[[i]][[2]]
-  
-  NAM_first12_logmask <- ((NAM_first12))*mask.regrid #removed log
-  # values(NAM_first12_logmask)[which(values(NAM_first12_logmask<=0))] <- 0 #log precip scale is nonnegative
-  NAM_second12_logmask <- ((NAM_second12))*mask.regrid #removed log
-  # values(NAM_second12_logmask)[which(values(NAM_second12_logmask<=0))] <- 0 
-  
-  NAM_df_first12  <- rasterToPoints(NAM_first12_logmask)
-  NAM_df_second12 <- rasterToPoints(NAM_second12_logmask)
+  ST4_first12  <- Reduce("+",ST4list[[i]])*mask.regrid
+  ST4_df_first12 <- rasterToPoints(ST4_first12)
+
+  NAM_first12 <- Reduce("+",NAMlist[[i]])*mask.regrid
+  NAM_df_first12  <- rasterToPoints(NAM_first12)
+
   PW_mean_df <- rasterToPoints(PW_mean)
   
   #The first 4 ST4 are 24 hrs. Two buffers for each 12hr group, 
@@ -333,21 +324,16 @@ for(i in 1:length(storm.dirs)){
   # Original radius 700, changed to 250 and 500 for efficiency in trials runs with simulating error fields
   radius <- 700
   ST4trythis  <- ST4bufferprecip(ST4_df_first12, eye1_latlon, eye2_latlon, radius)
-  ST4trythis2 <- ST4bufferprecip(ST4_df_second12, eye2_latlon, eye1_latlon, radius)
-  
+
   NAMtrythis  <- ST4bufferprecip(NAM_df_first12, eye1_latlon, eye2_latlon, radius)
-  NAMtrythis2 <- ST4bufferprecip(NAM_df_second12, eye2_latlon, eye1_latlon, radius)
-  
+
   PW_mean_buff1 <- ST4bufferprecip(PW_mean_df, eye1_latlon, eye2_latlon, radius)
   PW_mean_buff2 <- ST4bufferprecip(PW_mean_df, eye2_latlon, eye1_latlon, radius)
   PW_mean_buff <- PW_mean_buff1 + PW_mean_buff2
   
-  NAM_plotter <- sqrt(NAMtrythis+NAMtrythis2)
-  # values(NAM_plotter)[which(values(NAM_plotter<=0))] <- 0 
-  
-  ST4_plotter <- sqrt(ST4trythis+ST4trythis2)
-  # values(ST4_plotter)[which(values(ST4_plotter<=0))] <- 0   
-  
+  NAM_plotter <- sqrt(NAMtrythis)
+  ST4_plotter <- sqrt(ST4trythis)
+
   ## Find the extra points from the files and remove them
   ## When NAM and ST4 have different amounts of pixels
   ## if NAM has more rows...
