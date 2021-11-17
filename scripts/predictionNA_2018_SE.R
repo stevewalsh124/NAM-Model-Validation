@@ -15,28 +15,30 @@ library(stringr)
 # number of synthetic precipitation fields
 Ngen <- 1000
 
-# subtract the pointwise mean?
-subtractPWmean <- F
-PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
-
-# straw-man where theta ~ N(weighted avg of theta hats, solve(sum_prec_mtxs))
-# instead of hierarchical model with Sigma_theta
-straw <- F
-
-before <- Sys.time()
+# storm to evaluate
 ste <- 4 #NAM_pred, ST4_pred, and x_pred, name of PDF change based on s
 #change pwmean, sum(post)_cov_mtx, csv, load call below
+
+# subtract the pointwise mean?
+subtractPWmean <- F
+
+# the original strawman option, deprecated (keep as F)
+# use the *nosp code and RData instead
+straw <- F
+
+args <- commandArgs(TRUE)
+if(length(args) > 0)
+  for(i in 1:length(args))
+    eval(parse(text=args[[i]]))
+
+PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
+before <- Sys.time()
 
 load(file = paste0("~/NAM-Model-Validation/RData/Gibbs_sqrt",
                    if(subtractPWmean){"_subtractPWmean"},".RData"))
 
 path <- "~/NAM-Model-Validation/csv/prediction_sqrt"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
-
-args <- commandArgs(TRUE)
-if(length(args) > 0)
-  for(i in 1:length(args))
-    eval(parse(text=args[[i]]))
 
 # for (s in 1:length(pred_dirs)) {
   
@@ -218,7 +220,7 @@ if(length(args) > 0)
   # ests_PW<-cbind(mean(off_base), mean(off_est_PW), mean(off_est99_PW), mean(off_est100_PW))
   
   # write.csv(rbind(ests,ests_PW), paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt.csv"))
-  write.csv(ests, paste0(file = paste0("~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt",
+  write.csv(ests, paste0(file = paste0("~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt_",
                                        PWstamp,".csv")))
   
   #2in = 50.8mm
@@ -294,7 +296,7 @@ if(length(args) > 0)
   }
   
   # rm(list=setdiff(ls(), c("simvals", "NAM_pred", "ST4_pred", "s")))
-  save.image(paste0("~/NAM-Model-Validation/RData/prediction/prediction",ste,if(straw){"straw"},PWstamp))
+  save.image(paste0("~/NAM-Model-Validation/RData/prediction/prediction",ste,if(straw){"straw"},PWstamp,".RData"))
   dev.off()
   
 # }

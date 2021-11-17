@@ -848,47 +848,52 @@ for (i in 2:(nlon-1)) {
 image(m[,nrow(m):1])
 image(border[,nrow(border):1])
 
-precip.max <- max(ST4_pred$value)
-storm
+## Figure 6, but making it for every one of the 6 prediction storms
 
-g13= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred) + 
-  geom_tile() + theme_classic() + 
-  geom_polygon(data=subset(map_data("state"), region %in% regions), 
-               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
-                       name = expression(sqrt(mm))) + 
-  labs(x = "Longitude\n(a)", y="Latitude") + #title =paste(paste0(str_to_title(name),": NAM Forecast")),
-  coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
+for (ste in 1:6) {
+  load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",ste,"nopw.RData"))
+  precip.max <- max(ST4_pred$value, NAM_pred$value)
+  storm
+  
+  g13= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
+                         name = expression(sqrt(mm))) + 
+    labs(x = "Longitude\n(a)", y="Latitude") + #title =paste(paste0(str_to_title(name),": NAM Forecast")),
+    coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
+  
+  g14= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred[,-1]+cbind(ub_rain,0,0)) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
+                         name = expression(sqrt(mm))) + 
+    labs(x = "Longitude\n(b)", y="Latitude") + #title =paste(paste0(str_to_title(name),": NAM + 95% UB")),
+    coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
+  
+  g15= ggplot(aes(x=x,y=y,fill=value),data=ST4_pred) + 
+    geom_tile() + theme_classic() + 
+    geom_polygon(data=subset(map_data("state"), region %in% regions), 
+                 aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
+    scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
+                         name = expression(sqrt(mm))) + 
+    labs(x = "Longitude\n(c)", y="Latitude") +#title =paste(paste0(str_to_title(name),": Stage IV")),
+    coord_fixed(xlim=range(ST4_pred$x), ylim=range(ST4_pred$y), ratio = 1)
+  
+  grid_arrange_shared_legend(g13,g14,g15,position = "right")
+  
+  
+  ggsave(
+    paste0("png/pred_NAM_us_ST4_storm",ste,".png"),
+    grid_arrange_shared_legend(g13,g14,g15,position = "right"),
+    width = 8.5*1.5,
+    height = 2.5*1.5,
+    dpi = 350
+  )
 
-g14= ggplot(aes(x=x,y=y,fill=value),data=NAM_pred+cbind(0,0,ub_rain)) + 
-  geom_tile() + theme_classic() + 
-  geom_polygon(data=subset(map_data("state"), region %in% regions), 
-               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
-                       name = expression(sqrt(mm))) + 
-  labs(x = "Longitude\n(b)", y="Latitude") + #title =paste(paste0(str_to_title(name),": NAM + 95% UB")),
-  coord_fixed(xlim=range(NAM_pred$x), ylim=range(NAM_pred$y), ratio = 1)
-
-g15= ggplot(aes(x=x,y=y,fill=value),data=ST4_pred) + 
-  geom_tile() + theme_classic() + 
-  geom_polygon(data=subset(map_data("state"), region %in% regions), 
-               aes(x=long, y=lat, group=group), colour="black", fill="white", alpha=0) +
-  scale_fill_gradientn(colors = precipcolors ,na.value = "white",limits=c(0,precip.max+max(ub_rain)),
-                       name = expression(sqrt(mm))) + 
-  labs(x = "Longitude\n(c)", y="Latitude") +#title =paste(paste0(str_to_title(name),": Stage IV")),
-  coord_fixed(xlim=range(ST4_pred$x), ylim=range(ST4_pred$y), ratio = 1)
-
-grid_arrange_shared_legend(g13,g14,g15,position = "right")
-
-
-ggsave(
-  "png/pred_NAM_us_ST4.png",
-  grid_arrange_shared_legend(g13,g14,g15,position = "right"),
-  width = 8.5*1.5,
-  height = 2.5*1.5,
-  dpi = 350
-)
-
+}
 #################################
 # Table 1: Coverage percentages #
 #################################

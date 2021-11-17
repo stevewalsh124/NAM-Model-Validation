@@ -1,4 +1,5 @@
 # Gibbs sampler for Hurricane Error Fields
+# LM1: Hierarchical model for thetas, with landfall-location-specific means
 # Steve Walsh Feb 2020
 
 # run storms_collect.R first for geoR MLEs, not myMLEs (see below)
@@ -28,7 +29,7 @@ as.square <- function(mat){matrix(mat, nrow=sqrt(length(mat)),ncol=sqrt(length(m
 
 # These are the actual hurricane estimates
 # lambda_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
-stormMLEfiles <- grep(list.files("csv/myMLEresults/myMLEs/", full.names = T, recursive = T),
+stormMLEfiles <- grep(list.files("csv/myMLEresults/myMLEs", full.names = T, recursive = F),
                       pattern='sim_vals', invert=TRUE, value=TRUE)
 ind <- grepl("subtractPWmean", stormMLEfiles)
 if(subtractPWmean){
