@@ -192,6 +192,7 @@ avg_by_type <- c(sum(avg_cov95_LM1*npix_LM1)/sum(npix_LM1),
                  sum(avg_cov99_LM7*npix_LM7)/sum(npix_LM7))
 
 my_table <- rbind(all_avg_covs, avg_by_type)
+save(my_table, file="~/NAM-Model-Validation/RData/table/cov_storm_&_type.RData")
 
 my_table %>%
   kbl(caption="Summary Statistics of Financial Well-Being Score by Gender and Education",
