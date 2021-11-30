@@ -85,7 +85,7 @@ pred_dirs <- list.dirs(path, recursive = F, full.names = F)
   mask[mask==-1]  <- NA
   extent(mask)[1] <- extent(mask)[1]-360
   extent(mask)[2] <- extent(mask)[2]-360
-  mask.regrid <- resample(mask, projectRaster(raster(
+  mask.regrid <- raster::resample(mask, projectRaster(raster(
     "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
     crs = "+proj=longlat +datum=WGS84"), method='ngb') 
   
@@ -133,6 +133,8 @@ pred_dirs <- list.dirs(path, recursive = F, full.names = F)
     values(ST40)[!is.na(values(ST40))] <- 0
     # plot(ST40)
     NAM_r <- NAM_r - ST40
+    NAM_pred <- as.data.frame(rasterToPoints(NAM_r))
+    colnames(NAM_pred) <- c("x","y","value")
   }
   
   ## if ST4 has more rows
@@ -141,6 +143,8 @@ pred_dirs <- list.dirs(path, recursive = F, full.names = F)
     values(NAM0)[!is.na(values(NAM0))] <- 0
     # plot(NAM0)
     ST4_r <- ST4_r - NAM0
+    ST4_pred <- as.data.frame(rasterToPoints(ST4_r))
+    colnames(ST4_pred) <- c("x","y","value")
   }
   
   par(mfrow=c(1,2))
