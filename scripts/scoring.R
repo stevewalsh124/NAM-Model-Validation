@@ -163,3 +163,14 @@ for (s in 1:6) {  hist(score_diffs2[[s]][ST4_pred$value > sqrt(thresh*25.4)], ma
 for (s in 1:6) {  hist(score_diffs[[s]][ST4_pred$value > sqrt(thresh*25.4)], main=paste("orig storm",s,thresh,"\"")) }
 
 dev.off()
+
+
+# create scoringCRPS_4.png
+# run for(s in 4) above first
+png("~/NAM-Model-Validation/png/scoringCRPS_4.png", width=3500, height=1000, res=350)
+par(mfrow=c(1,4), mar=c(3,3,3,4))
+plot(ST4_r^2 - NAM_r^2, main = paste0("storm #", s, " orig scale EF"))
+plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps)), main = "orig scale abs error")
+plot(rasterFromXYZ(cbind(coords, np_CRPS2)), main="CRPS for our UQ", zlim = zlim2)
+plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps - np_CRPS2)), main = "difference in CRPSs: \n + means UQ is better")
+dev.off()
