@@ -36,28 +36,29 @@ for (s in 1:nrow(theta_hat)) {
   Li[s] <- dmvn(x = theta_hat[s,], mu = t(EE), Sigma = VV, log=T)
   
   if(plot.it){
-  x1seq <- x2seq <- seq(-0.5,2.5,by=0.2)
-  lkhds <- matrix(NA, length(x1seq), length(x2seq))
-  for (i in 1:length(x1seq)) {
-    for (j in 1:length(x2seq)) {
-      lkhds[i,j] <- dmvn(x = c(x1seq[i], x2seq[j]), mu = t(EE), Sigma = VV, log=T)
+    x1seq <- x2seq <- seq(-0.5,2.5,by=0.2)
+    lkhds <- matrix(NA, length(x1seq), length(x2seq))
+    for (i in 1:length(x1seq)) {
+      for (j in 1:length(x2seq)) {
+        lkhds[i,j] <- dmvn(x = c(x1seq[i], x2seq[j]), mu = t(EE), Sigma = VV, log=T)
+      }
     }
-  }
-  image(x1seq, x2seq, lkhds, main = paste("storm #", s),
-        xlab = expression(theta[1]), ylab = expression(theta[2]))
-  points(theta_hat[s,1], theta_hat[s,2], col="green")
+    image(x1seq, x2seq, lkhds, main = paste("storm #", s),
+          xlab = expression(theta[1]), ylab = expression(theta[2]))
+    points(theta_hat[s,1], theta_hat[s,2], col="green")
   }
 }
 
 # obtain posterior mode and covariance matrix for MCMC output
 int_mcmc1 <- cbind(B_burn, log(Sigma_burn[,1]),Sigma_burn[,2],log(Sigma_burn[,4]))
+P <- ncol(int_mcmc1)
 my_modes1 <- c()
 
 
 par(mfrow=c(3,3))
 for(i in 1:ncol(int_mcmc1)){
   if(plot.it){
-  hist(int_mcmc1[,i], main = paste("model 1, col #", i), prob = T)
+    hist(int_mcmc1[,i], main = paste("model 1, col #", i), prob = T)
   }
   dens <- density(int_mcmc1[,i])
   if(plot.it){lines(dens)}
@@ -121,6 +122,7 @@ for (s in 1:nrow(theta_hat)) {
 emp_mu_theta <-  emp_mu_thetaWA <-
   (9*(B_burn[,1:2])+21*(B_burn[,1:2]+B_burn[,3:4])+17*(B_burn[,1:2]+B_burn[,5:6]))/47
 int_mcmc2 <- cbind(emp_mu_theta, log(Sigma_burn[,1]),Sigma_burn[,2],log(Sigma_burn[,4]))
+P <- ncol(int_mcmc2)
 my_modes2 <- c()
 
 
@@ -189,6 +191,7 @@ for (s in 1:nrow(theta_hat)) {
 # make common mean mu_theta output based on weighted average from B output
 emp_mu_theta <-  mu_burn
 int_mcmc2 <- cbind(emp_mu_theta, log(Sigma_burn[,1]),Sigma_burn[,2],log(Sigma_burn[,4]))
+P <- ncol(int_mcmc2)
 my_modes2 <- c()
 
 
@@ -246,18 +249,18 @@ Li3 <- c()
 # the point on the image is the theta_hat
 par(mfrow = c(3,2))
 for (s in 1:nrow(theta_hat)) {
-
+  
   VV <- solve(hessians[[s]])
   EE <- theta_bar
   
   Li3[s] <- dmvn(x = theta_hat[s,], mu = t(EE), Sigma = VV, log=T)
   
   if(plot.it){
-  for (i in 1:length(x1seq)) {
-    for (j in 1:length(x2seq)) {
-      lkhds[i,j] <- dmvn(x = c(x1seq[i], x2seq[j]), mu = t(EE), Sigma = VV, log=T)
+    for (i in 1:length(x1seq)) {
+      for (j in 1:length(x2seq)) {
+        lkhds[i,j] <- dmvn(x = c(x1seq[i], x2seq[j]), mu = t(EE), Sigma = VV, log=T)
+      }
     }
-  }
     image(x1seq, x2seq, lkhds, main = paste("storm #", s),
           xlab = expression(theta[1]), ylab = expression(theta[2]))
     points(theta_hat[s,1], theta_hat[s,2], col="green")
@@ -267,6 +270,7 @@ for (s in 1:nrow(theta_hat)) {
 # obtain posterior mode and covariance matrix for MCMC output
 emp_mu_theta <- mu_burn
 int_mcmc3 <- cbind(emp_mu_theta)
+P <- ncol(int_mcmc3)
 my_modes3 <- c()
 
 
@@ -297,3 +301,12 @@ LM_c; LM_c2; LM_c2WA; LM_c3
 exp(LM_c2 - LM_c)
 
 if(plot.it){dev.off()}
+
+par(mfrow=c(3,2))
+library(car)
+for (i in 1:length(error_files)) {
+  error_csv <- read.csv(error_files[i], row.names = 1)
+  hist(error_csv[,1], main = i)
+  #if(nrow(error_csv) < 5000) my_shaps[[i]] <- shapiro.test(error_csv[,1])
+  qqPlot(error_csv[,1])
+}
