@@ -5,6 +5,8 @@ library(raster)
 
 pdf("~/NAM-Model-Validation/pdf/scoringCRPS.pdf")
 
+score_diffs <- score_diffs2 <- list()
+
 # Plot some CRPSs for standard Gaussian distribution with truth at 0
 # Then vary the scale from 1 to c(0,2,10)
 x <- seq(-5,5,.1)
@@ -39,7 +41,7 @@ my_np_crps <- function(y, scen){
 
 for (s in 1:6) {
   print(s)
-  load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",s,"nopw.RData"))
+  load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",s,"_LM2_nopw.RData"))
   dim(simvals)
   
   # scenarios is simvals combined with NAM
@@ -125,8 +127,9 @@ for (s in 1:6) {
   plot(rasterFromXYZ(cbind(coords, np_CRPS2)), main="CRPS for our UQ", zlim = zlim2)
   # plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps - np_CRPS2)), 
   #      main="diff of CRPSs\n positive is we win")
-  plot(rasterFromXYZ(cbind(coords, ifelse(orig_NAM2_crps - np_CRPS2 > 0, 1, -1))), 
-       main="diff of CRPSs\n det vs nonparam")
+  # plot(rasterFromXYZ(cbind(coords, ifelse(orig_NAM2_crps - np_CRPS2 > 0, 1, -1))), 
+  #      main="diff of CRPSs\n det vs nonparam")
+  plot(rasterFromXYZ(cbind(coords, orig_NAM2_crps - np_CRPS2)), main = "difference in CRPSs: \n + means UQ is better")
   
   # # assumption of a normal predictive density; not good, esp for low precip
   # print("% of Gaussian UQ better than orig NAM: 0, 1, 25 mm")
@@ -150,6 +153,13 @@ for (s in 1:6) {
   # plot(np_CRPS2, np_CRPS2_pw, main = paste("PW worse than no PW:", round(mean(np_CRPS2 > np_CRPS2_pw), 3)))
   # abline(0,1,col="blue")
   
+  score_diffs[[s]] <- orig_NAM_crps - np_CRPS
+  score_diffs2[[s]] <- orig_NAM2_crps - np_CRPS2
 }
+
+par(mfrow=c(3,2))
+thresh <- 0 # only look at pixels with geq x inches of rain observed 
+for (s in 1:6) {  hist(score_diffs2[[s]][ST4_pred$value > sqrt(thresh*25.4)], main=paste("sqrt storm",s,thresh,"\"")) }
+for (s in 1:6) {  hist(score_diffs[[s]][ST4_pred$value > sqrt(thresh*25.4)], main=paste("orig storm",s,thresh,"\"")) }
 
 dev.off()
