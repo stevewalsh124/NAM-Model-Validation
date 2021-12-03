@@ -1,3 +1,7 @@
+# Find the weighted averages of coverages for each of the 9 models
+# This saves my_table, which can be called into cov_tables.R to make LaTeX table
+# and also in prediction_eval to make a supplemented table.
+
 library(knitr)
 library(dplyr)
 library(kableExtra)
