@@ -8,7 +8,9 @@ source("~/NAM-Model-Validation/scripts/mosaicList.R")
 
 # CHANGE THIS FOR LOADING INFORMED VS FLAT PRIOR!
 # loads post_cov_mtx
-load("/work/dragonstooth/walsh124/post_cov_mtx_expntl_informedPrior.RData")
+# "/work/dragonstooth/walsh124/post_cov_mtx_expntl_informedPrior.RData" # geq20
+# "/work/dragonstooth/walsh124/post_cov_mtx_expntl_informedPrior15.RData" # geq15
+load("~/NAM-Model-Validation/RData/post_cov_mtx_expntl.RData")
 
 # loads sum_prec_mtx
 load("~/NAM-Model-Validation/RData/sum_prec_mtx_expntl.RData")
