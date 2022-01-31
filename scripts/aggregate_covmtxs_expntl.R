@@ -4,7 +4,7 @@
 library(raster)
 
 # 11 is default since fastest to calculate; loop through 1 to 47 in sbatch/linux
-storm <- c(3,6,11,17,18)
+storm <- 11#c(3,6,11,17,18)
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -13,26 +13,26 @@ if(length(args) > 0)
 
 source("~/NAM-Model-Validation/scripts/mosaicList.R")
 
-# # load, modify and project land/sea mask 
-# mask <- raster("~/NAM-Model-Validation/lsmask.nc")
-# mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
-# extent(mask)[1] <- extent(mask)[1]-360
-# extent(mask)[2] <- extent(mask)[2]-360
-# mask.regrid <- resample(mask, projectRaster(raster(
-#   "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
-#   crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
-# 
-# # Read in error counts
-# count_files <- list.files("~/NAM-Model-Validation/error_rasters_counts_sqrt/", pattern = ".grd", full.names = T)
-# error_counts <- mosaicList(count_files)
-# error_files <- list.files("~/NAM-Model-Validation/error_rasters_sqrt/", pattern = ".grd", full.names = T)
-# error_sum <- mosaicList(error_files)
-# 
-# # only look at >= 1
-# geq1 <- error_counts
-# geq1[geq1 < 1] <- NA
-# # geq1[geq1 >= 1] <- 1
-# # plot(error_sum/geq1)
+# load, modify and project land/sea mask
+mask <- raster("~/NAM-Model-Validation/lsmask.nc")
+mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
+extent(mask)[1] <- extent(mask)[1]-360
+extent(mask)[2] <- extent(mask)[2]-360
+mask.regrid <- resample(mask, projectRaster(raster(
+  "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
+  crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
+
+# Read in error counts
+count_files <- list.files("~/NAM-Model-Validation/error_rasters_counts_sqrt/", pattern = ".grd", full.names = T)
+error_counts <- mosaicList(count_files)
+error_files <- list.files("~/NAM-Model-Validation/error_rasters_sqrt/", pattern = ".grd", full.names = T)
+error_sum <- mosaicList(error_files)
+
+# only look at >= 1
+geq1 <- error_counts
+geq1[geq1 < 1] <- NA
+# geq1[geq1 >= 1] <- 1
+# plot(error_sum/geq1)
 
 # Convert raster to data frame for ggplot
 PWmean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean.grd")
@@ -47,29 +47,59 @@ colnames(PWM1_df) <- c("value", "x", "y")
 #                      "~/NAM-Model-Validation/csv/error_df/geq1_sprint.csv")
 
 # only look at >= 20
-# geq20 <- error_counts
-# geq20[geq20 < 20] <- NA
+geq20 <- error_counts
+geq20[geq20 < 20] <- NA
 # geq20[geq20 >= 20] <- 1
-# plot(error_sum/geq20)
+plot(error_sum/geq20)
 
 # Convert raster to data frame for ggplot
-# PWmean20 <- as(error_sum/geq20, "SpatialPixelsDataFrame")
-# PWM20_df <- as.data.frame(PWmean20)
-# colnames(PWM20_df) <- c("value", "x", "y")
-# write.csv(PWM20_df, "~/NAM-Model-Validation/csv/error_df/PWmean_geq20.csv")
+PWmean20 <- as(error_sum/geq20, "SpatialPixelsDataFrame")
+PWM20_df <- as.data.frame(PWmean20)
+colnames(PWM20_df) <- c("value", "x", "y")
+write.csv(PWM20_df, "~/NAM-Model-Validation/csv/error_df_sqrt/PWmean_geq20.csv")
 
 
-# Obtain parameter estimates for the portion of PWmean where counts >= 20
+# # Obtain parameter estimates for the portion of PWmean where counts >= 20
 # ini.cov.likfit <- cbind(rep(c(0.5,1,1.5,2), each = 4), rep(c(0.05,0.5,1,2), 4)) #sigma2, phi
 # fix.nug <- T; nug.val <- 0
-
+# 
 # MLtemp <- list()
 # likfit_time <- system.time({
 #   MLtemp <- likfit(as.geodata(PWM20_df[,c(2,3,1)]), ini.cov.pars = ini.cov.likfit, lik.method = "ML",
 #                    cov.model = "matern", fix.kappa = FALSE, fix.nugget = fix.nug, kappa=0.501,
-#                    nugget = nug.val,  hessian = T)#, method = "L-BFGS-B", 
+#                    nugget = nug.val,  hessian = T)#, method = "L-BFGS-B",
 #   #lower = c(0,0,0), upper = c(10,10,10))
 # })
+
+t <- as.matrix(dist(PWM20_df[,2:3]))
+x <- PWM20_df[,1]
+counter <- 0
+
+eps <- sqrt(.Machine$double.eps)
+covfunc.exponential <- function(t,phi,sigma2) {sigma2 * exp(-t/phi) + diag(eps, nrow=ncol(t))}
+
+nl_new <- function(phi, D, Y)
+{
+  n <- length(Y)
+  cormatrix <- covfunc.exponential(D, phi = phi, sigma2 = 1)
+  R <- chol(cormatrix)
+  yTCiy <- sum(backsolve(R, Y, transpose = T)^2)
+  sigma2hat <- yTCiy/n
+  ldetR <- 2*sum(log(diag(R)))
+  ll <- -1/(2*sigma2hat)*yTCiy - (1/2)*ldetR -n/2*log(sigma2hat)
+  counter <<- counter + 1
+  return(list(obj=-ll, sigma2hat=sigma2hat, cormatrix=cormatrix))
+}
+
+mle_new <- optimize(function(phi) nl_new(phi, D = t, Y = x)[[1]], interval = c(0,1000))
+
+phihat <- mle_new$minimum
+out <- nl_new(phihat, D = t, Y=x)
+sigma2hat <- out$sigma2hat
+cormatrix <- out$cormatrix
+
+(par_geq20 <- c(phihat, sigma2hat))
+
 # # save(MLtemp, file = "~/NAM-Model-Validation/RData/PWmean_geq20_paramsMLE.RData")
 
 # loads MLtemp from above; takes 5-8 hours to run above code
@@ -133,7 +163,7 @@ library(geoR)
 
 a <- nrow(PWM1_df)
 # a <- round(a/2)
-all_prc_mtx <- matrix(0, a, a)
+prior_prc_mtx <- matrix(0, a, a)
 
 # # For the prior covariance structure using geq20 params
 # s <- PWM1_df[,c(2,3)]
@@ -144,6 +174,11 @@ all_prc_mtx <- matrix(0, a, a)
 # plot(seq(0,10,0.01),sigma2*matern(seq(0,10,0.01),phi=phi,kappa=nu),type="l") #(1/phi)
 # priorcovmatrix <- sigma2*geoR::matern(D,phi=phi,kappa=nu) # + diag(tau2,nrow(t))
 # prior.prec.mtx <- solve(priorcovmatrix)
+t <- as.matrix(dist(PWM1_df[,2:3]))
+priorcovmatrix <- covfunc.exponential(t, phihat, sigma2hat)
+prior.prec.mtx <- solve(priorcovmatrix)
+
+save(prior.prec.mtx, file = "/work/dragonstooth/walsh124/bigPriorPrec15.RData")
 
 prc_mtx_files <- list.files("~/NAM-Model-Validation/RData/myMLE_precs", full.names = T)
 if(!dir.exists("~/NAM-Model-Validation/RData/myMLE_bigprecs")){
@@ -166,7 +201,7 @@ for (st in storm) { # which(n_pixels < 3000)
   
   for (i in 1:nrow(prec_mtx)) {
     for (j in 1:i) {
-
+      
       # which(arl1$x == kat1$x[10] & arl1$y == kat1$y[10])
       k <- which(abs(PWM1_df$x - df$x[i]) < 1e-3 & abs(PWM1_df$y - df$y[i]) < 1e-3)
       l <- which(abs(PWM1_df$x - df$x[j]) < 1e-3 & abs(PWM1_df$y - df$y[j]) < 1e-3)
