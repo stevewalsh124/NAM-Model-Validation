@@ -486,7 +486,9 @@ for (i in 1:P) {
        xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
               max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
        ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2,
-       xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
+       xlab = "")#bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
+  if(i==1){  mtext("(a)", side=1, line=3, cex=2)} 
+  if(i==2){  mtext("(b)", side=1, line=3, cex=2)} 
   # mult_seg <- data.frame(x0 = c(0.7, 0.2, - 0.9, 0.5, - 0.2),    # Create data frame with line-values
   #                        y0 = c(0.5, 0.5, 0.6, - 0.3, 0.4),
   #                        x1 = c(0, 0.2, 0.4, - 0.3, - 0.6),
@@ -524,65 +526,43 @@ for (i in 1:P) {
 }
 dev.off()
 
+###########################################
+# Figure 5: ALTERNATIVE post vs MLE plots #
+###########################################
 
+# from GibbsSamplerHurrRegrNA.R
+load("~/NAM-Model-Validation/RData/Gibbs_sqrt.RData")
 
 my_cols <- c(skyblue,yellow,verm)
 
 # Lower and upper bound extra space to see end of distbns
-up_b <- c(0,0.7); lw_b <- c(0,0.3)
+up_b <- c(0.07,1.45); lw_b <- c(0,0.25)
 smush <- c(0.02, 0.15)
 ## Plot MLE vs posterior estimates for the 47 storms
-png("~/NAM-Model-Validation/png/NMV_compareMLEpost_newcap.png", width = 1400, height = 700)
-par(mar=c(5.5,1.5,1.5,1.5), mfrow=c(1,2))
+png("~/NAM-Model-Validation/png/NMV_compareMLEpost_ALT.png", width = 1000, height = 500)
+par(mar=c(5, 4, 4, 2) + 0.1, mfrow=c(1,2))
+
+r1 <- r2 <- s1 <- s2 <- c()
 for (i in 1:P) {
-  plot(0, 0, col = "white", ylab = "", 
-       xlim=c(min(theta_hat[,i], emp_thetaMED[,i])-lw_b[i],
-              max(theta_hat[,i], emp_thetaMED[,i])+up_b[i]),
-       ylim=c(0,2), yaxt='n', cex = 3, cex.axis =2, cex.lab = 2, xlab="")
-  if(i==1){  mtext("(a)", side=1, line=3, cex=2)} 
-  if(i==2){  mtext("(b)", side=1, line=3, cex=2)} 
-  # if(i==1){  mtext(expression(paste("(a): ",hat(theta)[1], " top and ", theta[1], " bottom")), side=1, line=4.5, cex=2)} 
-  # if(i==2){  mtext(expression(paste("(b): ",hat(theta)[2], " top and ", theta[2], " bottom")), side=1, line=4.5, cex=2)}
-       # xlab = bquote(theta[.(i)]~"bottom and"~hat(theta)[.(i)]~"top"))
-  # mult_seg <- data.frame(x0 = c(0.7, 0.2, - 0.9, 0.5, - 0.2),    # Create data frame with line-values
-  #                        y0 = c(0.5, 0.5, 0.6, - 0.3, 0.4),
-  #                        x1 = c(0, 0.2, 0.4, - 0.3, - 0.6),
-  #                        y1 = c(- 0.1, 0.3, - 0.6, - 0.8, 0.9))
-  
-  segments(x0 = emp_thetaMED[,i],                            # Draw multiple lines
-           y0 = 0,
-           x1 = theta_hat[,i],
-           y1 = 1, col = my_cols[factor(loc_int$loc)], lwd=1)
-  points(x=emp_thetaMED[,i], y=rep(0, length(emp_thetaMED[,i])), col= my_cols[factor(loc_int$loc)])
-  points(x=theta_hat[,i],    y=rep(1, length(emp_thetaMED[,i])), col= my_cols[factor(loc_int$loc)])
   for (j in 1:N) {
-    #top row, theta hats
-    xseq <- seq(theta_hat[j,i]-3*sqrt(solve(hessians[[j]])[i,i]),
-                theta_hat[j,i]+3*sqrt(solve(hessians[[j]])[i,i]),
-                length.out = 1000)
-    lines(xseq,smush[i]*dnorm(xseq,
-                              theta_hat[j,i],
-                              sqrt(solve(hessians[[j]])[i,i]))+1, col=my_cols[factor(loc_int$loc)[j]],
-          lty = 1, lwd=3)
-    
-    #bottom row, thetas from MCMC
-    xseq <- seq(min(theta_burn[[j]][,i]),
-                max(theta_burn[[j]][,i]), 
-                length.out = 1000)
-    lines(xseq, smush[i]*dnorm(xseq, 
-                               mean(theta_burn[[j]][,i]), 
-                               sd(theta_burn[[j]][,i])), col=my_cols[factor(loc_int$loc)[j]],
-          lty = 1, lwd=3)
+    if(i==1){
+      r1[j] <- sqrt(solve(hessians[[j]])[i,i])
+      s1[j] <- sd(theta_burn[[j]][,i])
+    }
+    if(i==2){
+      r2[j] <- sqrt(solve(hessians[[j]])[i,i])
+      s2[j] <- sd(theta_burn[[j]][,i])
+    }
+
   }
-  legend("topright",
-         2, lwd=3,
-         legend=levels(factor(loc_int$loc)),
-         col=my_cols, lty=1, cex=2)
 }
+par(mfrow=c(1,2))
+plot(r1/s1, main="theta1: MLE sd / post sd", col=my_cols, pch=16) #colors may be wrong
+abline(h=1)
+plot(r2/s2, main = "theta2: MLE sd / post sd", col=my_cols, pch=16) #cols may be wrong
+abline(h=1)
 dev.off()
-
-
-
+par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,2))
 
 # png("~/NAM-Model-Validation/png/NMV_compareMLEpost2.png", width = 1500, height = 500)
 # par(mar=c(4.5,1.5,1.5,1.5), mfrow=c(1,3))
