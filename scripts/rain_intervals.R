@@ -1,3 +1,7 @@
+# Compare margins of error from UQ with variability among test storms
+
+library(raster)
+
 par(mfrow=c(2,2))
 UBs_int95s <- LBs_int95s <- avg_int95s <- max_int95s <- diffs_in <- c()
 npixs <- c()
