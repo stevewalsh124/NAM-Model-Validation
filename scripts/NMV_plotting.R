@@ -896,7 +896,7 @@ rbind(LM1_res, LM2_res, LM3_res)
 # Figure for hydrology application #
 ####################################
 
-# run  FL_basin_mm.R first, with storm k=4 and basin=1
+# run  FL_basin_mm.R first, with storm k=4 and basin=4
 png("png/hydro_app_FL_Michael_basin1.png", res=350, height=1000, width=3000)
 par(mfrow=c(1,3))
 par(mar=c(4.5,5,1,2))
@@ -913,9 +913,9 @@ m <- 2
 my_dens <- density(sum_sq_rains[,m], bw = bws[m], n = 2048)
 pred_val_dens <- my_dens$y[ which(abs(my_dens$x - ST4_l_sq) == min(abs(my_dens$x - ST4_l_sq)))]
 plot(my_dens$x, my_dens$y, type="l", xlab="mm", ylab="Density",
-     xlim = c(0, 25000), ylim = c(0, max(ylims)), cex.axis=1.3,cex.lab=1.3)
+     xlim = c(0, 25000), ylim = c(0, max(ylims[m])), cex.axis=1.3,cex.lab=1.3)
 abline(v=NAM_l_sq, col="green")
-abline(v=ST4_l_sq, col="blue")
+abline(v=ST4_l_sq, col="blue", lty=2)
 dev.off()
 
 # hyd_df <- data.frame(as(mask_FL * NAM_r, "SpatialPixelsDataFrame"))

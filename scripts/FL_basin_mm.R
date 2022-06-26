@@ -15,7 +15,7 @@ library(fields)
 
 make.pdf <- F
 
-basin <- 1
+basin <- 4
 
 # number of models compared
 nM <- 3
@@ -26,7 +26,7 @@ FL_mask <- raster(paste0("basin/FLmask",basin,".grd"))
 plot(NA, xlim = extent(FL_mask)[1:2] + c(-1,1), ylim = extent(FL_mask)[3:4] + c(-1,1), type="n", asp=1)
 plot(FL_mask, add=T)
 US(add=T)
-load(paste0("RData/prediction4"))
+load(paste0("RData/prediction/prediction4_LM2_nopw.RData"))
 mask_FL <- raster::resample(FL_mask, rasterFromXYZ(cbind(coords, simvals[,1])), method="ngb")
 
 sum_sq_rains <- matrix(NA, Ngen, nM)
@@ -35,9 +35,14 @@ sum_sq_straw <- c()
 for (k in 4) {
   for (m in 1:nM) {
     print(paste0("storm ", k, ", model ", m))
-    if(m==1) load(paste0("RData/prediction",k))
-    if(m==2) load(paste0("RData/prediction",k,"_LM2"))
-    if(m==3) load(paste0("RData/prediction",k,"_LM3"))
+    if(m==1) load(paste0("RData/prediction/prediction",k,"nopw.RData"))
+    if(m==2) load(paste0("RData/prediction/prediction",k,"_LM2_nopw.RData"))
+    if(m==3) load(paste0("RData/prediction/prediction",k,"_LM3_nopw.RData"))
+    
+    NAM_pred <- cbind(NAM_pred$x, NAM_pred$y, NAM_pred$value)
+    colnames(NAM_pred) <- c("x","y","value")
+    ST4_pred <- cbind(ST4_pred$x, ST4_pred$y, ST4_pred$value)
+    colnames(ST4_pred) <- c("x","y","value")
     
     sim1 <- rasterFromXYZ(cbind(coords, NAM_pred[,3]+simvals[,1])) * mask_FL
     
@@ -66,9 +71,9 @@ for (k in 4) {
     }
     
     NAM_l <- sum(values(rasterFromXYZ(NAM_pred) * mask_FL),na.rm = T)
-    ST4_l <- sum(values(rasterFromXYZ(ST4_pred[,c(3,4,2)]) * mask_FL),na.rm = T)
+    ST4_l <- sum(values(rasterFromXYZ(ST4_pred) * mask_FL),na.rm = T)
     NAM_l_sq <- sum(values(rasterFromXYZ(NAM_pred) * mask_FL)^2,na.rm = T)
-    ST4_l_sq <- sum(values(rasterFromXYZ(ST4_pred[,c(3,4,2)]) * mask_FL)^2,na.rm = T)
+    ST4_l_sq <- sum(values(rasterFromXYZ(ST4_pred) * mask_FL)^2,na.rm = T)
     
   }
   
