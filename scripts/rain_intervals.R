@@ -2,13 +2,16 @@
 
 library(raster)
 
-par(mfrow=c(2,2))
+pdf("pdf/rain_intervals.pdf")
+
 UBs_int95s <- LBs_int95s <- avg_int95s <- max_int95s <- 
   diffs_in <- diffs_in_gr0 <- diffs_in_gr1 <- diffs_in_gp1i <- diffs_in_gp3i <- 
   act_rain <- act_rain_gr0 <- act_rain_gr1 <- act_rain_gp1i <- 
   act_rain_UB <- act_rain_UB_gp1i <- c()
 npixs <- c()
+
 for (ste in 1:6) {
+  par(mfrow=c(2,2))
   print(ste)
   load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",ste,"nopw.RData"))
   
@@ -33,9 +36,11 @@ for (ste in 1:6) {
   # Find the maximum CI
   max_int95s[ste] <- max(rain_ints95)
   # Look how forecasted value affects CIs
-  plot(NAM_pred$value^2, rain_ints95)
+  plot(rowMeans(rain_scen)/25.4, rain_ints95/25.4, main = ste,
+       xlab = "predictive mean (in)", ylab = "length of PI (in)")
+  lines((0:200)/10, sqrt((0:200)/10)*3, col="green")
   
-  # Gather the mean amount of rain for each storm in buffer region
+  # Gather the mean amount of rain for each storm in buffer region (25.4mm per inch)
   act_rain[ste] <- mean(ST4_pred$value^2)/25.4
   act_rain_gr0[ste] <- mean(ST4_pred$value[ST4_pred$value>0]^2)/25.4
   act_rain_gr1[ste] <- mean(ST4_pred$value[ST4_pred$value>1]^2)/25.4
@@ -56,6 +61,12 @@ for (ste in 1:6) {
   diffs_in_gr1 <- c(diffs_in_gr1, abs(ST4_pred$value[ST4_pred$value>1]^2-NAM_pred$value[ST4_pred$value>1]^2)/25.4)
   diffs_in_gp1i <- c(diffs_in_gp1i, abs(ST4_pred$value[ST4_pred$value>2.54]^2-NAM_pred$value[ST4_pred$value>2.54]^2)/25.4)
   diffs_in_gp3i <- c(diffs_in_gp3i, abs(ST4_pred$value[ST4_pred$value>2.54*3]^2-NAM_pred$value[ST4_pred$value>2.54*3]^2)/25.4)
+  
+  par(mfrow=c(1,2))
+  plot(rasterFromXYZ(cbind(NAM_pred$x, NAM_pred$y, rowMeans(rain_scen)/25.4)), 
+       main = paste0("storm ",ste,": pred mean (in)"))
+  plot(rasterFromXYZ(cbind(NAM_pred$x, NAM_pred$y, rain_ints95/25.4/2)), 
+       main = paste0("storm ",ste,": margin of error (in)"))
 }
 
 # Weighted average of 95% upper bound for length of 95% confidence intervals
@@ -63,12 +74,12 @@ for (ste in 1:6) {
 # 25.4mm for every inch
 sum(npixs*UBs_int95s)/sum(npixs)/25.4 # 4.322 inches
 sum(npixs*avg_int95s)/sum(npixs)/25.4 # 1.605 inches
-max(max_int95s)/25.4 # 1.605 inches
+max(max_int95s)/25.4 # 13.215 inches
 
 # Margin of error is half the length of CI
-sum(npixs*UBs_int95s)/sum(npixs)/25.4/2 # 4.322 inches
-sum(npixs*avg_int95s)/sum(npixs)/25.4/2 # 1.605 inches
-max(max_int95s)/25.4/2 # 1.605 inches
+sum(npixs*UBs_int95s)/sum(npixs)/25.4/2 # 2.161 inches
+sum(npixs*avg_int95s)/sum(npixs)/25.4/2 # 0.803 inches
+max(max_int95s)/25.4/2 # 6.607 inches
 
 # Look at 95%, 99% UBs and max absolute difference of NAM & ST4
 quantile(diffs_in, 0.95)
@@ -91,3 +102,5 @@ mean(diffs_in_gr0)
 mean(diffs_in_gr1)
 mean(diffs_in_gp1i)
 mean(diffs_in_gp3i)
+
+dev.off()
