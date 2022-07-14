@@ -29,7 +29,9 @@ for (ste in 1:6) {
   # look at 95% CI at each grid point
   rain_ints95 <- apply(rain_scen, 1, function(X){quantile(X,0.975)-quantile(X,0.025)})
   rain_UBs <- apply(rain_scen, 1, function(X){quantile(X,0.975)})
-  rain_LBs <- apply(rain_scen, 1, function(X){quantile(X,0.025)})
+  rain_LBs <- apply(rain_scen, 1, function(X){quantile(X,0.025)})  
+  rain_UB99s <- apply(rain_scen, 1, function(X){quantile(X,0.995)})
+  rain_LB99s <- apply(rain_scen, 1, function(X){quantile(X,0.005)})
   rain_SDs <-  apply(rain_scen, 1, sd)
   diffins <- rain_UBs - rain_LBs
   # hist(rain_ints95, breaks=40)
@@ -53,6 +55,8 @@ for (ste in 1:6) {
   points(rowMeans(rain_scen)/25.4, ST4_pred$value^2/25.4, col="GREEN", pch="*")
   points(rowMeans(rain_scen)/25.4, rain_LBs/25.4, pch=".")
   points(rowMeans(rain_scen)/25.4, rain_UBs/25.4, col="red", pch=".")
+  points(rowMeans(rain_scen)/25.4, rain_LB99s/25.4, pch=".")
+  points(rowMeans(rain_scen)/25.4, rain_UB99s/25.4, col="red", pch=".")
   points(rowMeans(rain_scen)/25.4, NAM_pred$value^2/25.4, col="blue", pch=".")
   legend("topleft", legend = c("ub","lb","NAM","ST4"), col=c("black","red","blue","green"),pch=1)
   # lines((0:200)/10, sqrt((0:200)/10)*1.5, col="green")
