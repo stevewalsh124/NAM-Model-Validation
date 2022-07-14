@@ -25,8 +25,8 @@ writefiles <- T
 
 get_prec_mtx <- T
 
-plot.it <- F
-lo <- 15#21 #length.out for lkhd grid (do odd so MLE in middle)
+plot.it <- T
+lo <- 21 #length.out for lkhd grid (do odd so MLE in middle)
 
 
 if(sim_vals){ 
@@ -262,10 +262,10 @@ for (i in 1:length(storms_to_eval)) {
     orig_sds <- sqrt(diag(-solve(pkgHess)))
     
     ## convert thetas to sigma^2, phi for calculations
-    sigma2vec <- seq(sigma2hat - 3*orig_sds[1],
-                     sigma2hat + 3*orig_sds[1], length.out = lo)	#eg: 0.99, 1.11
-    phivec <- seq(phihat - 3*orig_sds[2],
-                  phihat + 3*orig_sds[2], length.out = lo) #eg: 0.82, 2.20
+    sigma2vec <- seq(sigma2hat - 1.959964*orig_sds[1],
+                     sigma2hat + 1.959964*orig_sds[1], length.out = lo)	#eg: 0.99, 1.11
+    phivec <- seq(phihat - 1.959964*orig_sds[2],
+                  phihat + 1.959964*orig_sds[2], length.out = lo) #eg: 0.82, 2.20
     
     ## remove any negatives
     bad <- unique(which(phivec < 0), which(sigma2vec < 0))
@@ -285,7 +285,7 @@ for (i in 1:length(storms_to_eval)) {
       }
     }
     
-    par(mfrow=c(1,1))
+    par(mfrow=c(1,2))
     image(sigma2vec, phivec, llgrid)
     contour(sigma2vec, phivec, llgrid, add=T)
     
@@ -301,10 +301,10 @@ for (i in 1:length(storms_to_eval)) {
     theta_sds <- sqrt(diag(-solve(pkgthetaHess)))
     
     ## vectors for plotting the 2D log-likelihood fn
-    theta1vec <- seq(theta1hat - 3*theta_sds[1],
-                     theta1hat + 3*theta_sds[1], length.out = lo)	#eg: 0.99, 1.11
-    theta2vec <- seq(theta2hat - 3*theta_sds[2],
-                     theta2hat + 3*theta_sds[2], length.out = lo) #eg: 0.82, 2.20
+    theta1vec <- seq(theta1hat - 1.959964*theta_sds[1],
+                     theta1hat + 1.959964*theta_sds[1], length.out = lo)	#eg: 0.99, 1.11
+    theta2vec <- seq(theta2hat - 1.959964*theta_sds[2],
+                     theta2hat + 1.959964*theta_sds[2], length.out = lo) #eg: 0.82, 2.20
     
     thetagrid <- matrix(NA, nrow = length(theta1vec), ncol = length(theta2vec))
     
@@ -319,15 +319,19 @@ for (i in 1:length(storms_to_eval)) {
     theta1s[[i]] <- theta1vec
     theta2s[[i]] <- theta2vec
     
-    par(mfrow=c(1,1))
     image(theta1vec, theta2vec, thetagrid)
     contour(theta1vec, theta2vec, thetagrid, add=T)
+    
+    image(sigma2vec, phivec, exp(llgrid-min(llgrid)))
+    contour(sigma2vec, phivec, exp(llgrid-min(llgrid)), add=T)
+    image(theta1vec, theta2vec, exp(thetagrid-min(thetagrid)))
+    contour(theta1vec, theta2vec, exp(thetagrid-min(thetagrid)), add=T)
     
     par(mfrow=c(1,2))
     ind <- which(theta1hat == theta1vec)
     if(!(all(exp(thetagrid[,ind]) == Inf) | all(exp(thetagrid[ind,]) == Inf))){
-    plot(theta1vec, exp(thetagrid[,ind]), type = "l", main="slice of likhd at theta_2_hat")
-    plot(theta2vec, exp(thetagrid[ind,]), type = "l", main="slice of likhd at theta_1_hat")
+    plot(theta1vec, exp(thetagrid[,ind]-min(thetagrid[,ind])), type = "l", main="slice of likhd at theta_2_hat")
+    plot(theta2vec, exp(thetagrid[ind,]-min(thetagrid[ind,])), type = "l", main="slice of likhd at theta_1_hat")
     
     plot(theta1vec, thetagrid[,ind], type = "l", main="slice of loglik at theta_2_hat")
     plot(theta2vec, thetagrid[ind,], type = "l", main="slice of loglik at theta_1_hat")
