@@ -939,3 +939,30 @@ dev.off()
 # Seeds 1-50 vs 51-100 will change which types of lines are plotted (fixed vs random truth)
 # There is another folder of files with fixedTruth for the values 
 # where sig2=4 andf phi=1.5 were fixed
+
+# Log likelihood surface for supplemenatary material
+
+load("~/NAM-Model-Validation/png/load_for_log_likhd_surf_1.RData")
+png("~/NAM-Model-Validation/png/log_likhd_orig_and_reparam.png", 
+    width = 2100, height = 1400, res = 350)
+par(mfrow=c(1,2), mar=c(5, 4, 1, 2) + 0.1)
+image(sigma2vec, phivec, llgrid, xlab=expression(sigma^2), ylab=expression(phi))
+contour(sigma2vec, phivec, llgrid, add=T)
+mtext("(a)",side = 1, line=4)
+image(theta1vec, theta2vec, thetagrid, xlab=expression(theta[1]), ylab=expression(theta[2]))
+contour(theta1vec, theta2vec, thetagrid, add=T)
+mtext("(b)",side = 1, line=4)
+dev.off()
+# 
+# image(sigma2vec, phivec, exp(llgrid-min(llgrid)))
+# contour(sigma2vec, phivec, exp(llgrid-min(llgrid)), add=T)
+# image(theta1vec, theta2vec, exp(thetagrid-min(thetagrid)))
+# contour(theta1vec, theta2vec, exp(thetagrid-min(thetagrid)), add=T)
+# 
+# par(mfrow=c(1,2))
+# ind <- which(theta1hat == theta1vec)
+# plot(theta1vec, exp(thetagrid[,ind]-min(thetagrid[,ind])), type = "l", main="slice of likhd at theta_2_hat")
+# plot(theta2vec, exp(thetagrid[ind,]-min(thetagrid[ind,])), type = "l", main="slice of likhd at theta_1_hat")
+# 
+# plot(theta1vec, thetagrid[,ind], type = "l", main="slice of loglik at theta_2_hat")
+# plot(theta2vec, thetagrid[ind,], type = "l", main="slice of loglik at theta_1_hat")
