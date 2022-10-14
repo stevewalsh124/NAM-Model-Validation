@@ -35,16 +35,16 @@ if(sim_vals){
 }
 
 if(writefiles & plot.it){
-  pdf(paste0("~/NAM-Model-Validation/pdf/MLE_storm_expntl_oneHess",
+  pdf(paste0("pdf/MLE_storm_expntl_oneHess",
              if(sim_vals){"_sim_vals"},if(trial){"_trial"},"_lo",lo,".pdf"))
 }
 
 start.time <- Sys.time()
 
 if(subtractPWmean){
-  storm_csvs <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanT_flat", full.names = T)
+  storm_csvs <- list.files("csv/error_df_sqrt/subtractPWmeanT_flat", full.names = T)
 } else {
-  storm_csvs <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF", full.names = T)
+  storm_csvs <- list.files("csv/error_df_sqrt/subtractPWmeanF", full.names = T)
 }
 small_locs <-  c(11, 18, 17)#,  3, 15, 25,  6, 46, 34, 23, 30, 41, 21, 33, 38, 45, 43, 19, 35, 31) #fastest 20
  #c(3,11,15,17,18,25) #storms less than 3000 pixels
@@ -375,13 +375,13 @@ if(length(storms_to_eval)==1){
     thetas_sds  <- sqrt(diag(-solve(matrix(pkgthetahessvecs, 2, 2))))
 } else {
   for (k in 1:length(storms_to_eval)) {
-    sig_phi_sds[k,] <- sqrt(diag(-solve(matrix(pkghessvecs[storms_to_eval[k],], 2, 2))))
-    thetas_sds[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs[storms_to_eval[k],], 2, 2))))
+    sig_phi_sds[k,] <- sqrt(diag(-solve(matrix(pkghessvecs[k,], 2, 2))))
+    thetas_sds[k,]  <- sqrt(diag(-solve(matrix(pkgthetahessvecs[k,], 2, 2))))
   }
 }
 
 
-if(plot.it){
+if(plot.it & length(storms_to_eval) > 1){
   ## hists of theta1's and theta2's
   par(mfrow=c(1,2))
   hist(log(sigs/phis), main = "theta1 hats")
@@ -396,38 +396,47 @@ if(plot.it){
 }
 
 ## Write files
-if(!dir.exists("~/NAM-Model-Validation/csv/myMLEresults")){
-  dir.create("~/NAM-Model-Validation/csv/myMLEresults")
+if(!dir.exists("csv/myMLEresults/myMLEs/")){
+  dir.create("csv/myMLEresults/myMLEs/", recursive = T)
+}
+if(!dir.exists("csv/myMLEresults/pkgthetahessvecs/")){
+  dir.create("csv/myMLEresults/pkgthetahessvecs/", recursive = T)
+}
+if(!dir.exists("csv/myMLEresults/pkghessvecs/")){
+  dir.create("csv/myMLEresults/pkghessvecs/", recursive = T)
+}
+if(!dir.exists("RData/myMLE_precs/")){
+  dir.create("RData/myMLE_precs/", recursive = T)
 }
 
 if(writefiles){
   write.csv(cbind(phis, sigs, cnts, tims), 
-            file=paste0("~/NAM-Model-Validation/csv/myMLEresults/myMLEs/",
+            file=paste0("csv/myMLEresults/myMLEs/",
                         if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                         if(subtractPWmean){"subtractPWmean"},
                         if(sim_vals){paste0("seed",seed,"_")},
                         if(trial){"trial_"},if(sim_vals){"sim_vals"},
                         if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
   if(hess_calc){
-    # write.csv(myhessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/myhessvecs_",
+    # write.csv(myhessvecs, paste0("csv/myMLEresults/myhessvecs_",
     #                              if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                              if(sim_vals){paste0("seed",seed,"_")},
     #                              if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    # write.csv(myhessvecsEXP, paste0("~/NAM-Model-Validation/csv/myMLEresults/myhessvecsEXP_",
+    # write.csv(myhessvecsEXP, paste0("csv/myMLEresults/myhessvecsEXP_",
     #                                 if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                                 if(sim_vals){paste0("seed",seed,"_")},
     #                                 if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    write.csv(pkghessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/pkghessvecs/",
+    write.csv(pkghessvecs, paste0("csv/myMLEresults/pkghessvecs/",
                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                   if(subtractPWmean){"subtractPWmean"},
                                   if(sim_vals){paste0("seed",seed,"_")},
                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},
                                   if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
-    # write.csv(mythetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/mythetahessvecs_",
+    # write.csv(mythetahessvecs, paste0("csv/myMLEresults/mythetahessvecs_",
     #                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                                   if(sim_vals){paste0("seed",seed,"_")},
     #                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    write.csv(pkgthetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs/",
+    write.csv(pkgthetahessvecs, paste0("csv/myMLEresults/pkgthetahessvecs/",
                                        if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                        if(subtractPWmean){"subtractPWmean"},
                                        if(sim_vals){paste0("seed",seed,"_")},
@@ -438,7 +447,7 @@ if(writefiles){
 
 if(get_prec_mtx){
   prec_mtx <- solve(sigma2hat * cormatrix)
-  save(prec_mtx, file=paste0("~/NAM-Model-Validation/RData/myMLE_precs/", 
+  save(prec_mtx, file=paste0("RData/myMLE_precs/", 
                              if(storms_to_eval[1] < 10){"0"},
                              storms_to_eval[1],
                              if(subtractPWmean){"subtractPWmean"},
