@@ -199,7 +199,7 @@ mosaicList <- function(rasList){
 }
 
 
-for(i in 1:2){#length(storm.dirs)){
+for(i in 1:length(storm.dirs)){
   # i <- 1
   currentST4_NAM_folders <- list.dirs(storm.dirs[i])[-1] #[-1] avoids parent folder
   ST4_folder <- currentST4_NAM_folders[1]
