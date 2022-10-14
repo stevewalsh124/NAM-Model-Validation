@@ -14,6 +14,8 @@ library(geoR) #as.geodata, variog, variofit
 library(fields) #US()
 library(raster)
 
+if(!dir.exists("pdf")) dir.create("pdf")
+
 # Imagine that the two circular buffer areas create a Venn diagram shape.
 # Do you want it so that A\B and B\A have 12hr of precip while A intersect B has 24hr? (choose F)
 # Do you want the entire union of A and B to have 24 hrs of precip? (choose T)
@@ -26,25 +28,27 @@ write.pdf <- T
 # Do you want to subtract the pointwise error field mean 
 # (made from all 47 storms) from each error field? (If yes choose T)
 subtractPWmean = F
-makePWmean = T
+makePWmean = F
 if(makePWmean & subtractPWmean) stop("makePWmean and subtractPWmean can't both be TRUE")
 
 if(write.pdf){
-pdf(paste0("~/NAM-Model-Validation/pdf/sqrtbuffer_47_ngb_",
-           if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},if(pred){"pred"},
-           ".pdf"))
+pdf(paste0("pdf/sqrtbuffer_47_ngb_",
+           if(makePWmean){"makePWmean"},if(subtractPWmean){"subtractPWmean"},
+           if(pred){"pred"},".pdf"))
 }
 
 if(pred){
-  storm.dirs <- list.dirs("~/NAM-Model-Validation/prediction", recursive = F)
-  if(length(storm.dirs)==0){
-    storm.dirs <- list.dirs("/Volumes/LACIEHD/NAMandST4_prediction", recursive = F) }
-} else {storm.dirs <- list.dirs("~/NAMandST4", recursive = F) }
+  storm.dirs <- list.dirs("../NAMandST4_prediction", recursive = F)
+  } else {
+  storm.dirs <- list.dirs("../NAMandST4", recursive = F) 
+}
+
+if(length(storm.dirs)==0) stop("length of storm.dirs is 0")
 
 storms.out.of.hurdat <- c()
 
 # Change this file so that it corresponds to the new buffering
-PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean.grd")
+if(!makePWmean) PW_mean <- raster("error_rasters/summary_sqrt/PW_mean.grd")
 
 #[-c(2,3,6,8)]#THE NON12HR STORMS
 #[c(5,16,22,25,35,47)] #R session aborted when fitting Matern
@@ -66,12 +70,12 @@ prRangevec<- c()
 namevec <- c()
 
 # load, modify and project land/sea mask 
-mask <- raster("~/NAM-Model-Validation/lsmask.nc")
+mask <- raster("lsmask.nc")
 mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
 mask.regrid <- raster::resample(mask, projectRaster(raster(
-  "~/NAM-Model-Validation/nam_218_20170826_0000_012.grb2"),
+  "nam_218_20170826_0000_012.grb2"),
   crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
 
 # Multiple plot function
@@ -195,7 +199,7 @@ mosaicList <- function(rasList){
 }
 
 
-for(i in 1:length(storm.dirs)){
+for(i in 1:2){#length(storm.dirs)){
   # i <- 1
   currentST4_NAM_folders <- list.dirs(storm.dirs[i])[-1] #[-1] avoids parent folder
   ST4_folder <- currentST4_NAM_folders[1]
@@ -272,7 +276,7 @@ for(i in 1:length(storm.dirs)){
   NAM_first12 <- Reduce("+",NAMlist[[i]])*mask.regrid
   NAM_df_first12  <- rasterToPoints(NAM_first12)
 
-  PW_mean_df <- rasterToPoints(PW_mean)
+  if(!makePWmean) PW_mean_df <- rasterToPoints(PW_mean)
   
   #The first 4 ST4 are 24 hrs. Two buffers for each 12hr group, 
   #using the 6th and 18th hour as centers (1st and 3rd files in ST4 folder)
@@ -327,9 +331,11 @@ for(i in 1:length(storm.dirs)){
 
   NAMtrythis  <- ST4bufferprecip(NAM_df_first12, eye1_latlon, eye2_latlon, radius)
 
-  PW_mean_buff1 <- ST4bufferprecip(PW_mean_df, eye1_latlon, eye2_latlon, radius)
-  PW_mean_buff2 <- ST4bufferprecip(PW_mean_df, eye2_latlon, eye1_latlon, radius)
-  PW_mean_buff <- PW_mean_buff1 + PW_mean_buff2
+  if(!makePWmean){
+    PW_mean_buff1 <- ST4bufferprecip(PW_mean_df, eye1_latlon, eye2_latlon, radius)
+    PW_mean_buff2 <- ST4bufferprecip(PW_mean_df, eye2_latlon, eye1_latlon, radius)
+    PW_mean_buff <- PW_mean_buff1 + PW_mean_buff2
+  }
   
   NAM_plotter <- sqrt(NAMtrythis)
   ST4_plotter <- sqrt(ST4trythis)
@@ -372,20 +378,20 @@ for(i in 1:length(storm.dirs)){
   # Use these to load into simulate_error_field.R, prediction, etc
   if(write.pdf){
   if(pred){
-    if(!dir.exists(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/"))) {
-      dir.create(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/"), recursive = T)
+    if(!dir.exists(paste0("csv/prediction_sqrt/",storm_yearname,"/"))) {
+      dir.create(paste0("csv/prediction_sqrt/",storm_yearname,"/"), recursive = T)
     }
-    write.csv(NAM_df, paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_NAMdf.csv"))
-    write.csv(ST4_df, paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_ST4df.csv"))
+    write.csv(NAM_df, paste0("csv/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_NAMdf.csv"))
+    write.csv(ST4_df, paste0("csv/prediction_sqrt/",storm_yearname,"/",storm_yearname,"_ST4df.csv"))
   } else {
-    if(!dir.exists("~/NAM-Model-Validation/csv/nam_df_sqrt/")) {
-      dir.create("~/NAM-Model-Validation/csv/nam_df_sqrt/", recursive = T)
+    if(!dir.exists("csv/nam_df_sqrt/")) {
+      dir.create("csv/nam_df_sqrt/", recursive = T)
     }
-    if(!dir.exists("~/NAM-Model-Validation/csv/st4_df_sqrt/")) {
-      dir.create("~/NAM-Model-Validation/csv/st4_df_sqrt/", recursive = T)
+    if(!dir.exists("csv/st4_df_sqrt/")) {
+      dir.create("csv/st4_df_sqrt/", recursive = T)
     }
-    write.csv(NAM_df, paste0("~/NAM-Model-Validation/csv/nam_df_sqrt/namdf_",storm_year,storm_name,"_",radius,"km.csv"))
-    write.csv(ST4_df, paste0("~/NAM-Model-Validation/csv/st4_df_sqrt/st4df_",storm_year,storm_name,"_",radius,"km.csv"))
+    write.csv(NAM_df, paste0("csv/nam_df_sqrt/namdf_",storm_year,storm_name,"_",radius,"km.csv"))
+    write.csv(ST4_df, paste0("csv/st4_df_sqrt/st4df_",storm_year,storm_name,"_",radius,"km.csv"))
   }
   }
   
@@ -398,26 +404,26 @@ for(i in 1:length(storm.dirs)){
   
 
   if(makePWmean){
-    if(!dir.exists("~/NAM-Model-Validation/error_rasters_sqrt/")) {
-      dir.create("~/NAM-Model-Validation/error_rasters_sqrt/", recursive = T)
+    if(!dir.exists("error_rasters/sqrt/")) {
+      dir.create("error_rasters/sqrt/", recursive = T)
     }
-    if(!dir.exists("~/NAM-Model-Validation/error_rasters_squared_sqrt/")) {
-      dir.create("~/NAM-Model-Validation/error_rasters_squared_sqrt/", recursive = T)
+    if(!dir.exists("error_rasters/squared_sqrt/")) {
+      dir.create("error_rasters/squared_sqrt/", recursive = T)
     }
-    if(!dir.exists("~/NAM-Model-Validation/error_rasters_counts_sqrt/")) {
-      dir.create("~/NAM-Model-Validation/error_rasters_counts_sqrt/", recursive = T)
+    if(!dir.exists("error_rasters/counts_sqrt/")) {
+      dir.create("error_rasters/counts_sqrt/", recursive = T)
     }
     if(write.pdf){
     #write rasters from the errors to combine all on common map
-    writeRaster(error, paste0("~/NAM-Model-Validation/error_rasters_sqrt/",storm_year,storm_name), overwrite=T) 
-    writeRaster(error*error, paste0("~/NAM-Model-Validation/error_rasters_squared_sqrt/",storm_year,storm_name), overwrite=T)
+    writeRaster(error, paste0("error_rasters/sqrt/",storm_year,storm_name), overwrite=T) 
+    writeRaster(error*error, paste0("error_rasters/squared_sqrt/",storm_year,storm_name), overwrite=T)
     }
     # in the loop for I in the storms
     error_count <- error
     error_count[!is.na(error_count)] <- 1
     error_count[is.na(error_count)] <- 0
     if(write.pdf){
-    writeRaster(error_count, paste0("~/NAM-Model-Validation/error_rasters_counts_sqrt/",storm_year,storm_name), overwrite=T)
+    writeRaster(error_count, paste0("error_rasters/counts_sqrt/",storm_year,storm_name), overwrite=T)
     }
   }
   
@@ -428,16 +434,16 @@ for(i in 1:length(storm.dirs)){
   if(write.pdf){
   if(!pred){
     if(subtractPWmean){
-      if(!dir.exists("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanT_flat/")) {
-        dir.create("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanT_flat/", recursive = T)
+      if(!dir.exists("csv/error_df_sqrt/subtractPWmeanT_flat/")) {
+        dir.create("csv/error_df_sqrt/subtractPWmeanT_flat/", recursive = T)
       }
-      write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanT_flat/errordf_PW_",
+      write.csv(error_df, paste0("csv/error_df_sqrt/subtractPWmeanT_flat/errordf_PW_",
                                  storm_year,storm_name,"_",radius,"deg.csv"))
     } else {
-      if(!dir.exists("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF/")) {
-        dir.create("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF/", recursive = T)
+      if(!dir.exists("csv/error_df_sqrt/subtractPWmeanF/")) {
+        dir.create("csv/error_df_sqrt/subtractPWmeanF/", recursive = T)
       }
-      write.csv(error_df, paste0("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF/errordf_",
+      write.csv(error_df, paste0("csv/error_df_sqrt/subtractPWmeanF/errordf_",
                                  storm_year,storm_name,"_",radius,"deg.csv"))
     }
   }
@@ -538,11 +544,11 @@ svg.param.ests.error <- cbind(namevec, phivec, prRangevec, tau2vec, sig2vec)
 if(write.pdf){
 if(subtractPWmean) {
   write.csv(svg.param.ests.error, 
-            paste0("~/NAM-Model-Validation/csv/svg.param.ests.error_deg_subtractPWmean_",
+            paste0("csv/svg.param.ests.error_deg_subtractPWmean_",
             if(pred){"pred_"},"sqrt.csv"))
 } else {
   write.csv(svg.param.ests.error, 
-            paste0("~/NAM-Model-Validation/csv/svg.param.ests.error_deg_noPWmean_",
+            paste0("csv/svg.param.ests.error_deg_noPWmean_",
             if(pred){"pred_"},"sqrt.csv"))
 }
 }
@@ -555,27 +561,27 @@ if(write.pdf){
 
 # Make the new raster summary files for pointwise (PW) mean, variance, std errors
 if(makePWmean){
-  raster_files <- list.files("~/NAM-Model-Validation/error_rasters_sqrt/", pattern = ".grd", full.names = T)
+  raster_files <- list.files("error_rasters/sqrt/", pattern = ".grd", full.names = T)
   error_sum <- mosaicList(raster_files)
   
-  raster_files_sq <- list.files("~/NAM-Model-Validation/error_rasters_squared_sqrt/", pattern = ".grd", full.names = T)
+  raster_files_sq <- list.files("error_rasters/squared_sqrt/", pattern = ".grd", full.names = T)
   error_sum_sq <- mosaicList(raster_files_sq)
   
-  error_files <- list.files("~/NAM-Model-Validation/error_rasters_counts_sqrt/", pattern = ".grd", full.names = T)
+  error_files <- list.files("error_rasters/counts_sqrt/", pattern = ".grd", full.names = T)
   error_counts <- mosaicList(error_files)
   
   if(write.pdf){
-  if(!dir.exists("~/NAM-Model-Validation/error_rasters_summary_sqrt")) {
-    dir.create("~/NAM-Model-Validation/error_rasters_summary_sqrt", recursive = T)
+  if(!dir.exists("error_rasters/summary_sqrt")) {
+    dir.create("error_rasters/summary_sqrt", recursive = T)
   }
-  writeRaster(error_counts, "~/NAM-Model-Validation/error_rasters_summary_sqrt/error_counts", overwrite=T)
-  writeRaster(error_sum, "~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum", overwrite=T)
-  writeRaster(error_sum_sq, "~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum_sq", overwrite = T)
+  writeRaster(error_counts, "error_rasters/summary_sqrt/error_counts", overwrite=T)
+  writeRaster(error_sum, "error_rasters/summary_sqrt/error_sum", overwrite=T)
+  writeRaster(error_sum_sq, "error_rasters/summary_sqrt/error_sum_sq", overwrite = T)
   }
   
   PW_mean <- error_sum/error_counts
   if(write.pdf){
-  writeRaster(PW_mean, "~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean", overwrite=T)
+  writeRaster(PW_mean, "error_rasters/summary_sqrt/PW_mean", overwrite=T)
   }
   plot(PW_mean, main="Pointwise Mean")
   PW_mean_spdf <- as((PW_mean), "SpatialPixelsDataFrame")
@@ -595,51 +601,46 @@ if(makePWmean){
   plot(abs(PW_mean),main="Absolute Value of Pointwise Mean")
   S2 <- (error_sum_sq - (error_sum * error_sum)/error_counts)/(error_counts - 1)  
   if(write.pdf){
-    writeRaster(S2, "~/NAM-Model-Validation/error_rasters_summary_sqrt/S2", overwrite=T)
+    writeRaster(S2, "error_rasters/summary_sqrt/S2", overwrite=T)
   }
   plot(S2, main="Pointwise Variance Map")
   
   plot(PW_mean/sqrt(S2))
-} else {
-  # if not making the raster summaries, load them
-  error_counts <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/error_counts.grd")
-  error_sum    <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum.grd")
-  error_sum_sq <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/error_sum_sq.grd")
+
+  # Plot pointwise means, variances and standard errors
+  par(mfrow=c(2,3))
+  pwms <- vars <- stds <- list()
+  for (n in c(1,6)) { 
+    par(mar=c(5,4,4,2)+.1)
+    # par(mfrow=c(1,2))
+    Nmap <- error_counts
+    Nmap[Nmap < n] <- NA
+    # Nmap[Nmap >= n] <- 1
+    
+    pwms[[n]] <- PW_mean_geq5 <- error_sum/Nmap
+    
+    val <- max(abs(c(floor(4*minValue(pwms[[n]]))/4, ceiling(4*maxValue(pwms[[n]]))/4)))
+    plot(pwms[[n]], main = paste0("PW mean when n >= ",n),
+         col=c("blue",cm.colors(length(seq(-1.5,1.5,.25)[abs(seq(-1.5,1.5,.25)) < val ])-1),"red"),
+         breaks=c(-val,seq(-1.5,1.5,.25)[abs(seq(-1.5,1.5,.25)) < val ],val))
+    US(add=T, col="gray75")
+    
+    vars[[n]] <- S2_geq5 <- ((error_sum_sq - (error_sum*error_sum)/Nmap)/(Nmap-1))*mask.regrid
+    plot(S2_geq5, main=paste0("Pointwise Variance when n >= ", n));US(add=T, col="gray49")
+    
+    stds[[n]] <- std_error_geq5 <- PW_mean_geq5/(sqrt(S2_geq5/Nmap))
+    # png("stdgeq5.png",width = 1000, height = 1000) #cex.main = 2.5, cex.axis = 2
+    val <- max(abs(c(floor(10*minValue(stds[[n]]))/10, ceiling(10*maxValue(stds[[n]]))/10)))
+    plot(stds[[n]], main = paste0("Std err when n >= ",n),
+         col=c("blue",cm.colors(length(seq(-3,3,.25))-1),"red"),
+         breaks=c(-val,seq(-3,3,.25),val))
+    US(add=T, col="gray75")
+  }
+  
+  # for (i in 1:n) {
+  #   plot(pwms[[i]], main="Pointwise Mean",
+  #        col=c("blue",cm.colors(5),"red"), breaks=c(-2,-.8,-.4,-.2,.2,.4,.8,2))
+  #   US(add=T, col="gray75")
+  # }
+  
 }
-
-
-# Plot pointwise means, variances and standard errors
-par(mfrow=c(2,3))
-pwms <- vars <- stds <- list()
-for (n in c(1,6)) { 
-  par(mar=c(5,4,4,2)+.1)
-  # par(mfrow=c(1,2))
-  Nmap <- error_counts
-  Nmap[Nmap < n] <- NA
-  # Nmap[Nmap >= n] <- 1
-  
-  pwms[[n]] <- PW_mean_geq5 <- error_sum/Nmap
-  
-  val <- max(abs(c(floor(4*minValue(pwms[[n]]))/4, ceiling(4*maxValue(pwms[[n]]))/4)))
-  plot(pwms[[n]], main = paste0("PW mean when n >= ",n),
-       col=c("blue",cm.colors(length(seq(-1.5,1.5,.25)[abs(seq(-1.5,1.5,.25)) < val ])-1),"red"),
-       breaks=c(-val,seq(-1.5,1.5,.25)[abs(seq(-1.5,1.5,.25)) < val ],val))
-  US(add=T, col="gray75")
-  
-  vars[[n]] <- S2_geq5 <- ((error_sum_sq - (error_sum*error_sum)/Nmap)/(Nmap-1))*mask.regrid
-  plot(S2_geq5, main=paste0("Pointwise Variance when n >= ", n));US(add=T, col="gray49")
-  
-  stds[[n]] <- std_error_geq5 <- PW_mean_geq5/(sqrt(S2_geq5/Nmap))
-  # png("stdgeq5.png",width = 1000, height = 1000) #cex.main = 2.5, cex.axis = 2
-  val <- max(abs(c(floor(10*minValue(stds[[n]]))/10, ceiling(10*maxValue(stds[[n]]))/10)))
-  plot(stds[[n]], main = paste0("Std err when n >= ",n),
-       col=c("blue",cm.colors(length(seq(-3,3,.25))-1),"red"),
-       breaks=c(-val,seq(-3,3,.25),val))
-  US(add=T, col="gray75")
-}
-
-# for (i in 1:n) {
-#   plot(pwms[[i]], main="Pointwise Mean",
-#        col=c("blue",cm.colors(5),"red"), breaks=c(-2,-.8,-.4,-.2,.2,.4,.8,2))
-#   US(add=T, col="gray75")
-# }
