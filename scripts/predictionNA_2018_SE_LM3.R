@@ -12,6 +12,16 @@ suppressMessages(library(raster))
 suppressMessages(library(RandomFields))
 library(stringr)
 
+if(!dir.exists("RData/prediction/")){
+  dir.create("RData/prediction/", recursive = T)
+}
+if(!dir.exists("pdf/prediction/")){
+  dir.create("pdf/prediction/", recursive = T)
+}
+if(!dir.exists("csv/prediction/")){
+  dir.create("csv/prediction/", recursive = T)
+}
+
 # number of synthetic precipitation fields
 Ngen <- 1000
 
@@ -30,10 +40,10 @@ if(length(args) > 0)
 PWstamp <- ifelse(subtractPWmean, "subtractpw", "nopw")
 before <- Sys.time()
 
-load(paste0("~/NAM-Model-Validation/RData/Gibbs_sqrt_LM3",
+load(paste0("RData/Gibbs_sqrt_LM3",
             if(subtractPWmean){"_subtractPWmean"},".RData"))
 
-path <- "~/NAM-Model-Validation/csv/prediction_sqrt"
+path <- "csv/prediction_sqrt"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
 
 # for (s in 1:length(pred_dirs)) {
@@ -44,15 +54,15 @@ year <- substr(pred_dir, 1, 4)
 name <- substr(pred_dir, 5, nchar(pred_dir))
 print(paste0(year,name))
 
-NAM_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",
+NAM_pred <- read.csv(paste0("csv/prediction_sqrt/",
                             year, name, "/", year, name,"_NAMdf.csv"))
-ST4_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",
+ST4_pred <- read.csv(paste0("csv/prediction_sqrt/",
                             year, name, "/", year, name,"_ST4df.csv"))
 
 
 ## Uncertainty corresponding to pointwise mean
-# PWM1_df <- read.csv("~/NAM-Model-Validation/csv/PWM1_df.csv", row.names = 1)
-# load("~/NAM-Model-Validation/RData/sum_cov_mtx.RData") #post
+# PWM1_df <- read.csv("csv/PWM1_df.csv", row.names = 1)
+# load("RData/sum_cov_mtx.RData") #post
 # 
 # ind <- c() 
 # for (i in 1:nrow(PWM1_df)) {
@@ -73,18 +83,16 @@ ST4_pred <- read.csv(paste0("~/NAM-Model-Validation/csv/prediction_sqrt/",
 # if(name %in% c("florence", "dorian"))  x_pred <- c(1,0,0)
 # if(name %in% c("gordon", "barry"))     x_pred <- c(1,0,1)
 
-pdf(paste0("~/NAM-Model-Validation/pdf/prediction/prediction_sqrt_",name,
+pdf(paste0("pdf/prediction/prediction_sqrt_",name,
            year,"_GIS_GHiG_NA_flatPWmean_",PWstamp, Ngen,"_LM3.pdf"))
 
-mask <- raster("~/NAM-Model-Validation/lsmask.nc")
+mask <- raster("lsmask.nc")
 mask[mask==-1]  <- NA
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
 mask.regrid <- raster::resample(mask, projectRaster(raster(
-  "~/NAM-Model-Validation/nam_218_20050829_1200_f012.grib"),
+  "nam_218_20050829_1200_f012.grib"),
   crs = "+proj=longlat +datum=WGS84"), method='ngb') 
-
-PW_mean <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/PW_mean.grd")*mask.regrid
 
 # run GibbsSamplerHurrRegr first for B and as.square
 
@@ -135,6 +143,7 @@ plot(NAM_r, main = "NAM forecast")
 plot(ST4_r, main = "ST4 forecast")
 
 if(subtractPWmean){
+  PW_mean <- raster("error_rasters_summary_sqrt/PW_mean.grd")*mask.regrid
   NAM_r <- NAM_r - PW_mean
   NAM_pred <- as.data.frame(rasterToPoints(NAM_r))
   colnames(NAM_pred) <- c("x","y","value")
@@ -144,6 +153,7 @@ coords <- cbind(NAM_pred$x, NAM_pred$y)
 coordsST4 <- cbind(ST4_pred$x, ST4_pred$y)
 
 simvals <- simPWM <- matrix(NA, nrow = nrow(NAM_pred), ncol = Ngen) 
+RFoptions(spConform=F) #for faster simulation
 for (g in 1:Ngen) {
   if(g %% 50 == 0) cat(g,"\n")
   
@@ -153,8 +163,8 @@ for (g in 1:Ngen) {
   
   simvals[,g] <- RFsimulate(model = RMexp(var = exp(theta_pred[g,2]), 
                                           scale = exp(theta_pred[g,2]-theta_pred[g,1])), 
-                            err.model = RMnugget(var = 0),
-                            x = cbind(NAM_pred$x, NAM_pred$y))$variable1
+                            # err.model = RMnugget(var = 0),
+                            x = cbind(NAM_pred$x, NAM_pred$y))
 }
 
 # example error field
@@ -206,8 +216,8 @@ plot(rasterFromXYZ(cbind(coords,off_est100)), main=bquote("NAM + 100% UB < ST4"~
 ests <- cbind(mean(off_base), mean(off_est), mean(off_est99), mean(off_est100))
 # ests_PW<-cbind(mean(off_base), mean(off_est_PW), mean(off_est99_PW), mean(off_est100_PW))
 
-# write.csv(rbind(ests,ests_PW), paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt.csv"))
-write.csv(ests, paste0(file = "~/NAM-Model-Validation/csv/prediction/", pred_dir,"_sqrt_LM3_",
+# write.csv(rbind(ests,ests_PW), paste0(file = "csv/prediction/", pred_dir,"_sqrt.csv"))
+write.csv(ests, paste0(file = "csv/prediction/", pred_dir,"_sqrt_LM3_",
                        PWstamp,".csv"))
 
 #2in = 50.8mm
@@ -247,10 +257,10 @@ after <- Sys.time()
 after - before
 
 ## Dave plots for water folks, from 4/28/20 notes
-# pdf("~/NAM-Model-Validation/pdf/prediction/NAM_ST4_with_error_sims.pdf")
+# pdf("pdf/prediction/NAM_ST4_with_error_sims.pdf")
 
-min_p <- min(values(NAM_r+PW_mean), values(ST4_r), values(NAM_r), na.rm = T)
-max_p <- max(values(NAM_r+PW_mean), values(ST4_r), values(NAM_r), na.rm = T)
+min_p <- min(values(NAM_r), values(ST4_r), values(NAM_r), na.rm = T)
+max_p <- max(values(NAM_r), values(ST4_r), values(NAM_r), na.rm = T)
 for (i in (1:3)+1) {
   sim <- cbind(coords, simvals[,i])
   sim_r <-rasterFromXYZ(sim)
@@ -258,7 +268,7 @@ for (i in (1:3)+1) {
   max_p <- max(max_p, values(NAM_r+sim_r), na.rm = T)
 }
 par(mfrow=c(2,3))
-plot(NAM_r + PW_mean, zlim=c(min_p,max_p), main="NAM forecast"); #US(add=T, col="lightgray")
+plot(NAM_r, zlim=c(min_p,max_p), main="NAM forecast"); #US(add=T, col="lightgray")
 plot(ST4_r, zlim=c(min_p,max_p), main="ST4 observed"); #US(add=T, col="lightgray")
 plot(NAM_r, zlim=c(min_p,max_p), main="NAM bias adj"); #US(add=T, col="lightgray")
 for (i in (1:3)+1) {
@@ -270,7 +280,7 @@ for (i in (1:3)+1) {
 
 #plot with c(0,7 bounds)
 par(mfrow=c(2,3))
-plot(NAM_r + PW_mean, zlim=c(0,20), main="NAM forecast"); #US(add=T, col="lightgray")
+plot(NAM_r, zlim=c(0,20), main="NAM forecast"); #US(add=T, col="lightgray")
 plot(ST4_r, zlim=c(0,20), main="ST4 observed"); #US(add=T, col="lightgray")
 plot(NAM_r, zlim=c(0,20), main="NAM bias adj"); #US(add=T, col="lightgray")
 for (i in (1:3)+1) {
@@ -283,7 +293,7 @@ for (i in (1:3)+1) {
 }
 
 # rm(list=setdiff(ls(), c("simvals", "NAM_pred", "ST4_pred", "s")))
-save.image(paste0("~/NAM-Model-Validation/RData/prediction/prediction",ste,"_LM3_",PWstamp,".RData"))
+save.image(paste0("RData/prediction/prediction",ste,"_LM3_",PWstamp,".RData"))
 dev.off()
 
 # }
