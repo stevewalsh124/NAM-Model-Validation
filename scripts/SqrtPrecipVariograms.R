@@ -48,7 +48,7 @@ if(length(storm.dirs)==0) stop("length of storm.dirs is 0")
 storms.out.of.hurdat <- c()
 
 # Change this file so that it corresponds to the new buffering
-if(!makePWmean) PW_mean <- raster("error_rasters/summary_sqrt/PW_mean.grd")
+if(subtractPWmean) PW_mean <- raster("error_rasters/summary_sqrt/PW_mean.grd")
 
 #[-c(2,3,6,8)]#THE NON12HR STORMS
 #[c(5,16,22,25,35,47)] #R session aborted when fitting Matern
@@ -276,7 +276,7 @@ for(i in 1:length(storm.dirs)){
   NAM_first12 <- Reduce("+",NAMlist[[i]])*mask.regrid
   NAM_df_first12  <- rasterToPoints(NAM_first12)
 
-  if(!makePWmean) PW_mean_df <- rasterToPoints(PW_mean)
+  if(subtractPWmean) PW_mean_df <- rasterToPoints(PW_mean)
   
   #The first 4 ST4 are 24 hrs. Two buffers for each 12hr group, 
   #using the 6th and 18th hour as centers (1st and 3rd files in ST4 folder)
@@ -331,7 +331,7 @@ for(i in 1:length(storm.dirs)){
 
   NAMtrythis  <- ST4bufferprecip(NAM_df_first12, eye1_latlon, eye2_latlon, radius)
 
-  if(!makePWmean){
+  if(subtractPWmean){
     PW_mean_buff1 <- ST4bufferprecip(PW_mean_df, eye1_latlon, eye2_latlon, radius)
     PW_mean_buff2 <- ST4bufferprecip(PW_mean_df, eye2_latlon, eye1_latlon, radius)
     PW_mean_buff <- PW_mean_buff1 + PW_mean_buff2
@@ -403,29 +403,25 @@ for(i in 1:length(storm.dirs)){
   }
   
 
-  if(makePWmean){
-    if(!dir.exists("error_rasters/sqrt/")) {
-      dir.create("error_rasters/sqrt/", recursive = T)
-    }
-    if(!dir.exists("error_rasters/squared_sqrt/")) {
-      dir.create("error_rasters/squared_sqrt/", recursive = T)
-    }
-    if(!dir.exists("error_rasters/counts_sqrt/")) {
-      dir.create("error_rasters/counts_sqrt/", recursive = T)
-    }
-    if(write.pdf){
-    #write rasters from the errors to combine all on common map
-    writeRaster(error, paste0("error_rasters/sqrt/",storm_year,storm_name), overwrite=T) 
-    writeRaster(error*error, paste0("error_rasters/squared_sqrt/",storm_year,storm_name), overwrite=T)
-    }
-    # in the loop for I in the storms
-    error_count <- error
-    error_count[!is.na(error_count)] <- 1
-    error_count[is.na(error_count)] <- 0
-    if(write.pdf){
-    writeRaster(error_count, paste0("error_rasters/counts_sqrt/",storm_year,storm_name), overwrite=T)
-    }
+  if(!dir.exists("error_rasters/sqrt/")) {
+    dir.create("error_rasters/sqrt/", recursive = T)
   }
+  if(!dir.exists("error_rasters/squared_sqrt/")) {
+    dir.create("error_rasters/squared_sqrt/", recursive = T)
+  }
+  if(!dir.exists("error_rasters/counts_sqrt/")) {
+    dir.create("error_rasters/counts_sqrt/", recursive = T)
+  }
+  if(write.pdf){
+  #write rasters from the errors to combine all on common map
+  writeRaster(error, filename = paste0("error_rasters/sqrt/",storm_year,storm_name), overwrite=T) 
+  writeRaster(error*error, paste0("error_rasters/squared_sqrt/",storm_year,storm_name), overwrite=T)
+  }
+  # in the loop for I in the storms
+  error_count <- error
+  error_count[!is.na(error_count)] <- 1
+  error_count[is.na(error_count)] <- 0
+  if(write.pdf) writeRaster(error_count, paste0("error_rasters/counts_sqrt/",storm_year,storm_name), overwrite=T)
   
   error_spdf <- as((error), "SpatialPixelsDataFrame")
   error_df <- as.data.frame(error_spdf)
@@ -580,9 +576,8 @@ if(makePWmean){
   }
   
   PW_mean <- error_sum/error_counts
-  if(write.pdf){
-  writeRaster(PW_mean, "error_rasters/summary_sqrt/PW_mean", overwrite=T)
-  }
+  if(write.pdf) writeRaster(PW_mean, "error_rasters/summary_sqrt/PW_mean", overwrite=T)
+  
   plot(PW_mean, main="Pointwise Mean")
   PW_mean_spdf <- as((PW_mean), "SpatialPixelsDataFrame")
   PW_mean_df <- as.data.frame(PW_mean_spdf)
@@ -600,9 +595,7 @@ if(makePWmean){
   plot(PW_mean, main="Pointwise Mean")
   plot(abs(PW_mean),main="Absolute Value of Pointwise Mean")
   S2 <- (error_sum_sq - (error_sum * error_sum)/error_counts)/(error_counts - 1)  
-  if(write.pdf){
-    writeRaster(S2, "error_rasters/summary_sqrt/S2", overwrite=T)
-  }
+  if(write.pdf) writeRaster(S2, "error_rasters/summary_sqrt/S2", overwrite=T)
   plot(S2, main="Pointwise Variance Map")
   
   plot(PW_mean/sqrt(S2))
