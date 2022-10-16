@@ -9,10 +9,6 @@
 
 # set.seed(489)
 
-if(!dir.exists("RData/myMLE_precs/")){
-  dir.create("RData/myMLE_precs/", recursive = T)
-}
-
 suppressMessages(library(MCMCpack))    #riwish (inverse wishart draws)
 suppressMessages(library(LaplacesDemon)) #rmvn, rmatrixnorm (multivariate normal draws)
 

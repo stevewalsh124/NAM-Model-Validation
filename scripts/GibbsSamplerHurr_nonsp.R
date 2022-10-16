@@ -11,10 +11,6 @@
 # load("NAM-Model-Validation/RData/par_optim_allbut43.RData")
 # rm(list=setdiff(ls(), c("par_optim")))
 
-if(!dir.exists("RData/myMLE_precs/")){
-  dir.create("RData/myMLE_precs/", recursive = T)
-}
-
 # set.seed(489)
 
 suppressMessages(library(MCMCpack))    #riwish (inverse wishart draws)
