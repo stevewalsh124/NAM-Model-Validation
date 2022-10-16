@@ -302,11 +302,11 @@ exp(LM_c2 - LM_c)
 
 if(plot.it){dev.off()}
 
-par(mfrow=c(3,2))
-library(car)
-for (i in 1:length(error_files)) {
-  error_csv <- read.csv(error_files[i], row.names = 1)
-  hist(error_csv[,1], main = i)
-  #if(nrow(error_csv) < 5000) my_shaps[[i]] <- shapiro.test(error_csv[,1])
-  qqPlot(error_csv[,1])
-}
+# par(mfrow=c(3,2))
+# library(car)
+# for (i in 1:length(error_files)) {
+#   error_csv <- read.csv(error_files[i], row.names = 1)
+#   hist(error_csv[,1], main = i)
+#   #if(nrow(error_csv) < 5000) my_shaps[[i]] <- shapiro.test(error_csv[,1])
+#   qqPlot(error_csv[,1])
+# }
