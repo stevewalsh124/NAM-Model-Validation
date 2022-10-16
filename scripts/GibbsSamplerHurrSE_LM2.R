@@ -2,12 +2,16 @@
 # LM2: Constant mean instead of landfall-location-specific mean
 # Steve Walsh Feb 2020
 
-# pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_sqrt.pdf")
+# pdf("pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_sqrt.pdf")
 # remove(list=ls())
 # load("NAM-Model-Validation/RData/par_optim_allbut43.RData")
 # rm(list=setdiff(ls(), c("par_optim")))
 
 # set.seed(489)
+
+if(!dir.exists("RData/myMLE_precs/")){
+  dir.create("RData/myMLE_precs/", recursive = T)
+}
 
 suppressMessages(library(MCMCpack))    #riwish (inverse wishart draws)
 suppressMessages(library(LaplacesDemon)) #rmvn, rmatrixnorm (multivariate normal draws)
@@ -31,7 +35,7 @@ ind <- grepl("subtractPWmean", stormMLEfiles)
 if(subtractPWmean){
   myMLEfiles <- stormMLEfiles[ind]
 } else {
-  myMLEfiles <- stormMLEfiles[!ind][1:47]
+  myMLEfiles <- stormMLEfiles[!ind]
 }
 myMLEs   <- do.call(rbind, lapply(myMLEfiles, read.csv))
 
@@ -47,12 +51,12 @@ R <- 3 #number of landfall locations (ATL, FL, GULF)
 theta_hat <- cbind(log(lambda_hat[,1]/lambda_hat[,2]), log(lambda_hat[,1]))
 
 hessians <- list()
-all_hess_theta_files <- list.files("~/NAM-Model-Validation/csv/myMLEresults/pkgthetahessvecs", full.names = T)	
+all_hess_theta_files <- list.files("csv/myMLEresults/pkgthetahessvecs", full.names = T)	
 ind <- grepl("subtractPWmean", all_hess_theta_files)	
 if(subtractPWmean){	
   hess_theta_files <- all_hess_theta_files[ind]	
 } else {	
-  hess_theta_files <- all_hess_theta_files[!ind][1:47]	
+  hess_theta_files <- all_hess_theta_files[!ind]
 }
 if(length(hess_theta_files) != N){stop("number of MLEs != number of Hessians")}
 for (i in 1:N) {
@@ -68,7 +72,7 @@ theta_bar <- apply(theta_hat, 2, mean)
 # true_Sigma_theta <- cov(theta_hat)
 
 # read in location and intensity info
-loc_int <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv", row.names = 1)#[avail,]#[-43,]
+loc_int <- read.csv("csv/storm_levels_and_locs.csv", row.names = 1)#[avail,]#[-43,]
 colnames(loc_int) <- c("int","loc")
 
 # nA <- table(loc_int$loc)[1]
@@ -458,5 +462,5 @@ rnorm(5)
 emp_mu
 matrix(emp_Sigma_theta, P, P)
 
-save.image(file = paste0("~/NAM-Model-Validation/RData/Gibbs_sqrt_LM2",
+save.image(file = paste0("RData/Gibbs_sqrt_LM2",
            if(subtractPWmean){"_subtractPWmean"},".RData"))

@@ -1,14 +1,19 @@
 # Gibbs sampler for Hurricane Error Fields
+# Nonspatial case
 # Steve Walsh Feb 2020
 
 # run storms_collect.R first for geoR MLEs, not myMLEs (see below)
 
 # pick data vs posterior pwmean; change pdf and save.image() names
 
-# pdf("~/NAM-Model-Validation/pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_sqrt.pdf")
+# pdf("pdf/Gibbs/GibbsSamplerHurrRegr_EMPBAYESIW_NA_GHG_sqrt.pdf")
 # remove(list=ls())
 # load("NAM-Model-Validation/RData/par_optim_allbut43.RData")
 # rm(list=setdiff(ls(), c("par_optim")))
+
+if(!dir.exists("RData/myMLE_precs/")){
+  dir.create("RData/myMLE_precs/", recursive = T)
+}
 
 # set.seed(489)
 
@@ -28,7 +33,7 @@ as.square <- function(mat){matrix(mat, nrow=sqrt(length(mat)),ncol=sqrt(length(m
 
 # These are the actual hurricane estimates
 # lambda_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
-stormMLEfiles <- list.files("~/NAM-Model-Validation/csv/myMLEs_nonsp/MLEs/", full.names = T)
+stormMLEfiles <- list.files("csv/myMLEs_nonsp/MLEs/", full.names = T)
 myMLEs   <- do.call(rbind, lapply(stormMLEfiles, read.csv, row.names = 1))$x
 
 lambda_hat <- myMLEs
@@ -43,7 +48,7 @@ R <- 3 #number of landfall locations (ATL, FL, GULF)
 theta_hat <- log(lambda_hat)
 
 hessians <- list()
-hess_lambda_files <- list.files("~/NAM-Model-Validation/csv/myMLEs_nonsp/hessians/", full.names = T)
+hess_lambda_files <- list.files("csv/myMLEs_nonsp/hessians/", full.names = T)
 
 if(length(hess_lambda_files) != N){stop("number of MLEs != number of Hessians")}
 hessians_lam <- do.call(rbind, lapply(hess_lambda_files, read.csv, row.names = 1))$x
@@ -56,7 +61,7 @@ theta_wgt <- sum(theta_hat*hessians)/sum(hessians)
 # true_Sigma_theta <- cov(theta_hat)
 
 # read in location and intensity info
-loc_int <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv", row.names = 1)#[avail,]#[-43,]
+loc_int <- read.csv("csv/storm_levels_and_locs.csv", row.names = 1)#[avail,]#[-43,]
 colnames(loc_int) <- c("int","loc")
 
 # nA <- table(loc_int$loc)[1]
@@ -417,4 +422,4 @@ rnorm(5)
 matrix(emp_B, P, R)
 matrix(emp_Sigma_theta, P, P)
 
-save.image(file = paste0("~/NAM-Model-Validation/RData/Gibbs_nosp.RData"))
+save.image(file = paste0("RData/Gibbs_nosp.RData"))
