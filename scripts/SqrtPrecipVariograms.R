@@ -207,6 +207,7 @@ for(i in 1:length(storm.dirs)){
   storm_yearname <- list.dirs(storm.dirs[i], full.names = F)[-1][1]
   
   name_start <- tail(str_locate_all(pattern ='/', ST4_folder)[[1]],1)
+  storm_year <- substr(ST4_folder,name_start[1]+1,name_start[1]+4)
   storm_name <- substr(ST4_folder,name_start[1]+5,nchar(ST4_folder))
   namevec[i] <- storm_name
   print(paste0("Storm #",i,": ",storm_name))
