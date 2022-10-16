@@ -95,7 +95,7 @@ for (ste in 1:length(pred_dirs)) {
   extent(mask)[1] <- extent(mask)[1]-360
   extent(mask)[2] <- extent(mask)[2]-360
   mask.regrid <- raster::resample(mask, projectRaster(raster(
-    "nam_218_20050829_1200_f012.grib"),
+    "nam_218_20170826_0000_012.grb2"),
     crs = "+proj=longlat +datum=WGS84"), method='ngb') 
   
   # run GibbsSamplerHurrRegr first for B and as.square

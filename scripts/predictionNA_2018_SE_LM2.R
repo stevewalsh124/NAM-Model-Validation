@@ -46,7 +46,7 @@ load(file = paste0("RData/Gibbs_sqrt_LM2",
 path <- "csv/prediction_sqrt"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
 
-# for (s in 1:length(pred_dirs)) {
+# for (ste in 1:length(pred_dirs)) {
 
 pred_dir <- pred_dirs[ste]
 

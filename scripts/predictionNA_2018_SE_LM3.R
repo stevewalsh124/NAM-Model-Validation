@@ -46,7 +46,7 @@ load(paste0("RData/Gibbs_sqrt_LM3",
 path <- "csv/prediction_sqrt"
 pred_dirs <- list.dirs(path, recursive = F, full.names = F)
 
-# for (s in 1:length(pred_dirs)) {
+# for (ste in 1:length(pred_dirs)) {
 
 pred_dir <- pred_dirs[ste]
 
@@ -91,7 +91,7 @@ mask[mask==-1]  <- NA
 extent(mask)[1] <- extent(mask)[1]-360
 extent(mask)[2] <- extent(mask)[2]-360
 mask.regrid <- raster::resample(mask, projectRaster(raster(
-  "nam_218_20050829_1200_f012.grib"),
+  "nam_218_20170826_0000_012.grb2"),
   crs = "+proj=longlat +datum=WGS84"), method='ngb') 
 
 # run GibbsSamplerHurrRegr first for B and as.square
