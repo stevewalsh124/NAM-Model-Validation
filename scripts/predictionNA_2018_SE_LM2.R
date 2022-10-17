@@ -86,13 +86,7 @@ ST4_pred <- read.csv(paste0("csv/prediction_sqrt/",
 pdf(paste0("pdf/prediction/prediction_sqrt_",name,
            year,"_GIS_GHiG_NA_flatPWmean_",PWstamp, Ngen,"_LM2.pdf"))
 
-mask <- raster("lsmask.nc")
-mask[mask==-1]  <- NA
-extent(mask)[1] <- extent(mask)[1]-360
-extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- raster::resample(mask, projectRaster(raster(
-  "nam_218_20170826_0000_012.grb2"),
-  crs = "+proj=longlat +datum=WGS84"), method='ngb') 
+mask.regrid <- raster("lsmask")
 
 # run GibbsSamplerHurrRegr first for B and as.square
 
