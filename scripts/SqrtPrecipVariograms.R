@@ -70,13 +70,7 @@ prRangevec<- c()
 namevec <- c()
 
 # load, modify and project land/sea mask 
-mask <- raster("lsmask.nc")
-mask[mask==-1]  <- NA #changed from 0 to NA because mismatch rows due to off-coast pts
-extent(mask)[1] <- extent(mask)[1]-360
-extent(mask)[2] <- extent(mask)[2]-360
-mask.regrid <- raster::resample(mask, projectRaster(raster(
-  "nam_218_20170826_0000_012.grb2"),
-  crs = "+proj=longlat +datum=WGS84"), method='ngb')  #/Volumes/LACIEHD/
+mask.regrid <- raster("lsmask")
 
 # Multiple plot function
 source("scripts/multiplot.R")
