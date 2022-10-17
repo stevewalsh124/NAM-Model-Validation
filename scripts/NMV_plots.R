@@ -105,6 +105,7 @@ ggsave(
 
 source("scripts/multiplot.R")
 
+# To make this plot, first:
 # run SqrtPrecipVariograms.R with:
 # * write.pdf <- F
 # * line 40, chg to: storm.dirs <- list.dirs("~/NAMandST4", recursive = F)[47] eg for Nate
@@ -374,11 +375,12 @@ LM3_res <- 1-colMeans(pred_res)
 
 rbind(LM1_res, LM2_res, LM3_res)[,3:4]
 
-####################################
-# Figure for hydrology application #
-####################################
+###################################
+# Figure 7: hydrology application #
+###################################
 
-# run  FL_basin_mm.R first, with storm ste=4 and basin=4
+# To make this plot, first:
+# run SC_basins_mm_only.R first, with storm ste=4 and basin=4
 png("png/hydro_app_FL_Michael_basin1.png", res=350, height=1000, width=3000)
 par(mfrow=c(1,3))
 par(mar=c(4.5,5,1,2))
