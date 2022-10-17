@@ -15,16 +15,16 @@ This script reads in the downloaded data, based on the folder hierarchy describe
 
 This script can also calculate an average error for each grid point across the training storms (`makePWmean=T`, `subtractPWmean=T`), see Appendix of Walsh et al. (accepted for publication in Annals of Applied Statistics, October 2022).
 
-### 2) MLE_storm_expntl_oneHess.R (calculate MLEs and Hessians)
+### 2) MLEs_and_Hessians.R 
 Here, each error field is read in and the MLEs for the spatial parameters of the exponential covariance function are found, as well as the corresponding Hessian matrix (containing uncertainty information related to the MLEs). This script can be looped in a bash environment to run MLE calculations for each storm simultaneously. These are saved as .csvs. (For the nonspatial case, use `MLEs_nonsp_var.R`.)
 
 ### Optional) aggregate_covmtxs_expntl.R, combine_covmtxs.R and PWmean_post_expntl.R (Posterior calculations related to the pointwise mean)
 We found assuming zero mean outperforms this estimation for this application. This is also computationally intensive, given there are over 26000 grid points when you aggregate all TC landfall locations.)
 
-### 3) GibbsSamplerHurrSE_LM2.R (Gibbs sampler\*)
+### 3) GibbsSamp_LM2.R (Gibbs sampler\*)
 This takes MLEs and Hessian matrices as inputs and obtains posterior draws via MCMC for each theta_i, as well as mu_theta and Sigma_theta. Details on the modeling are provided in Walsh et al. Output saved as RData.
 
-### 4) predictionNA_2018_SE_LM2.R (Prediction algorithm\*)
+### 4) prediction_LM2.R (Prediction algorithm\*)
 Using the Gibbs sampler output, uncertainty quantification for each test storm is computed by creating 1000 synthetic rainfall scenarios. This can also be looped in a bash environment to run simultaneously for the six test storms from 2018-2019 (therefore, this job should be run for `ste` values 1 through 6). 
 
 ### 5) laplace-metropolis.R (Initial model comparison)
