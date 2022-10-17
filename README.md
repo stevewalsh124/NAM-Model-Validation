@@ -31,7 +31,7 @@ Using the Gibbs sampler output, uncertainty quantification for each test storm i
 To compare different versions of the modeling framework (a constant mean across all TCs, landfall-specific means for Atlantic, Florida and Gulf storms, etc), there are multiple versions of the codes marked with a \* above. These will have "", "LM2", "LM3" appended on the end to illustrate a different model was utilized in that script. LM2 performed the best, so we encourage that as a default in this application; see the manuscript for details.
 
 ### 6) SC_basins_mm_only.R (Obtain UQ on a basin-wide level)
-For each test storm, find a distribution for the total precipitation over a 24 period. Different U.S. states are analyzed depending on the TC landfall location. Log scores are computed.
+For each test storm, find a distribution for the total precipitation over a 24 period. Different U.S. states are analyzed depending on the TC landfall location. Log scores are computed. This script should be ran for `ste` values 1 through 6, but storms 3 and 4 also have two different states for which it can be ran, therefore there is a total of 8 storm/state combinations to replicate the results in the manuscript.
 
 ### 7) scores_by_basin.R (Calculate log scores)
 To obtain model comparisons, we look at the log scores for each proposed model, and look at the results overall, as well as broken up by region (ATL, FL, GULF) and by whether the basins are coastal or not.
