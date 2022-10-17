@@ -1,0 +1,26 @@
+[general]
+creator=R package 'raster'
+created=2022-10-17 00:03:57
+[georeference]
+nrows=483
+ncols=756
+xmin=-153.680881322015
+ymin=11.371952112546
+xmax=-48.596881322015
+ymax=62.086952112546
+projection=+proj=longlat +datum=WGS84 +no_defs
+[data]
+datatype=FLT4S
+byteorder=little
+nbands=1
+bandorder=BIL
+categorical=FALSE
+minvalue=0
+maxvalue=1
+nodatavalue=-3.4e+38
+[legend]
+legendtype=
+values=
+color=
+[description]
+layername=Land.Sea.Mask
