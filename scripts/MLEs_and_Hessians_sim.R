@@ -10,7 +10,7 @@ library(pracma)
 library(raster)
 library(LaplacesDemon)
 
-PWtrue <- raster("~/NAM-Model-Validation/error_rasters_summary_sqrt/simPWtrue0.grd")
+PWtrue <- raster("error_rasters_summary_sqrt/simPWtrue0.grd")
 
 sim_vals <- T
 sim_dom <- F
@@ -36,14 +36,14 @@ if(sim_vals){
 }
 
 if(writefiles & plot.it){
-  pdf(paste0("~/NAM-Model-Validation/pdf/MLE_storm_expntl_oneHess",
+  pdf(paste0("pdf/MLE_storm_expntl_oneHess",
              if(sim_vals){"_sim_vals"},if(trial){"_trial"},
              if(general_mean){"_genmean"},"_lo",lo,".pdf"))
 }
 
 start.time <- Sys.time()
 
-storm_csvs <- list.files("~/NAM-Model-Validation/csv/error_df_sqrt/subtractPWmeanF", full.names = T)
+storm_csvs <- list.files("csv/error_df_sqrt/subtractPWmeanF", full.names = T)
 small_locs <-  c(11, 18, 17,  3, 15, 25)#,  6, 46, 34, 23, 30, 41, 21, 33, 38, 45, 43, 19, 35, 31) #fastest 20
 #c(3,11,15,17,18,25) #storms less than 3000 pixels
 
@@ -139,7 +139,7 @@ ll_theta <- function(thetavec, D=t, Y=x)
   return(ll)
 }
 
-loc_int <- read.csv("~/NAM-Model-Validation/csv/storm_levels_and_locs.csv", row.names = 1)#[avail,]#[-43,]
+loc_int <- read.csv("csv/storm_levels_and_locs.csv", row.names = 1)#[avail,]#[-43,]
 colnames(loc_int) <- c("int","loc")
 
 # Model matrix for locations
@@ -200,14 +200,14 @@ for (i in 1:length(storms_to_eval)) {
   tic <- proc.time()[3]
   
   if(general_mean) {
-    truethetas <- read.csv(paste0("~/NAM-Model-Validation/csv/raster_sim_truths/seed",
+    truethetas <- read.csv(paste0("csv/raster_sim_truths/seed",
                                   if(seed<100){"0"},if(seed<10){"0"},seed,".csv"),
                            row.names = 1)[storms_to_eval,]
-    ras <- raster(paste0("~/NAM-Model-Validation/raster_sims/seed",
+    ras <- raster(paste0("raster_sims/seed",
                          if(seed<100){"0"},if(seed<10){"0"},seed,"/seed",
                          if(seed<100){"0"},if(seed<10){"0"},seed,"_storm",
                          storms_to_eval[i],".grd"))
-    PW_hat <- raster(paste0("~/NAM-Model-Validation/raster_sims/PWhats/seed",
+    PW_hat <- raster(paste0("raster_sims/PWhats/seed",
                             if(seed<100){"0"},if(seed<10){"0"},seed,".grd"))
     t <- as.matrix(dist(rasterToPoints(ras - PW_hat)[,1:2]))
     x <- rasterToPoints(ras - PW_hat)[,3]
@@ -275,7 +275,7 @@ for (i in 1:length(storms_to_eval)) {
     
     if(get_prec_mtx){
       prec_mtx <- solve(sigma2hat * cormatrix)
-      save(prec_mtx, file=paste0("~/NAM-Model-Validation/RData/myMLE_precs/", 
+      save(prec_mtx, file=paste0("RData/myMLE_precs/", 
                                  if(storms_to_eval[i] < 10){"0"},
                                  storms_to_eval[i],
                                  if(sim_vals){paste0("_seed",
@@ -408,7 +408,7 @@ for (i in 1:length(storms_to_eval)) {
 }
 
 if(!general_mean) {write.csv(truethetas, 
-                             file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/true_values/seed",
+                             file = paste0("csv/myMLEsimcovers/true_values/seed",
                                            if(seed<100){"0"},if(seed<10){"0"}, seed, ".csv"))}
 
 # nowtime <- function(){gsub(gsub(gsub(Sys.time(),pattern = " ", replacement = ""),
@@ -469,13 +469,13 @@ if(plot.it){
 }
 
 ## Write files
-if(!dir.exists("~/NAM-Model-Validation/csv/myMLEresults")){
-  dir.create("~/NAM-Model-Validation/csv/myMLEresults")
+if(!dir.exists("csv/myMLEresults")){
+  dir.create("csv/myMLEresults")
 }
 
 if(writefiles){
   write.csv(cbind(phis, sigs, cnts, tims), 
-            file=paste0("~/NAM-Model-Validation/csv/myMLEresults/myMLEs/",
+            file=paste0("csv/myMLEresults/myMLEs/",
                         if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                         if(sim_vals){paste0("seed",
                                             if(seed<100){"0"},if(seed<10){"0"},seed,"_")},
@@ -483,26 +483,26 @@ if(writefiles){
                         if(general_mean){"_genmean"},
                         if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
   if(hess_calc){
-    # write.csv(myhessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/myhessvecs_",
+    # write.csv(myhessvecs, paste0("csv/myMLEresults/myhessvecs_",
     #                              if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                              if(sim_vals){paste0("seed",seed,"_")},
     #                              if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    # write.csv(myhessvecsEXP, paste0("~/NAM-Model-Validation/csv/myMLEresults/myhessvecsEXP_",
+    # write.csv(myhessvecsEXP, paste0("csv/myMLEresults/myhessvecsEXP_",
     #                                 if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                                 if(sim_vals){paste0("seed",seed,"_")},
     #                                 if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    write.csv(pkghessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkghessvecs/",
+    write.csv(pkghessvecs, paste0("csv/myMLEsimcovers/pkghessvecs/",
                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                   if(sim_vals){paste0("seed",
                                                       if(seed<100){"0"},if(seed<10){"0"},seed,"_")},
                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},
                                   if(general_mean){"_genmean"},
                                   if(sim_dom){paste0("_sim_dom", lo_sim)},".csv"))
-    # write.csv(mythetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEresults/mythetahessvecs_",
+    # write.csv(mythetahessvecs, paste0("csv/myMLEresults/mythetahessvecs_",
     #                                   if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
     #                                   if(sim_vals){paste0("seed",seed,"_")},
     #                                   if(trial){"trial_"},if(sim_vals){"sim_vals"},".csv"))
-    write.csv(pkgthetahessvecs, paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/pkgthetahessvecs/",
+    write.csv(pkgthetahessvecs, paste0("csv/myMLEsimcovers/pkgthetahessvecs/",
                                        if(storms_to_eval[1] < 10){"0"}, storms_to_eval[1],
                                        if(sim_vals){paste0("seed",
                                                            if(seed<100){"0"},if(seed<10){"0"},seed,"_")},
@@ -539,34 +539,34 @@ if(sim_vals){
   mean(thet2x_truePW + 1.96*thetas_sds_truePW[,2] > trueTheta2 &
          thet2x_truePW - 1.96*thetas_sds_truePW[,2] < trueTheta2)
   
-  if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers")){
-    dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers")
+  if(!dir.exists("csv/myMLEsimcovers")){
+    dir.create("csv/myMLEsimcovers")
   }
   
-  if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers")){
-    dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers")
+  if(!dir.exists("csv/myMLEsimcovers/MLEcovers")){
+    dir.create("csv/myMLEsimcovers/MLEcovers")
   }
   
-  if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas")){
-    dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas")
+  if(!dir.exists("csv/myMLEsimcovers/thetas")){
+    dir.create("csv/myMLEsimcovers/thetas")
   }
   
-  if(!dir.exists("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds")){
-    dir.create("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds")
+  if(!dir.exists("csv/myMLEsimcovers/thetas_sds")){
+    dir.create("csv/myMLEsimcovers/thetas_sds")
   }
   
   write.csv(cbind(thet1x + 1.96*thetas_sds[,1] > truethetas[,1] & thet1x - 1.96*thetas_sds[,1] < truethetas[,1],
                   thet2x + 1.96*thetas_sds[,2] > truethetas[,2] & thet2x - 1.96*thetas_sds[,2] < truethetas[,2]), 
-            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers/seed", 
+            file = paste0("csv/myMLEsimcovers/MLEcovers/seed", 
                           if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
                           if(general_mean){"_genmean"},".csv"))
   
   write.csv(cbind(thet1x,thet2x), 
-            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", 
+            file = paste0("csv/myMLEsimcovers/thetas/thetas_seed", 
                           if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
                           if(general_mean){"_genmean"},".csv"))  
   write.csv(thetas_sds, 
-            file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", 
+            file = paste0("csv/myMLEsimcovers/thetas_sds/sds_seed", 
                           if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
                           if(general_mean){"_genmean"},".csv"))
   
@@ -575,16 +575,16 @@ if(sim_vals){
                       thet1x_truePW - 1.96*thetas_sds_truePW[,1] < truethetas[,1],
                     thet2x_truePW + 1.96*thetas_sds_truePW[,2] > truethetas[,2] & 
                       thet2x_truePW - 1.96*thetas_sds_truePW[,2] < truethetas[,2]), 
-              file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/MLEcovers/seed", 
+              file = paste0("csv/myMLEsimcovers/MLEcovers/seed", 
                             if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
                             if(general_mean){"_truePW"},".csv"))
     
     write.csv(cbind(thet1x_truePW,thet2x_truePW), 
-              file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas/thetas_seed", 
+              file = paste0("csv/myMLEsimcovers/thetas/thetas_seed", 
                             if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
                             if(general_mean){"_truePW"},".csv"))  
     write.csv(thetas_sds_truePW, 
-              file = paste0("~/NAM-Model-Validation/csv/myMLEsimcovers/thetas_sds/sds_seed", 
+              file = paste0("csv/myMLEsimcovers/thetas_sds/sds_seed", 
                             if(trial){"trial"},if(seed<100){"0"},if(seed<10){"0"}, seed, 
                             if(general_mean){"_truePW"},".csv"))
   }
