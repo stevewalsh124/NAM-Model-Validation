@@ -25,7 +25,7 @@ writefiles <- T
 
 get_prec_mtx <- T
 
-plot.it <- T
+plot.it <- F
 lo <- 21 #length.out for lkhd grid (do odd so MLE in middle)
 
 
