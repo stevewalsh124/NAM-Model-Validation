@@ -16,7 +16,21 @@ library(scoringRules)
 library(plgp)
 library(LaplacesDemon)
 
+if(!dir.exists("pdf/basin/")){
+  dir.create("pdf/basin/", recursive = T)
+}
+if(!dir.exists("csv/scores/alt/")){
+  dir.create("csv/scores/alt/", recursive = T)
+}
+if(!dir.exists("csv/scores/altsum/")){
+  dir.create("csv/scores/altsum/", recursive = T)
+}
+
 make.pdf <- T
+
+# e.g., if you only want to run the models corresponding to 
+# spatial errors without PWmean adjustment, set models_to_skip <- c(6:9)
+models_to_skip <- c()
 
 #storm(s) to eval
 ste <- 3
@@ -39,7 +53,7 @@ if(ste==4) state <- "FL"#"AL"#
 if(ste==5) state <- "LA"
 if(ste==6) state <- "NC"
 
-if(make.pdf) pdf(paste0("~/NAM-Model-Validation/pdf/basin/",state,"_basins_storm",ste,".pdf"))
+if(make.pdf) pdf(paste0("pdf/basin/",state,"_basins_storm",ste,".pdf"))
 
 if(state == "AL") basins <- 1:11
 if(state == "MS") basins <- 1:20
@@ -93,8 +107,8 @@ Mode <- function(x) {
 
 for (basin in basins) {
   print(paste0("basin ",basin))
-  SC_mask <- raster(paste0("~/NAM-Model-Validation/basin/",state,"mask",basin,".grd"))
-  load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",ste,"nopw.RData"))
+  SC_mask <- raster(paste0("basin/",state,"mask",basin,".grd"))
+  load(paste0("RData/prediction/prediction",ste,"nopw.RData"))
   
   if(state != "FL") mask_SC <- projectRaster(SC_mask, crs = "+proj=longlat +datum=WGS84", method = "ngb")
   if(state == "FL") mask_SC <- SC_mask
@@ -136,15 +150,17 @@ for (basin in basins) {
   for (storm in ste) {
     for (mm in 1:nM) {
       print(paste0("storm ", storm, ", model ", mm))
-      if(mm==1) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"subtractpw.RData"))
-      if(mm==2) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"_LM2_subtractpw.RData"))
-      if(mm==3) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"_LM3_subtractpw.RData"))
-      if(mm==4) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"_LM4_subtractpw.RData"))
-      if(mm==5) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"nopw.RData"))
-      if(mm==6) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"_LM2_nopw.RData"))
-      if(mm==7) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"_LM3_nopw.RData"))
-      if(mm==8) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"_LM4_nopw.RData"))
-      if(mm==9) load(paste0("~/NAM-Model-Validation/RData/prediction/prediction",storm,"nosp_nopw"))
+      if(mm %in% models_to_skip){next}
+      if(mm==1) load(paste0("RData/prediction/prediction",storm,"nopw.RData"))
+      if(mm==2) load(paste0("RData/prediction/prediction",storm,"_LM2_nopw.RData"))
+      if(mm==3) load(paste0("RData/prediction/prediction",storm,"_LM3_nopw.RData"))
+      if(mm==4) load(paste0("RData/prediction/prediction",storm,"_LM4_nopw.RData"))
+      if(mm==5) load(paste0("RData/prediction/prediction",storm,"nosp_nopw"))
+      if(mm==6) load(paste0("RData/prediction/prediction",storm,"subtractpw.RData"))
+      if(mm==7) load(paste0("RData/prediction/prediction",storm,"_LM2_subtractpw.RData"))
+      if(mm==8) load(paste0("RData/prediction/prediction",storm,"_LM3_subtractpw.RData"))
+      if(mm==9) load(paste0("RData/prediction/prediction",storm,"_LM4_subtractpw.RData"))
+
       NAM_pred <- data.frame(NAM_pred$x, NAM_pred$y, NAM_pred$value)
       ST4_pred <- cbind(ST4_pred$x, ST4_pred$y, ST4_pred$value)
       colnames(NAM_pred) <- c("x","y","value")
@@ -171,8 +187,8 @@ for (basin in basins) {
       obs_df <- rasterToPoints(ST4_r * mask_SC)[,3]
       
       # Obtain log score from each of the 4 sampling schemes for theta
-      if(mm==9) all_scores <- log_score_straw(theta_pred, obs_df, nam_df)
-      if(mm!=9) all_scores <- log_score(theta_pred, my_dist_mtx, obs_df, nam_df)
+      if(mm==5) all_scores <- log_score_straw(theta_pred, obs_df, nam_df)
+      if(mm!=5) all_scores <- log_score(theta_pred, my_dist_mtx, obs_df, nam_df)
       log_scores_marf[basin,mm] <- meanOrig(all_scores)
       log_scores_sum_marf[basin,mm] <- sum(all_scores)
       
@@ -187,7 +203,7 @@ for (basin in basins) {
     # get bandwidths and y-limits
     bws <- ylims <- probs_i <- probs_s <- probs_t <- c()
     for (mm in 1:nM) {
-      
+      if(mm %in% models_to_skip){next}
       bws[mm] <- (4*sd(sum_sq_rains[,mm])^5/(3*Ngen))^0.2
       ylims[mm] <-  max(density(sum_sq_rains[,mm], bw = bws[mm])$y)
       
@@ -218,9 +234,10 @@ for (basin in basins) {
     
     # plot the histograms
     for (mm in 1:nM) {
+      if(mm %in% models_to_skip){next}
       hist(sum_sq_rains[,mm], main=paste0("total mm precip,\n model ",mm," storm ", storm, ": ", name,
                                           "\n probs (int & sum & trap): \n", probs_i[mm], ", ", probs_s[mm],", ", probs_t[mm]),
-           xlim = range(c(sum_sq_rains, ST4_l_sq+100), na.rm = T), prob = T, ylim = c(0, max(ylims)))
+           xlim = range(c(sum_sq_rains, ST4_l_sq+100), na.rm = T), prob = T, ylim = c(0, max(ylims, na.rm = T)))
       # lines(density(sum_sq_rains[,m], bw = bws[m]))
       abline(v=NAM_l_sq, col="green")
       abline(v=ST4_l_sq, col="blue")
@@ -231,12 +248,13 @@ for (basin in basins) {
     # plot the kernel density estimation
     par(mfrow=c(2,3))
     for (mm in 1:nM) {
+      if(mm %in% models_to_skip){next}
       my_dens <- density(sum_sq_rains[,mm], bw = bws[mm], n = 2048)
       pred_val_dens <- my_dens$y[ which(abs(my_dens$x - ST4_l_sq) == min(abs(my_dens$x - ST4_l_sq)))]
       plot(my_dens$x, my_dens$y, type="l", main=paste0("total mm precip,\n model ",mm," storm ", storm, ": ", name,
                                                        "\n probs (int & sum & trap): \n", probs_i[mm], ", ", probs_s[mm],", ", probs_t[mm],
                                                        "\n pred dens val =", round(pred_val_dens,6)),
-           xlim = range(c(sum_sq_rains, ST4_l_sq+100), na.rm = T), ylim = c(0, max(ylims)))
+           xlim = range(c(sum_sq_rains, ST4_l_sq+100), na.rm = T), ylim = c(0, max(ylims, na.rm = T)))
       abline(v=NAM_l_sq, col="green")
       abline(v=ST4_l_sq, col="blue")
       points(x = c(ST4_l_sq), y= pred_val_dens, type = "p")
@@ -246,13 +264,13 @@ for (basin in basins) {
   
 }
 
-write.csv(cbind(log_scores,bas_locs,coastals), file = paste0("~/NAM-Model-Validation/csv/scores/basinwide/by_region/",state,
+write.csv(cbind(log_scores,bas_locs,coastals), file = paste0("csv/scores/",state,
                                     "_basins_storm",ste,".csv"))
-write.csv(cbind(CRPSs,bas_locs,coastals), file = paste0("~/NAM-Model-Validation/csv/scores/basinwide/by_region/",state,
+write.csv(cbind(CRPSs,bas_locs,coastals), file = paste0("csv/scores/",state,
                                     "_basins_storm",ste,"_CRPSs.csv"))
-write.csv(cbind(log_scores_marf,bas_locs,coastals), file = paste0("~/NAM-Model-Validation/csv/scores/basinwide/by_region/alt/",state,
+write.csv(cbind(log_scores_marf,bas_locs,coastals), file = paste0("csv/scores/alt/",state,
                                          "_basins_storm",ste,"_marf.csv"))
-write.csv(cbind(log_scores_sum_marf,bas_locs,coastals), file = paste0("~/NAM-Model-Validation/csv/scores/basinwide/by_region/altsum/",state,
+write.csv(cbind(log_scores_sum_marf,bas_locs,coastals), file = paste0("csv/scores/altsum/",state,
                                          "_basins_storm",ste,"_sum_marf.csv"))
 
 if(make.pdf) dev.off()
