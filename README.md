@@ -30,8 +30,11 @@ Using the Gibbs sampler output, uncertainty quantification for each test storm i
 ### 5) laplace-metropolis.R (Initial model comparison)
 To compare different versions of the modeling framework (a constant mean across all TCs, landfall-specific means for Atlantic, Florida and Gulf storms, etc), there are multiple versions of the codes marked with a \* above. These will have "", "LM2", "LM3" appended on the end to illustrate a different model was utilized in that script. LM2 performed the best, so we encourage that as a default in this application; see the manuscript for details.
 
-### 6) SC_basins_mm_only.R (Analyze UQ on a basin-wide level)
+### 6) SC_basins_mm_only.R (Obtain UQ on a basin-wide level)
 For each test storm, find a distribution for the total precipitation over a 24 period. Different U.S. states are analyzed depending on the TC landfall location. Log scores are computed.
 
-### 7) NMV_plotting.R (plots)
+### 7) scores_by_basin.R (Calculate log scores)
+To obtain model comparisons, we look at the log scores for each proposed model, and look at the results overall, as well as broken up by region (ATL, FL, GULF) and by whether the basins are coastal or not.
+
+### 8) NMV_plots.R (plots)
 Reproduce the plots found in Walsh et al. (2022).
