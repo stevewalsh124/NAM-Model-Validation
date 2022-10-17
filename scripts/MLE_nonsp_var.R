@@ -3,6 +3,9 @@
 library(pracma) # ::hessian
 library(LaplacesDemon) #:: dmvn
 
+if(!dir.exists("csv/myMLEresults/nonsp/MLEs/")) {dir.create("csv/myMLEresults/nonsp/MLEs/", recursive = T)}
+if(!dir.exists("csv/myMLEresults/nonsp/hessians/")) {dir.create("csv/myMLEresults/nonsp/hessians/", recursive = T)}
+
 # Error fields for each of the 47 training storms
 EF_files <- list.files("csv/error_df_sqrt/subtractPWmeanF/", full.names = T)
 N <- length(EF_files)
@@ -30,7 +33,7 @@ for (i in ste) {
   hessies[i] <- pracma::hessian(f = function(sig2){dmvn(EF, 0, diag(sig2, nrow = length(EF)),
                                                         log = T)}, x0 = sum(EF^2)/length(EF))
   
-  write.csv(my_nonsp_vars[i,1], file=paste0("csv/myMLEs_nonsp/MLEs/",if(i<10){"0"},i,".csv"))
+  write.csv(my_nonsp_vars[i,1], file=paste0("csv/myMLEresults/nonsp/MLEs/",if(i<10){"0"},i,".csv"))
   # write.csv(my_nonsp_vars[i,2], file=paste0("csv/myMLEs_nonsp/MLEs_nonzeromean/",if(i<10){"0"},i,".csv"))
-  write.csv(hessies[i], file=paste0("csv/myMLEs_nonsp/hessians/",if(i<10){"0"},i,".csv"))
+  write.csv(hessies[i], file=paste0("csv/myMLEresults/nonsp/hessians/",if(i<10){"0"},i,".csv"))
 }
