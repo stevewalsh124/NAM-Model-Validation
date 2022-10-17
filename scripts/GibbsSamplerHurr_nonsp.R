@@ -29,7 +29,7 @@ as.square <- function(mat){matrix(mat, nrow=sqrt(length(mat)),ncol=sqrt(length(m
 
 # These are the actual hurricane estimates
 # lambda_hat <- all_storm_res[,c("MLEsigma2","MLEphi")]
-stormMLEfiles <- list.files("csv/myMLEs_nonsp/MLEs/", full.names = T)
+stormMLEfiles <- list.files("csv/myMLEresults/nonsp/MLEs/", full.names = T)
 myMLEs   <- do.call(rbind, lapply(stormMLEfiles, read.csv, row.names = 1))$x
 
 lambda_hat <- myMLEs
@@ -44,7 +44,7 @@ R <- 3 #number of landfall locations (ATL, FL, GULF)
 theta_hat <- log(lambda_hat)
 
 hessians <- list()
-hess_lambda_files <- list.files("csv/myMLEs_nonsp/hessians/", full.names = T)
+hess_lambda_files <- list.files("csv/myMLEresults/nonsp/hessians/", full.names = T)
 
 if(length(hess_lambda_files) != N){stop("number of MLEs != number of Hessians")}
 hessians_lam <- do.call(rbind, lapply(hess_lambda_files, read.csv, row.names = 1))$x
