@@ -19,7 +19,7 @@ This script can also calculate an average error for each grid point across the t
 Here, each error field is read in and the MLEs for the spatial parameters of the exponential covariance function are found, as well as the corresponding Hessian matrix (containing uncertainty information related to the MLEs). This script can be looped in a bash environment to run MLE calculations for each storm simultaneously. These are saved as .csvs. (For the nonspatial case, use `MLEs_nonsp_var.R`.)
 
 ### Optional) aggregate_covmtxs_expntl.R, combine_covmtxs.R and PWmean_post_expntl.R (Posterior calculations related to the pointwise mean)
-We found assuming zero mean outperforms this estimation for this application. This is also computationally intensive, given there are over 26000 grid points when you aggregate all TC landfall locations.)
+Skipping these are suggested; we found assuming zero mean outperforms this estimation for this application. This is also computationally intensive, given there are over 26000 grid points when you aggregate all TC landfall locations.)
 
 ### 3) GibbsSamp_LM2.R (Gibbs sampler\*)
 This takes MLEs and Hessian matrices as inputs and obtains posterior draws via MCMC for each theta_i, as well as mu_theta and Sigma_theta. Details on the modeling are provided in Walsh et al. Output saved as RData.
