@@ -21,6 +21,8 @@ Here, each error field is read in and the MLEs for the spatial parameters of the
 ### Optional) aggregate_covmtxs_expntl.R, combine_covmtxs.R and PWmean_post_expntl.R (Posterior calculations related to the pointwise mean)
 Skipping these are suggested; we found assuming zero mean outperforms this estimation for this application. This is also computationally intensive, given there are over 26000 grid points when you aggregate all TC landfall locations.)
 
+*: Indicates that different script variants exist for the different implemented models.
+
 ### 3) GibbsSamp_LM2.R (Gibbs sampler\*)
 This takes MLEs and Hessian matrices as inputs and obtains posterior draws via MCMC for each theta_i, as well as mu_theta and Sigma_theta. Details on the modeling are provided in Walsh et al. Output saved as RData.
 
